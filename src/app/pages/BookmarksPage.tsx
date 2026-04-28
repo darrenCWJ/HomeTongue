@@ -5,7 +5,7 @@ import { speakText, playDataUrl } from "../../hooks/useElevenLabs";
 import { toast } from "sonner";
 
 export function BookmarksPage() {
-  const { phrases, toggleBookmark, sessions } = useAppContext();
+  const { phrases, toggleBookmark, sessions, userProfile } = useAppContext();
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -15,7 +15,7 @@ export function BookmarksPage() {
     if (playingId) return;
     setPlayingId(phraseId);
     try {
-      await speakText(text);
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       toast.error("Audio playback failed. Check your connection.");
     } finally {
@@ -30,7 +30,7 @@ export function BookmarksPage() {
       if (audioDataUrl) {
         await playDataUrl(audioDataUrl);
       } else if (fallbackText) {
-        await speakText(fallbackText);
+        await speakText(fallbackText, userProfile?.preferredVoiceId);
       }
     } catch {
       toast.error("Audio playback failed.");

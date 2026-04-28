@@ -29,6 +29,7 @@ interface ActiveLevel {
 }
 
 function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" }) {
+  const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlay = async (e: React.MouseEvent) => {
@@ -36,7 +37,7 @@ function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" })
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speakText(text);
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       // silently ignore playback errors
     } finally {
@@ -65,6 +66,7 @@ function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" })
 }
 
 function PlayButtonDark({ text, size = "md" }: { text: string; size?: "sm" | "md" }) {
+  const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlay = async (e: React.MouseEvent) => {
@@ -72,7 +74,7 @@ function PlayButtonDark({ text, size = "md" }: { text: string; size?: "sm" | "md
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speakText(text);
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       // silently ignore playback errors
     } finally {
@@ -103,7 +105,7 @@ function pickRandomVocab(): VocabItem {
 }
 
 export function LearnPage() {
-  const { learnedCount, phrases, lessonProgress } = useAppContext();
+  const { learnedCount, phrases, lessonProgress, userProfile } = useAppContext();
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
 
   const [view, setView] = useState<View>("main");

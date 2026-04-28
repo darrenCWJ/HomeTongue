@@ -1,12 +1,9 @@
 import { useRef } from "react";
+import { DEFAULT_VOICE_ID } from "../constants/voices";
 
 const API_KEY = import.meta.env.VITE_ELEVEN_LABS_API as string;
 const BASE_URL = "https://api.elevenlabs.io/v1";
-
-// Multilingual v2 model handles Cantonese well
 const TTS_MODEL = "eleven_multilingual_v2";
-// Rachel voice — clear, neutral, works well for both English and Cantonese
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
 export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

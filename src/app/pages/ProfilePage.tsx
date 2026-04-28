@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check } from "lucide-react";
+import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Volume2 } from "lucide-react";
 import { useAppContext, Tone } from "../context/AppContext";
+import { VOICES } from "../../constants/voices";
 
 export function ProfilePage() {
   const { dialect, setDialect, tone, setTone, learnedCount, setIsSignedIn, userProfile, updateUserProfile } = useAppContext();
   const [isDialectDropdownOpen, setIsDialectDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
+  const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
 
   const handleNameBlur = () => {
     const trimmed = nameInput.trim();
@@ -202,9 +204,68 @@ export function ProfilePage() {
           </div>
         </section>
 
+        {/* Voice Selector */}
+        <section>
+          <div className="flex items-center gap-2 mb-3 px-2">
+            <Volume2 size={18} className="text-zinc-400" />
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Voice</h2>
+          </div>
+
+          {/* Gender tabs */}
+          <div className="flex bg-zinc-100 rounded-xl p-1 mb-3">
+            {(["female", "male"] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => setVoiceGenderTab(g)}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
+                  voiceGenderTab === g
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-700"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
+            {VOICES.filter((v) => v.gender === voiceGenderTab).map((voice) => {
+              const selected = (userProfile?.preferredVoiceId ?? VOICES[0].id) === voice.id;
+              return (
+                <label key={voice.id} className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className={`font-medium ${selected ? "text-indigo-600" : "text-zinc-800"}`}>
+                        {voice.name}
+                      </h3>
+                      <span className="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-full shrink-0">
+                        {voice.accent}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-0.5">{voice.desc}</p>
+                  </div>
+                  <div className="relative flex items-center justify-center w-6 h-6 ml-4 shrink-0">
+                    <input
+                      type="radio"
+                      name="voice"
+                      value={voice.id}
+                      checked={selected}
+                      onChange={() => updateUserProfile({ preferredVoiceId: voice.id })}
+                      className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-indigo-600 transition-colors cursor-pointer"
+                    />
+                    {selected && (
+                      <div className="absolute w-2.5 h-2.5 bg-indigo-600 rounded-full pointer-events-none" />
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </section>
+
         {/* Sign Out */}
         <div className="pt-4">
-          <button 
+          <button
             onClick={() => setIsSignedIn(false)}
             className="w-full bg-white text-red-500 border border-red-100 font-semibold rounded-2xl py-4 shadow-sm hover:bg-red-50 transition-colors"
           >

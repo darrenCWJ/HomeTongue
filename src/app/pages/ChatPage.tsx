@@ -99,7 +99,7 @@ export function ChatPage() {
         setStage("translating");
         const result = await translate({ text: englishText, preferredTone: tone });
         const variant = result[tone];
-        const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
+        const { audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId);
         const phrase: Phrase = {
           id: Date.now().toString(),
           original: englishText,
@@ -145,7 +145,7 @@ export function ChatPage() {
     try {
       const result = await translate({ text: englishText, preferredTone: tone });
       const variant = result[tone];
-      const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
+      const { audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId);
       const phrase: Phrase = {
         id: Date.now().toString(),
         original: englishText,
@@ -195,7 +195,7 @@ export function ChatPage() {
       if (stored) {
         await playDataUrl(stored);
       } else {
-        await speakText(text);
+        await speakText(text, userProfile?.preferredVoiceId);
       }
     } catch {
       toast.error("Audio playback failed.");
