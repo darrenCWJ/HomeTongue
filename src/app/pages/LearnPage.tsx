@@ -23,6 +23,9 @@ import type { LessonLevel, VocabItem, ConversationTurn } from "../../types";
 
 type View = "main" | "roadmap" | "level";
 
+const personalise = (text: string, name: string | undefined) =>
+  text.replace(/\{\{name\}\}/g, name || "you");
+
 interface ActiveLevel {
   categoryId: string;
   level: LessonLevel;
@@ -244,6 +247,7 @@ export function LearnPage() {
 // ─── DailyReviewModal ─────────────────────────────────────────────────────────
 
 function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => void }) {
+  const { userProfile } = useAppContext();
   const [flipped, setFlipped] = useState(false);
 
   return (
@@ -318,7 +322,7 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
               <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-2">How to use it</p>
               {card.exampleSentence ? (
                 <>
-                  <p className="text-base font-bold text-zinc-800 mb-1">{card.exampleSentence}</p>
+                  <p className="text-base font-bold text-zinc-800 mb-1">{personalise(card.exampleSentence, userProfile?.name)}</p>
                   <p className="text-xs text-zinc-500">Use <span className="font-semibold text-indigo-600">{card.cantonese}</span> ({card.pronunciation}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.</p>
                 </>
               ) : (
@@ -541,6 +545,7 @@ function FlashcardExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
+  const { userProfile } = useAppContext();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const items = level.vocabulary;
@@ -593,7 +598,7 @@ function FlashcardExercise({
               </div>
               <span className="text-lg text-indigo-200 font-mono">{current.pronunciation}</span>
               {current.exampleSentence && (
-                <span className="text-xs text-indigo-100 mt-4 text-center italic">{current.exampleSentence}</span>
+                <span className="text-xs text-indigo-100 mt-4 text-center italic">{personalise(current.exampleSentence, userProfile?.name)}</span>
               )}
             </div>
           </motion.div>
@@ -885,6 +890,7 @@ function FillBlankExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
+  const { userProfile } = useAppContext();
   const itemsWithSentences = level.vocabulary.filter((v) => v.exampleSentence);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -902,7 +908,7 @@ function FillBlankExercise({
   }
 
   const current = itemsWithSentences[index];
-  const sentence = current.exampleSentence ?? "";
+  const sentence = personalise(current.exampleSentence ?? "", userProfile?.name);
 
   const options = React.useMemo(() => {
     const others = level.vocabulary.filter((v) => v.cantonese !== current.cantonese);
