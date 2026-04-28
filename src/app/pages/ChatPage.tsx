@@ -243,7 +243,7 @@ export function ChatPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium hover:bg-indigo-100 transition-colors"
           >
             <Save size={14} />
-            Save
+            Save Conversation
           </button>
         </div>
       </div>
@@ -253,7 +253,7 @@ export function ChatPage() {
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <h2 className="text-xl font-bold text-zinc-800 mb-1">Start Conversation</h2>
           <p className="text-zinc-500 text-sm mb-8 max-w-[300px]">
-            Two people, one phone. Tap the button for whoever is speaking.
+            Everyone takes a turn. Tap the button for whoever is speaking, or type your reply.
           </p>
 
           {/* Direction cards */}
@@ -281,7 +281,7 @@ export function ChatPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             <div className="flex flex-col items-center gap-2">
               <button
                 onClick={startListeningCantonese}
@@ -290,6 +290,15 @@ export function ChatPage() {
                 <Mic size={30} />
               </button>
               <span className="text-xs font-bold text-purple-600">粵 Native</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => setIsTyping(true)}
+                className="flex items-center justify-center w-14 h-14 rounded-full bg-white border-2 border-zinc-300 text-zinc-500 shadow-lg shadow-zinc-100 transition-transform active:scale-95"
+              >
+                <Keyboard size={22} />
+              </button>
+              <span className="text-[10px] font-bold text-zinc-400">Type</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <button
