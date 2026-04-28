@@ -1,13 +1,42 @@
 import React, { useState, useRef } from "react";
-import { Bookmark, Volume2, Search, Filter, History, Play, Pencil, Trash2, Check, X } from "lucide-react";
+import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { speakText, playDataUrl } from "../../hooks/useElevenLabs";
 import { toast } from "sonner";
 
+const CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "greetings", label: "Greetings", keywords: ["greeting", "hello", "meet", "introduction", "farewell", "welcome"] },
+  { id: "food", label: "Food & Dining", keywords: ["food", "eat", "drink", "restaurant", "dining", "hungry", "meal", "order", "cuisine"] },
+  { id: "transport", label: "Transport", keywords: ["transport", "mtr", "station", "train", "bus", "taxi", "travel", "ride", "getting around"] },
+  { id: "shopping", label: "Shopping", keywords: ["shop", "buy", "price", "cost", "pay", "money", "market", "store", "asking price", "purchase"] },
+  { id: "apologies", label: "Apologies", keywords: ["apolog", "sorry", "excuse", "pardon", "forgive"] },
+  { id: "thanks", label: "Thanks", keywords: ["thank", "gratitude", "grateful", "appreciat"] },
+  { id: "weather", label: "Weather", keywords: ["weather", "rain", "sun", "hot", "cold", "wind", "temperature", "climate"] },
+  { id: "directions", label: "Directions", keywords: ["direction", "where", "left", "right", "turn", "street", "road", "lost", "navigate", "location"] },
+  { id: "numbers", label: "Numbers & Time", keywords: ["number", "count", "how many", "how much", "time", "date", "quantity", "amount"] },
+] as const;
+
+type CategoryId = (typeof CATEGORIES)[number]["id"];
+
+function matchCategory(context: string): CategoryId {
+  const lower = context.toLowerCase();
+  for (const cat of CATEGORIES) {
+    if (cat.id === "all") continue;
+    if ("keywords" in cat && cat.keywords.some((kw) => lower.includes(kw))) return cat.id;
+  }
+  return "all";
+}
+
 export function BookmarksPage() {
   const { phrases, toggleBookmark, sessions, userProfile, renameSession, deleteSession } = useAppContext();
-  const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
+
+  const allBookmarked = phrases.filter((p) => p.isBookmarked);
+  const bookmarkedPhrases = selectedCategory === "all"
+    ? allBookmarked
+    : allBookmarked.filter((p) => matchCategory(p.context) === selectedCategory);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -75,7 +104,7 @@ export function BookmarksPage() {
         {/* Tabs */}
         <div className="flex bg-zinc-100 rounded-lg p-1 mb-4">
           <button
-            onClick={() => setActiveTab("phrases")}
+            onClick={() => { setActiveTab("phrases"); setSelectedCategory("all"); }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "phrases" ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
             }`}
@@ -92,20 +121,34 @@ export function BookmarksPage() {
           </button>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2">
-            <Search size={16} className="text-zinc-400" />
-            <input 
-              type="text" 
-              placeholder="Search saved..." 
-              className="bg-transparent border-none outline-none text-sm w-full placeholder-zinc-400"
-            />
-          </div>
-          <button className="p-2 bg-zinc-100 rounded-xl text-zinc-600 hover:bg-zinc-200">
-            <Filter size={18} />
-          </button>
+        {/* Search */}
+        <div className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 mb-3">
+          <Search size={16} className="text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Search saved..."
+            className="bg-transparent border-none outline-none text-sm w-full placeholder-zinc-400"
+          />
         </div>
+
+        {/* Category filter chips — phrases tab only */}
+        {activeTab === "phrases" && (
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  selectedCategory === cat.id
+                    ? "bg-indigo-600 text-white"
+                    : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* List */}
