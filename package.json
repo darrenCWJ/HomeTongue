@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "generate:previews": "node scripts/generate-voice-previews.mjs"
   },
   "dependencies": {
     "react": "18.3.1",
