@@ -7,6 +7,15 @@ import { useAudioRecorder, cloneVoice, deleteClonedVoice } from "../../hooks/use
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
+const VOICE_QUESTIONS = [
+  "What's your name and where are you from?",
+  "Describe what you had for breakfast or lunch today.",
+  "Tell me about someone in your family — what are they like?",
+  "What do you usually do on weekends?",
+  "Describe your favourite food and why you like it.",
+  "What's something you're looking forward to this week?",
+];
+
 export function ProfilePage() {
   const { dialect, setDialect, tone, setTone, learnedCount, setIsSignedIn, userProfile, updateUserProfile } = useAppContext();
   const [isDialectDropdownOpen, setIsDialectDropdownOpen] = useState(false);
@@ -17,6 +26,7 @@ export function ProfilePage() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [isCloning, setIsCloning] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { startRecording, stopRecording } = useAudioRecorder();
 
@@ -43,6 +53,7 @@ export function ProfilePage() {
   const handleStartRecording = async () => {
     setRecordedBlob(null);
     setRecordSeconds(0);
+    setCurrentQuestion(0);
     await startRecording();
     setIsRecording(true);
     timerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
@@ -53,6 +64,14 @@ export function ProfilePage() {
     setIsRecording(false);
     const blob = await stopRecording();
     setRecordedBlob(blob);
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestion < VOICE_QUESTIONS.length - 1) {
+      setCurrentQuestion((q) => q + 1);
+    } else {
+      handleStopRecording();
+    }
   };
 
   const handleCloneVoice = async () => {
@@ -387,20 +406,44 @@ export function ProfilePage() {
                   </button>
                 </div>
               ) : isRecording ? (
-                /* Currently recording */
-                <div className="p-4 text-center">
-                  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3 relative">
-                    <span className="absolute w-full h-full rounded-full bg-red-200 animate-ping opacity-60" />
-                    <Mic size={24} className="text-red-600 relative z-10" />
+                /* Guided interview recording */
+                <div className="p-4">
+                  {/* Progress bar */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                        style={{ width: `${((currentQuestion + 1) / VOICE_QUESTIONS.length) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-zinc-400 shrink-0">{currentQuestion + 1} / {VOICE_QUESTIONS.length}</span>
                   </div>
-                  <p className="font-semibold text-zinc-800 mb-1">Recording… {recordSeconds}s</p>
-                  <p className="text-xs text-zinc-500 mb-4">Speak clearly — aim for at least 30 seconds</p>
+
+                  {/* Mic indicator */}
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <div className="relative w-8 h-8 flex items-center justify-center">
+                      <span className="absolute w-full h-full rounded-full bg-red-200 animate-ping opacity-60" />
+                      <Mic size={16} className="text-red-600 relative z-10" />
+                    </div>
+                    <span className="text-xs font-medium text-red-500">Recording · {recordSeconds}s</span>
+                  </div>
+
+                  {/* Question card */}
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4 min-h-[80px] flex items-center justify-center">
+                    <p className="text-sm font-medium text-indigo-800 text-center leading-relaxed">
+                      {VOICE_QUESTIONS[currentQuestion]}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 text-center mb-4">
+                    Answer out loud, then tap Next when you're done
+                  </p>
+
                   <button
-                    onClick={handleStopRecording}
-                    className="w-full py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                    onClick={handleNextQuestion}
+                    className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
                   >
-                    <MicOff size={16} />
-                    Stop Recording
+                    {currentQuestion < VOICE_QUESTIONS.length - 1 ? "Next Question →" : "Done — Save Recording"}
                   </button>
                 </div>
               ) : (
@@ -410,8 +453,15 @@ export function ProfilePage() {
                     <Mic size={24} className="text-zinc-400" />
                   </div>
                   <p className="font-semibold text-zinc-800 mb-1">Record your voice</p>
-                  <p className="text-xs text-zinc-500 mb-1">Your voice will be cloned and used for all replies.</p>
-                  <p className="text-xs text-zinc-400 mb-4">Speak clearly for at least 30 seconds for best results.</p>
+                  <p className="text-xs text-zinc-500 mb-3">We'll guide you through 6 quick questions. Just answer each one out loud — takes about a minute.</p>
+                  <div className="flex flex-col gap-1.5 mb-4 text-left">
+                    {VOICE_QUESTIONS.map((q, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-indigo-400 mt-0.5 shrink-0">{i + 1}.</span>
+                        <span className="text-xs text-zinc-400 leading-relaxed">{q}</span>
+                      </div>
+                    ))}
+                  </div>
                   <button
                     onClick={handleStartRecording}
                     className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
