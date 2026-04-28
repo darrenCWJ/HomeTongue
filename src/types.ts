@@ -42,6 +42,7 @@ export interface UserProfile {
   personaSummary?: string;
   characteristicPhrases?: string[];
   preferredVoiceId?: string;
+  customVoiceId?: string;
 }
 
 export interface VocabItem {

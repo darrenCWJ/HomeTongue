@@ -130,6 +130,34 @@ export async function speakText(
   });
 }
 
+export async function cloneVoice(blob: Blob, name: string): Promise<string> {
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("files", blob, "voice-sample.webm");
+  formData.append("description", "User recorded voice clone");
+
+  const response = await fetch(`${BASE_URL}/voices/add`, {
+    method: "POST",
+    headers: { "xi-api-key": API_KEY },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Voice cloning failed (${response.status}): ${error}`);
+  }
+
+  const data = await response.json();
+  return data.voice_id as string;
+}
+
+export async function deleteClonedVoice(voiceId: string): Promise<void> {
+  await fetch(`${BASE_URL}/voices/${voiceId}`, {
+    method: "DELETE",
+    headers: { "xi-api-key": API_KEY },
+  });
+}
+
 export function useAudioRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
