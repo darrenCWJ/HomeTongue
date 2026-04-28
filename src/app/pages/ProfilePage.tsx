@@ -190,34 +190,60 @@ export function ProfilePage() {
 
         {/* Settings: Personality / Tone Override */}
         <section>
-          <div className="flex items-center gap-2 mb-3 px-2">
-            <Sliders size={18} className="text-zinc-400" />
-            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Manual Tone Override</h2>
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
-            {tones.map((t) => (
-              <label key={t.value} className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors">
-                <div className="flex-1">
-                  <h3 className={`font-medium ${tone === t.value ? "text-indigo-600" : "text-zinc-800"}`}>
-                    {t.label}
-                  </h3>
-                  <p className="text-xs text-zinc-500 mt-0.5">{t.desc}</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
+            {/* Toggle header */}
+            <div className="flex items-center justify-between p-4 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <Sliders size={18} className="text-zinc-400" />
+                <div>
+                  <p className="text-sm font-semibold text-zinc-800">Manual Tone Override</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {userProfile?.toneOverrideEnabled !== false ? "Using your selected tone" : "Auto — AI decides the tone"}
+                  </p>
                 </div>
-                <div className="relative flex items-center justify-center w-6 h-6 ml-4">
-                  <input
-                    type="radio"
-                    name="tone"
-                    value={t.value}
-                    checked={tone === t.value}
-                    onChange={() => setTone(t.value)}
-                    className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-indigo-600 transition-colors cursor-pointer"
-                  />
-                  {tone === t.value && (
-                    <div className="absolute w-2.5 h-2.5 bg-indigo-600 rounded-full pointer-events-none" />
-                  )}
-                </div>
-              </label>
-            ))}
+              </div>
+              <button
+                onClick={() => updateUserProfile({ toneOverrideEnabled: userProfile?.toneOverrideEnabled === false })}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                  userProfile?.toneOverrideEnabled !== false ? "bg-indigo-600" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                    userProfile?.toneOverrideEnabled !== false ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Tone options — only interactive when override is on */}
+            <div className={`divide-y divide-zinc-100 transition-opacity duration-200 ${
+              userProfile?.toneOverrideEnabled !== false ? "opacity-100" : "opacity-40 pointer-events-none"
+            }`}>
+              {tones.map((t) => (
+                <label key={t.value} className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors">
+                  <div className="flex-1">
+                    <h3 className={`font-medium ${tone === t.value ? "text-indigo-600" : "text-zinc-800"}`}>
+                      {t.label}
+                    </h3>
+                    <p className="text-xs text-zinc-500 mt-0.5">{t.desc}</p>
+                  </div>
+                  <div className="relative flex items-center justify-center w-6 h-6 ml-4">
+                    <input
+                      type="radio"
+                      name="tone"
+                      value={t.value}
+                      checked={tone === t.value}
+                      onChange={() => setTone(t.value)}
+                      className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-indigo-600 transition-colors cursor-pointer"
+                    />
+                    {tone === t.value && (
+                      <div className="absolute w-2.5 h-2.5 bg-indigo-600 rounded-full pointer-events-none" />
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
         </section>
 

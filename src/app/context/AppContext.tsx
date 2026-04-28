@@ -56,7 +56,17 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [dialect, setDialect] = useState("Cantonese");
-  const [tone, setTone] = useState<Tone>("casual");
+  const [tone, setToneState] = useState<Tone>("casual");
+
+  const setTone = (t: Tone) => {
+    setToneState(t);
+    setUserProfile((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, preferredTone: t, updatedAt: new Date().toISOString() };
+      repositories.user.saveProfile(updated);
+      return updated;
+    });
+  };
 
   const [phrases, setPhrases] = useState<Phrase[]>(DEFAULT_PHRASES);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -77,6 +87,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setSessions(s);
       setUserProfile(u);
       setLessonProgress(lp);
+      if (u?.preferredTone) setTone(u.preferredTone);
     });
   }, []);
 

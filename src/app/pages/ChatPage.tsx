@@ -37,6 +37,7 @@ export function ChatPage() {
   }, [messages, stage]);
 
   const isBusy = stage !== null;
+  const effectiveTone = (userProfile?.toneOverrideEnabled !== false) ? tone : "casual";
 
   // After showing a Cantonese message, fetch reply suggestions non-blocking
   const fetchSuggestions = (englishTranslation: string) => {
@@ -97,8 +98,8 @@ export function ChatPage() {
           return;
         }
         setStage("translating");
-        const result = await translate({ text: englishText, preferredTone: tone });
-        const variant = result[tone];
+        const result = await translate({ text: englishText, preferredTone: effectiveTone });
+        const variant = result[effectiveTone];
         const { audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId);
         const phrase: Phrase = {
           id: Date.now().toString(),
@@ -143,8 +144,8 @@ export function ChatPage() {
   const handleReply = async (englishText: string) => {
     setStage("translating");
     try {
-      const result = await translate({ text: englishText, preferredTone: tone });
-      const variant = result[tone];
+      const result = await translate({ text: englishText, preferredTone: effectiveTone });
+      const variant = result[effectiveTone];
       const { audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId);
       const phrase: Phrase = {
         id: Date.now().toString(),

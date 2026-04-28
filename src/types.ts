@@ -34,6 +34,7 @@ export interface UserProfile {
   name: string;
   preferredDialect: string;
   preferredTone: Tone;
+  toneOverrideEnabled: boolean;
   personalityNotes: string;
   conversationCount: number;
   createdAt: string;
