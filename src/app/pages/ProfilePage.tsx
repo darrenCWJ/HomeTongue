@@ -1,13 +1,30 @@
 import React, { useState, useRef, useEffect } from "react";
-import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Volume2 } from "lucide-react";
+import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Volume2, Loader2 } from "lucide-react";
 import { useAppContext, Tone } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
+import { speakText } from "../../hooks/useElevenLabs";
+
+const PREVIEW_TEXT = "你好，好高興認識你！";
 
 export function ProfilePage() {
   const { dialect, setDialect, tone, setTone, learnedCount, setIsSignedIn, userProfile, updateUserProfile } = useAppContext();
   const [isDialectDropdownOpen, setIsDialectDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+
+  const handlePreview = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    if (previewingId) return;
+    setPreviewingId(id);
+    try {
+      await speakText(PREVIEW_TEXT, id);
+    } catch {
+      // ignore preview errors
+    } finally {
+      setPreviewingId(null);
+    }
+  };
 
   const handleNameBlur = () => {
     const trimmed = nameInput.trim();
@@ -244,7 +261,20 @@ export function ProfilePage() {
                     </div>
                     <p className="text-xs text-zinc-500 mt-0.5">{voice.desc}</p>
                   </div>
-                  <div className="relative flex items-center justify-center w-6 h-6 ml-4 shrink-0">
+                  <button
+                    onClick={(e) => handlePreview(e, voice.id)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
+                      previewingId === voice.id
+                        ? "bg-indigo-100"
+                        : "bg-zinc-100 hover:bg-indigo-100"
+                    }`}
+                  >
+                    {previewingId === voice.id
+                      ? <Loader2 size={14} className="text-indigo-500 animate-spin" />
+                      : <Volume2 size={14} className="text-zinc-500" />
+                    }
+                  </button>
+                  <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
                     <input
                       type="radio"
                       name="voice"

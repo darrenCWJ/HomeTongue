@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Globe2, Sparkles, ArrowRight, Volume2, Check } from "lucide-react";
+import { Globe2, Sparkles, ArrowRight, Volume2, Check, Loader2 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
+import { speakText } from "../../hooks/useElevenLabs";
+
+const PREVIEW_TEXT = "你好，好高興認識你！";
 
 type Step = "name" | "voice";
 
@@ -12,6 +15,20 @@ export function OnboardingPage() {
   const [name, setName] = useState("");
   const [voiceId, setVoiceId] = useState(VOICES[0].id);
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+
+  const handlePreview = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (previewingId) return;
+    setPreviewingId(id);
+    try {
+      await speakText(PREVIEW_TEXT, id);
+    } catch {
+      // ignore preview errors
+    } finally {
+      setPreviewingId(null);
+    }
+  };
 
   const handleNameNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +174,19 @@ export function OnboardingPage() {
                           </span>
                         </div>
                         <p className="text-xs text-zinc-500 mt-0.5 truncate">{voice.desc}</p>
+                      </div>
+                      <div
+                        onClick={(e) => handlePreview(e, voice.id)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                          previewingId === voice.id
+                            ? "bg-indigo-100"
+                            : "bg-zinc-100 hover:bg-indigo-100"
+                        }`}
+                      >
+                        {previewingId === voice.id
+                          ? <Loader2 size={14} className="text-indigo-500 animate-spin" />
+                          : <Volume2 size={14} className="text-zinc-500" />
+                        }
                       </div>
                       {selected && (
                         <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center shrink-0">
