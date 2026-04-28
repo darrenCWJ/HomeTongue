@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Globe2, Sparkles, ArrowRight, Volume2, Check, Loader2 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
-import { speakText } from "../../hooks/useElevenLabs";
+import { previewVoice } from "../../utils/voicePreviewCache";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
@@ -22,7 +22,7 @@ export function OnboardingPage() {
     if (previewingId) return;
     setPreviewingId(id);
     try {
-      await speakText(PREVIEW_TEXT, id);
+      await previewVoice(id, PREVIEW_TEXT);
     } catch {
       // ignore preview errors
     } finally {

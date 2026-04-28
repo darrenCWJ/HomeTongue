@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Volume2, Loader2 } from "lucide-react";
 import { useAppContext, Tone } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
-import { speakText } from "../../hooks/useElevenLabs";
+import { previewVoice } from "../../utils/voicePreviewCache";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
@@ -18,7 +18,7 @@ export function ProfilePage() {
     if (previewingId) return;
     setPreviewingId(id);
     try {
-      await speakText(PREVIEW_TEXT, id);
+      await previewVoice(id, PREVIEW_TEXT);
     } catch {
       // ignore preview errors
     } finally {
