@@ -50,7 +50,7 @@ export function SignInPage() {
             <Sparkles size={20} className="text-yellow-400 absolute -top-2 -right-2" />
           </div>
           <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">HomeTongue</h1>
-          <p className="text-indigo-100 text-sm font-medium">Master Cantonese naturally.</p>
+          <p className="text-indigo-100 text-sm font-medium">Master your dialect, naturally.</p>
         </motion.div>
 
         {/* Access Code Card */}

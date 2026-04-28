@@ -61,7 +61,7 @@ export function OnboardingPage() {
             <Sparkles size={16} className="text-yellow-400 absolute -top-2 -right-2" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Welcome to HomeTongue</h1>
-          <p className="text-indigo-200 text-sm mt-1">Let's set up your experience</p>
+          <p className="text-indigo-200 text-sm mt-1">Let's set up your learning journey.</p>
         </motion.div>
 
         {/* Progress dots */}
@@ -88,7 +88,7 @@ export function OnboardingPage() {
             >
               <h2 className="text-xl font-bold text-zinc-800 mb-1">What's your name?</h2>
               <p className="text-zinc-500 text-sm mb-6">
-                This helps personalise your Cantonese learning journey.
+                This helps personalise your learning journey.
               </p>
 
               <form onSubmit={handleNameNext} className="space-y-4">
@@ -127,7 +127,7 @@ export function OnboardingPage() {
                 <h2 className="text-xl font-bold text-zinc-800">Pick your voice</h2>
               </div>
               <p className="text-zinc-500 text-sm mb-5">
-                Choose who reads Cantonese aloud for you.
+                Choose the voice for your learning journey.
               </p>
 
               {/* Gender tabs */}

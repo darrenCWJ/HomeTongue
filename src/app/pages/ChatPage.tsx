@@ -226,7 +226,7 @@ export function ChatPage() {
       <div className="px-4 py-3 border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
         <div>
           <h1 className="font-semibold text-zinc-800">Live Translation</h1>
-          <p className="text-xs text-zinc-500">Cantonese ↔ English</p>
+          <p className="text-xs text-zinc-500">Dialect ↔ English</p>
         </div>
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
@@ -263,7 +263,7 @@ export function ChatPage() {
                 粵
               </div>
               <div>
-                <p className="text-sm font-semibold text-zinc-800">Cantonese speaker talks</p>
+                <p className="text-sm font-semibold text-zinc-800">Native speaker talks</p>
                 <p className="text-xs text-zinc-500 mt-0.5">Their speech → shown in English for you</p>
               </div>
             </div>
@@ -276,7 +276,7 @@ export function ChatPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-zinc-800">You speak English</p>
-                <p className="text-xs text-zinc-500 mt-0.5">Your speech → translated & spoken in Cantonese</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Your speech → translated & spoken in their dialect</p>
               </div>
             </div>
           </div>
@@ -289,7 +289,7 @@ export function ChatPage() {
               >
                 <Mic size={30} />
               </button>
-              <span className="text-xs font-bold text-purple-600">粵 Cantonese</span>
+              <span className="text-xs font-bold text-purple-600">粵 Native</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <button
@@ -484,13 +484,13 @@ export function ChatPage() {
           >
             <div className="text-center mb-8">
               <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 ${listeningMode === "english" ? "bg-indigo-100 text-indigo-700" : "bg-purple-100 text-purple-700"}`}>
-                {listeningMode === "english" ? "EN English speaker" : "粵 Cantonese speaker"}
+                {listeningMode === "english" ? "EN English speaker" : "粵 Native speaker"}
               </div>
               <h3 className="text-2xl font-bold text-zinc-800">Recording...</h3>
               <p className="text-sm text-zinc-500 mt-2">
                 {listeningMode === "english"
-                  ? "Speak in English — will be translated to Cantonese"
-                  : "Cantonese speaker is talking"}
+                  ? "Speak in English — will be translated to their dialect"
+                  : "Native speaker is talking"}
               </p>
             </div>
             <button
@@ -519,7 +519,7 @@ export function ChatPage() {
           >
             <div className="text-center mb-6 w-full">
               <h3 className="text-2xl font-bold text-zinc-800 mb-1">Your reply</h3>
-              <p className="text-sm text-zinc-500">Type in English — it will be spoken in Cantonese</p>
+              <p className="text-sm text-zinc-500">Type in English — it will be spoken in their dialect</p>
             </div>
             <div className="relative w-full max-w-md">
               <input

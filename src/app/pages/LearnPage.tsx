@@ -300,14 +300,14 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
                 >
                   <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">English</span>
                   <span className="text-2xl font-bold text-zinc-800 text-center">{card.english}</span>
-                  <span className="text-xs text-zinc-400 mt-3">Tap to reveal Cantonese</span>
+                  <span className="text-xs text-zinc-400 mt-3">Tap to reveal</span>
                 </div>
                 {/* Back */}
                 <div
                   className="absolute inset-0 bg-indigo-500 rounded-2xl flex flex-col items-center justify-center p-6"
                   style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                 >
-                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Translation</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-3xl font-bold text-white">{card.cantonese}</span>
                     <PlayButton text={card.cantonese} />
@@ -702,7 +702,7 @@ function MatchingExercise({
   return (
     <div className="p-6 flex flex-col gap-4">
       <p className="text-sm text-zinc-500 text-center">
-        Tap English, then its Cantonese match.
+        Tap English, then its dialect match.
       </p>
       <p className="text-xs text-zinc-400 text-center">
         Round {batchIndex + 1} / {totalBatches}

@@ -8,7 +8,7 @@ export interface Voice {
 
 export const VOICES: Voice[] = [
   // Female
-  { id: "n4xdXKggn5lFcXFYE4TA", name: "Chloe Chan", gender: "female", accent: "Hong Kong", desc: "Cantonese mother tongue, friendly" },
+  { id: "n4xdXKggn5lFcXFYE4TA", name: "Chloe Chan", gender: "female", accent: "Hong Kong", desc: "Native Hong Kong, friendly" },
   { id: "xDISamJf8LV5rG5A2te1", name: "Aki",        gender: "female", accent: "Hong Kong", desc: "Deep, mature, sassy" },
   { id: "YxbjaPemDJV2xlfvkiIG", name: "Yun",        gender: "female", accent: "Mandarin",  desc: "Elegant, sweet, gentle" },
   // Male
