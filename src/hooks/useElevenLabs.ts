@@ -14,12 +14,23 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)?.[1] ?? "audio/mpeg";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 export function playDataUrl(dataUrl: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const audio = new Audio(dataUrl);
-    audio.onended = resolve;
-    audio.onerror = () => reject(new Error("Audio playback failed"));
-    audio.play().catch(reject);
+    const objectUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+    const audio = new Audio(objectUrl);
+    const cleanup = () => URL.revokeObjectURL(objectUrl);
+    audio.onended = () => { cleanup(); resolve(); };
+    audio.onerror = () => { cleanup(); reject(new Error("Audio playback failed")); };
+    audio.play().catch((err) => { cleanup(); reject(err); });
   });
 }
 

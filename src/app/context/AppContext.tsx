@@ -41,6 +41,8 @@ interface AppContextType {
   setIsSignedIn: (val: boolean) => void;
   sessions: Session[];
   saveSession: (messages: Message[]) => void;
+  renameSession: (id: string, title: string) => void;
+  deleteSession: (id: string) => void;
   discardChat: (messages: Message[]) => void;
   addTranslation: (originalText: string, phrase: Phrase) => void;
   userProfile: UserProfile | null;
@@ -133,6 +135,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     repositories.conversations.addSession(newSession);
     updatePersonaInBackground(msgs, userProfile);
     setMessages([]);
+  };
+
+  const renameSession = (id: string, title: string) => {
+    setSessions((prev) => {
+      const updated = prev.map((s) => s.id === id ? { ...s, title } : s);
+      const session = updated.find((s) => s.id === id);
+      if (session) repositories.conversations.updateSession(session);
+      return updated;
+    });
+  };
+
+  const deleteSession = (id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    repositories.conversations.deleteSession(id);
   };
 
   const discardChat = (msgs: Message[]) => {
@@ -238,6 +254,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setIsSignedIn,
         sessions,
         saveSession,
+        renameSession,
+        deleteSession,
         discardChat,
         addTranslation,
         userProfile,

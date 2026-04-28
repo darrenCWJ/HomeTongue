@@ -193,10 +193,14 @@ export function ChatPage() {
     try {
       const stored = messages.find((m) => m.id === id)?.audioDataUrl;
       if (stored) {
-        await playDataUrl(stored);
-      } else {
-        await speakText(text, userProfile?.preferredVoiceId);
+        try {
+          await playDataUrl(stored);
+          return;
+        } catch {
+          // cached audio failed, fall through to fresh TTS
+        }
       }
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       toast.error("Audio playback failed.");
     } finally {

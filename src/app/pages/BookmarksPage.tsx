@@ -1,15 +1,42 @@
-import React, { useState } from "react";
-import { Bookmark, Volume2, Search, Filter, History, Play, ChevronDown } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Bookmark, Volume2, Search, Filter, History, Play, Pencil, Trash2, Check, X } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { speakText, playDataUrl } from "../../hooks/useElevenLabs";
 import { toast } from "sonner";
 
 export function BookmarksPage() {
-  const { phrases, toggleBookmark, sessions, userProfile } = useAppContext();
+  const { phrases, toggleBookmark, sessions, userProfile, renameSession, deleteSession } = useAppContext();
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const startEditing = (id: string, currentTitle: string) => {
+    setEditingSessionId(id);
+    setEditingTitle(currentTitle);
+    setTimeout(() => titleInputRef.current?.focus(), 50);
+  };
+
+  const commitTitle = (id: string) => {
+    const trimmed = editingTitle.trim();
+    if (trimmed) renameSession(id, trimmed);
+    setEditingSessionId(null);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    if (confirmDeleteId === id) {
+      deleteSession(id);
+      if (expandedSessionId === id) setExpandedSessionId(null);
+      setConfirmDeleteId(null);
+      toast.success("Conversation deleted.");
+    } else {
+      setConfirmDeleteId(id);
+    }
+  };
 
   const handleSpeak = async (phraseId: string, text: string) => {
     if (playingId) return;
@@ -151,30 +178,96 @@ export function BookmarksPage() {
               return (
                 <div key={session.id} className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
                   {/* Session header */}
-                  <button
-                    onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
+                  <div className="p-4 flex items-center gap-3">
+                    <button
+                      onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0"
+                    >
                       <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
                         <Play size={14} className="ml-0.5" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-zinc-800 text-sm">Conversation</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {editingSessionId === session.id ? (
+                            <input
+                              ref={titleInputRef}
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") commitTitle(session.id);
+                                if (e.key === "Escape") setEditingSessionId(null);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-sm font-semibold text-zinc-800 border-b-2 border-indigo-400 outline-none bg-transparent w-36"
+                            />
+                          ) : (
+                            <p className="font-semibold text-zinc-800 text-sm truncate">
+                              {session.title ?? "Conversation"}
+                            </p>
+                          )}
                           {hasAudio && (
-                            <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full flex-shrink-0">
                               🔊 Audio saved
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-zinc-400">{session.date} · {session.messages.length} messages</p>
                       </div>
+                    </button>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {editingSessionId === session.id ? (
+                        <>
+                          <button
+                            onClick={() => commitTitle(session.id)}
+                            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            onClick={() => setEditingSessionId(null)}
+                            className="p-1.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditing(session.id, session.title ?? "Conversation")}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(session.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              confirmDeleteId === session.id
+                                ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                : "text-zinc-400 hover:bg-zinc-100 hover:text-red-500"
+                            }`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          {confirmDeleteId === session.id && (
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="p-1.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                      <button
+                        onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                        className="text-xs text-indigo-500 font-medium ml-1 px-1"
+                      >
+                        {isExpanded ? "Close" : "Replay"}
+                      </button>
                     </div>
-                    <span className="text-xs text-indigo-500 font-medium">
-                      {isExpanded ? "Close" : "Replay"}
-                    </span>
-                  </button>
+                  </div>
 
                   {/* Expanded replay */}
                   {isExpanded && (

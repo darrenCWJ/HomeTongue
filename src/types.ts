@@ -25,6 +25,7 @@ export interface Message {
 export interface Session {
   id: string;
   date: string;
+  title?: string;
   messages: Message[];
 }
 

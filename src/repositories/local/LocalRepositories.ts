@@ -60,6 +60,14 @@ export class LocalConversationRepository implements IConversationRepository {
   async addSession(session: Session): Promise<void> {
     await db.sessions.put(session);
   }
+
+  async updateSession(session: Session): Promise<void> {
+    await db.sessions.put(session);
+  }
+
+  async deleteSession(id: string): Promise<void> {
+    await db.sessions.delete(id);
+  }
 }
 
 export class LocalUserRepository implements IUserRepository {
