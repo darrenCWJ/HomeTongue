@@ -1,10 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
-import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check } from "lucide-react";
+import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Home, Briefcase } from "lucide-react";
 import { useAppContext, Tone } from "../context/AppContext";
+import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
 
 export function ProfilePage() {
-  const { dialect, setDialect, tone, setTone, learnedCount, setIsSignedIn, userProfile, updateUserProfile } = useAppContext();
+  const {
+    dialect, setDialect, tone, setTone,
+    learnedCount, setIsSignedIn,
+    userProfile, updateUserProfile,
+    activePersona,
+  } = useAppContext();
+
   const [isDialectDropdownOpen, setIsDialectDropdownOpen] = useState(false);
+  const [isJobTitleDropdownOpen, setIsJobTitleDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
 
   const handleNameBlur = () => {
@@ -13,7 +21,9 @@ export function ProfilePage() {
       updateUserProfile({ name: trimmed });
     }
   };
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const jobTitleDropdownRef = useRef<HTMLDivElement>(null);
 
   const dialects = ["Cantonese", "Hokkien", "Teochew", "Hakka"];
 
@@ -22,16 +32,40 @@ export function ProfilePage() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDialectDropdownOpen(false);
       }
+      if (jobTitleDropdownRef.current && !jobTitleDropdownRef.current.contains(event.target as Node)) {
+        setIsJobTitleDropdownOpen(false);
+      }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   const tones: { value: Tone; label: string; desc: string }[] = [
     { value: "formal", label: "Formal & Polite", desc: "For work or speaking with elders" },
     { value: "casual", label: "Casual & Friendly", desc: "For daily conversations with peers" },
     { value: "slang", label: "Street & Slang", desc: "Sound like a true local" },
   ];
+
+  const workProfile = userProfile?.personaProfiles?.work;
+  const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
+  const personaSummary = activePersonaProfile?.personaSummary
+    ?? (activePersona === "personal" ? userProfile?.personaSummary : undefined);
+  const characteristicPhrases = activePersonaProfile?.characteristicPhrases
+    ?? (activePersona === "personal" ? userProfile?.characteristicPhrases : undefined);
+
+  const handleSelectPersona = (p: PersonaType) => {
+    updateUserProfile({ activePersona: p });
+  };
+
+  const handleSelectJobTitle = (title: WorkJobTitle) => {
+    updateUserProfile({
+      personaProfiles: {
+        ...userProfile?.personaProfiles,
+        work: { ...workProfile, tone: workProfile?.tone ?? "formal", jobTitle: title },
+      },
+    });
+    setIsJobTitleDropdownOpen(false);
+  };
 
   return (
     <div className="flex flex-col h-full bg-zinc-50 pb-20 overflow-y-auto">
@@ -49,7 +83,7 @@ export function ProfilePage() {
         </h1>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold mt-2 border border-indigo-100 shadow-sm">
           <Brain size={14} />
-          <span>{userProfile?.personaSummary ? "AI Persona Active" : "Persona Building..."}</span>
+          <span>{personaSummary ? "AI Persona Active" : "Persona Building..."}</span>
         </div>
 
         {/* Name input */}
@@ -66,28 +100,108 @@ export function ProfilePage() {
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Persona Switcher */}
+        <section>
+          <div className="flex items-center gap-2 mb-3 px-2">
+            <User size={18} className="text-zinc-400" />
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Active Persona</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleSelectPersona("personal")}
+              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                activePersona === "personal"
+                  ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                  : "bg-white border-zinc-100 hover:border-zinc-300"
+              }`}
+            >
+              <Home size={24} className={activePersona === "personal" ? "text-indigo-600" : "text-zinc-400"} />
+              <span className={`font-semibold text-sm ${activePersona === "personal" ? "text-indigo-700" : "text-zinc-600"}`}>
+                Personal
+              </span>
+              <span className="text-xs text-zinc-400 text-center">Home & family conversations</span>
+            </button>
+            <button
+              onClick={() => handleSelectPersona("work")}
+              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                activePersona === "work"
+                  ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                  : "bg-white border-zinc-100 hover:border-zinc-300"
+              }`}
+            >
+              <Briefcase size={24} className={activePersona === "work" ? "text-indigo-600" : "text-zinc-400"} />
+              <span className={`font-semibold text-sm ${activePersona === "work" ? "text-indigo-700" : "text-zinc-600"}`}>
+                Work
+              </span>
+              <span className="text-xs text-zinc-400 text-center">Professional context</span>
+            </button>
+          </div>
+
+          {/* Job title picker — shown only when Work is active */}
+          {activePersona === "work" && (
+            <div className="mt-3 relative" ref={jobTitleDropdownRef}>
+              <button
+                onClick={() => setIsJobTitleDropdownOpen(!isJobTitleDropdownOpen)}
+                className="w-full bg-white rounded-2xl shadow-sm border border-zinc-100 p-4 flex items-center justify-between hover:bg-zinc-50 transition-colors"
+              >
+                <span className="text-zinc-800 font-medium">
+                  {workProfile?.jobTitle ?? "Select your job title"}
+                </span>
+                <ChevronDown
+                  size={20}
+                  className={`text-zinc-400 transition-transform ${isJobTitleDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isJobTitleDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-zinc-200 overflow-hidden z-20">
+                  {WORK_JOB_TITLES.map((title) => (
+                    <button
+                      key={title}
+                      onClick={() => handleSelectJobTitle(title)}
+                      className={`w-full p-4 flex items-center justify-between hover:bg-indigo-50 transition-colors ${
+                        workProfile?.jobTitle === title ? "bg-indigo-50" : ""
+                      }`}
+                    >
+                      <span className={`font-medium ${workProfile?.jobTitle === title ? "text-indigo-600" : "text-zinc-800"}`}>
+                        {title}
+                      </span>
+                      {workProfile?.jobTitle === title && <Check size={18} className="text-indigo-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* AI Personality Summary */}
         <section>
           <div className="bg-white rounded-3xl shadow-sm border border-indigo-100 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full -mr-10 -mt-10 blur-xl"></div>
             <div className="p-5 relative z-10">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={18} className="text-indigo-500" />
                 <h2 className="font-bold text-zinc-800">AI Vibe Analysis</h2>
               </div>
+              <p className="text-xs text-zinc-400 mb-3">
+                {activePersona === "personal"
+                  ? "Personal persona"
+                  : `Work persona${workProfile?.jobTitle ? ` · ${workProfile.jobTitle}` : ""}`}
+              </p>
 
-              {userProfile?.personaSummary ? (
+              {personaSummary ? (
                 <>
                   <p className="text-sm text-zinc-600 leading-relaxed">
-                    {userProfile.personaSummary}
+                    {personaSummary}
                   </p>
-                  {(userProfile.characteristicPhrases?.length ?? 0) > 0 && (
+                  {(characteristicPhrases?.length ?? 0) > 0 && (
                     <div className="mt-4">
                       <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
                         Your Phrases
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {userProfile.characteristicPhrases!.map((phrase, i) => (
+                        {characteristicPhrases!.map((phrase, i) => (
                           <span
                             key={i}
                             className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-100"
@@ -103,7 +217,7 @@ export function ProfilePage() {
                 <div className="text-center py-6">
                   <Brain size={32} className="text-zinc-200 mx-auto mb-3" />
                   <p className="text-sm text-zinc-400 leading-relaxed">
-                    Your persona will appear here after your first conversation.
+                    Your {activePersona} persona will appear here after your first conversation.
                     <br />
                     It gets smarter after every chat.
                   </p>
@@ -139,7 +253,7 @@ export function ProfilePage() {
               <span className="text-zinc-800 font-medium">{dialect}</span>
               <ChevronDown
                 size={20}
-                className={`text-zinc-400 transition-transform ${isDialectDropdownOpen ? 'rotate-180' : ''}`}
+                className={`text-zinc-400 transition-transform ${isDialectDropdownOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -153,15 +267,13 @@ export function ProfilePage() {
                       setIsDialectDropdownOpen(false);
                     }}
                     className={`w-full p-4 flex items-center justify-between hover:bg-indigo-50 transition-colors ${
-                      dialect === d ? 'bg-indigo-50' : ''
+                      dialect === d ? "bg-indigo-50" : ""
                     }`}
                   >
-                    <span className={`font-medium ${dialect === d ? 'text-indigo-600' : 'text-zinc-800'}`}>
+                    <span className={`font-medium ${dialect === d ? "text-indigo-600" : "text-zinc-800"}`}>
                       {d}
                     </span>
-                    {dialect === d && (
-                      <Check size={18} className="text-indigo-600" />
-                    )}
+                    {dialect === d && <Check size={18} className="text-indigo-600" />}
                   </button>
                 ))}
               </div>
@@ -169,7 +281,7 @@ export function ProfilePage() {
           </div>
         </section>
 
-        {/* Settings: Personality / Tone Override */}
+        {/* Settings: Manual Tone Override */}
         <section>
           <div className="flex items-center gap-2 mb-3 px-2">
             <Sliders size={18} className="text-zinc-400" />
@@ -204,7 +316,7 @@ export function ProfilePage() {
 
         {/* Sign Out */}
         <div className="pt-4">
-          <button 
+          <button
             onClick={() => setIsSignedIn(false)}
             className="w-full bg-white text-red-500 border border-red-100 font-semibold rounded-2xl py-4 shadow-sm hover:bg-red-50 transition-colors"
           >

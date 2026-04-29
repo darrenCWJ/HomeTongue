@@ -1,9 +1,10 @@
-import type { Phrase, Session, UserProfile, LessonProgress } from "../../types";
+import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson } from "../../types";
 import type {
   IPhraseRepository,
   IConversationRepository,
   IUserRepository,
   ILessonRepository,
+  IConversationLessonRepository,
 } from "../interfaces";
 import { db } from "./db";
 
@@ -81,5 +82,19 @@ export class LocalLessonRepository implements ILessonRepository {
 
   async updateProgress(progress: LessonProgress): Promise<void> {
     await db.lessonProgress.put(progress);
+  }
+}
+
+export class LocalConversationLessonRepository implements IConversationLessonRepository {
+  async getAll(): Promise<ConversationLesson[]> {
+    return db.conversationLessons.toArray();
+  }
+
+  async save(lesson: ConversationLesson): Promise<void> {
+    await db.conversationLessons.put(lesson);
+  }
+
+  async update(lesson: ConversationLesson): Promise<void> {
+    await db.conversationLessons.put(lesson);
   }
 }

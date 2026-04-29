@@ -14,14 +14,33 @@ import {
   MessageCircle,
   Volume2,
   Loader2,
+  Mic,
+  MicOff,
+  Trophy,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import { speakText } from "../../hooks/useElevenLabs";
+import { useAudioRecorder } from "../../hooks/useElevenLabs";
+import { speakText } from "../../hooks/useGoogleTTS";
+import { transcribeCantonese } from "../../services/translationService";
 import { motion, AnimatePresence } from "motion/react";
 import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
-import type { LessonLevel, VocabItem, ConversationTurn } from "../../types";
+import { toast } from "sonner";
+import type { LessonLevel, VocabItem, ConversationTurn, ConversationLesson } from "../../types";
 
-type View = "main" | "roadmap" | "level";
+type View = "main" | "roadmap" | "level" | "conversation-lesson" | "exam";
+
+function scoreChineseAccuracy(expected: string, actual: string): number {
+  const CHINESE = /[一-鿿㐀-䶿]/g;
+  const expectedChars = expected.match(CHINESE) ?? [];
+  if (expectedChars.length === 0) return 0;
+  const pool = (actual.match(CHINESE) ?? []).slice();
+  let correct = 0;
+  for (const ch of expectedChars) {
+    const i = pool.indexOf(ch);
+    if (i !== -1) { correct++; pool.splice(i, 1); }
+  }
+  return Math.round((correct / expectedChars.length) * 100);
+}
 
 interface ActiveLevel {
   categoryId: string;
@@ -103,16 +122,24 @@ function pickRandomVocab(): VocabItem {
 }
 
 export function LearnPage() {
-  const { learnedCount, phrases, lessonProgress } = useAppContext();
+  const { learnedCount, phrases, lessonProgress, conversationLessons, updateConversationLesson } = useAppContext();
+  const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
 
   const [view, setView] = useState<View>("main");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<ActiveLevel | null>(null);
   const [dailyCard, setDailyCard] = useState<VocabItem | null>(null);
+  const [activeConversationLesson, setActiveConversationLesson] = useState<ConversationLesson | null>(null);
 
   const activeCategoryTitle =
     LESSON_CATEGORIES.find((c) => c.id === activeCategoryId)?.title ?? activeCategoryId ?? "";
+
+  const completedConvLessons = personalLessons.filter((l) => l.examCompleted).length;
+  const scoredLessons = personalLessons.filter((l) => l.examBestScore !== undefined);
+  const avgScore = scoredLessons.length > 0
+    ? Math.round(scoredLessons.reduce((sum, l) => sum + (l.examBestScore ?? 0), 0) / scoredLessons.length)
+    : null;
 
   const handleSelectCategory = (categoryId: string) => {
     setActiveCategoryId(categoryId);
@@ -133,7 +160,33 @@ export function LearnPage() {
   const handleBackToMain = () => {
     setActiveCategoryId(null);
     setActiveLevel(null);
+    setActiveConversationLesson(null);
     setView("main");
+  };
+
+  const handleSelectConversationLesson = (lesson: ConversationLesson) => {
+    setActiveConversationLesson(lesson);
+    setView("conversation-lesson");
+  };
+
+  const handleStartExam = () => {
+    setView("exam");
+  };
+
+  const handleExamComplete = (score: number) => {
+    if (!activeConversationLesson) return;
+    const passed = score >= 60;
+    const updated: ConversationLesson = {
+      ...activeConversationLesson,
+      examAttempts: activeConversationLesson.examAttempts + 1,
+      examBestScore: activeConversationLesson.examBestScore === undefined
+        ? score
+        : Math.max(activeConversationLesson.examBestScore, score),
+      examCompleted: activeConversationLesson.examCompleted || passed,
+    };
+    updateConversationLesson(updated);
+    setActiveConversationLesson(updated);
+    setView("conversation-lesson");
   };
 
   return (
@@ -153,7 +206,7 @@ export function LearnPage() {
               <p className="text-sm text-zinc-500">Master your saved phrases</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-8">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
                 <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mb-2">
                   <Zap size={20} className="text-orange-500" />
@@ -167,6 +220,23 @@ export function LearnPage() {
                 </div>
                 <span className="text-2xl font-bold text-zinc-800">{learnedCount}</span>
                 <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Phrases Learned</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                  <Trophy size={20} className="text-green-500" />
+                </div>
+                <span className="text-2xl font-bold text-zinc-800">{completedConvLessons}</span>
+                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
+              </div>
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                  <Star size={20} className="text-purple-500" />
+                </div>
+                <span className="text-2xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
+                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Avg Score</span>
               </div>
             </div>
 
@@ -195,7 +265,7 @@ export function LearnPage() {
               <button className="text-xs font-medium text-indigo-600 hover:text-indigo-700">See All</button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 mb-8">
               {LESSON_CATEGORIES.map((cat) => {
                 const lesson = LESSONS.find((l) => l.categoryId === cat.id);
                 const prog = lesson ? lessonProgress[lesson.id] : null;
@@ -214,6 +284,27 @@ export function LearnPage() {
                 );
               })}
             </div>
+
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold text-zinc-800">From Your Conversations</h3>
+            </div>
+
+            {personalLessons.length === 0 ? (
+              <div className="bg-white rounded-2xl p-6 text-center border border-zinc-100 shadow-sm">
+                <BookOpen size={28} className="text-zinc-300 mx-auto mb-2" />
+                <p className="text-sm text-zinc-400">Save a conversation and convert it to a lesson to get started.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {personalLessons.map((cl) => (
+                  <ConversationLessonCard
+                    key={cl.id}
+                    lesson={cl}
+                    onClick={() => handleSelectConversationLesson(cl)}
+                  />
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -232,6 +323,24 @@ export function LearnPage() {
             key="level"
             level={activeLevel.level}
             onBack={handleBackToRoadmap}
+          />
+        )}
+
+        {view === "conversation-lesson" && activeConversationLesson && (
+          <ConversationLessonView
+            key="conversation-lesson"
+            lesson={activeConversationLesson}
+            onBack={handleBackToMain}
+            onStartExam={handleStartExam}
+          />
+        )}
+
+        {view === "exam" && activeConversationLesson && (
+          <ExamView
+            key="exam"
+            lesson={activeConversationLesson}
+            onBack={() => setView("conversation-lesson")}
+            onComplete={handleExamComplete}
           />
         )}
       </AnimatePresence>
@@ -371,6 +480,43 @@ function LessonCard({
         </div>
       </div>
       <ChevronRight size={20} className="text-zinc-300" />
+    </div>
+  );
+}
+
+// ─── ConversationLessonCard ───────────────────────────────────────────────────
+
+function ConversationLessonCard({ lesson, onClick }: { lesson: ConversationLesson; onClick: () => void }) {
+  const statusLabel = lesson.examCompleted
+    ? "Passed"
+    : lesson.examAttempts > 0
+    ? "In Progress"
+    : "Not started";
+  const statusColor = lesson.examCompleted
+    ? "bg-green-100 text-green-700"
+    : lesson.examAttempts > 0
+    ? "bg-orange-100 text-orange-700"
+    : "bg-zinc-100 text-zinc-500";
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-indigo-100 hover:shadow-md"
+    >
+      <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+        <MessageCircle size={20} className="text-indigo-500" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
+        <p className="text-xs text-zinc-500 mb-1.5">{lesson.vocabulary.length} phrases</p>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
+          {lesson.examBestScore !== undefined && (
+            <span className="text-xs text-zinc-400">Best: {lesson.examBestScore}%</span>
+          )}
+        </div>
+      </div>
+      <ChevronRight size={20} className="text-zinc-300 flex-shrink-0" />
     </div>
   );
 }
@@ -1109,6 +1255,480 @@ function ConversationExercise({
         ))}
       </div>
     </div>
+  );
+}
+
+// ─── ConversationLessonView ───────────────────────────────────────────────────
+
+type LessonPhase = "listen" | "flashcard" | "quiz" | "done";
+
+function ConversationLessonView({
+  lesson,
+  onBack,
+  onStartExam,
+}: {
+  lesson: ConversationLesson;
+  onBack: () => void;
+  onStartExam: () => void;
+}) {
+  const [phase, setPhase] = useState<LessonPhase>("listen");
+
+  const vocab = lesson.vocabulary;
+
+  const statusChip = lesson.examCompleted
+    ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Passed</span>
+    : lesson.examAttempts > 0
+    ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">In Progress</span>
+    : null;
+
+  if (phase === "flashcard") {
+    return (
+      <motion.div
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: "100%", opacity: 0 }}
+        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+        className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
+      >
+        <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+          <button onClick={() => setPhase("listen")} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h2 className="font-bold text-lg text-zinc-800 leading-tight">{lesson.title}</h2>
+            <p className="text-xs text-zinc-400">Flashcards — flip to reveal</p>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <ConvFlashcardExercise vocab={vocab} onComplete={() => setPhase("quiz")} />
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (phase === "quiz") {
+    return (
+      <motion.div
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: "100%", opacity: 0 }}
+        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+        className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
+      >
+        <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+          <button onClick={() => setPhase("flashcard")} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h2 className="font-bold text-lg text-zinc-800 leading-tight">{lesson.title}</h2>
+            <p className="text-xs text-zinc-400">Multiple choice</p>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <ConvMultipleChoiceExercise vocab={vocab} onComplete={() => setPhase("done")} />
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
+    >
+      <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+        <button onClick={onBack} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-bold text-lg text-zinc-800 leading-tight truncate">{lesson.title}</h2>
+          <p className="text-xs text-zinc-400">{vocab.length} phrases</p>
+        </div>
+        {statusChip}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {phase === "listen" && (
+          <>
+            <p className="text-xs text-zinc-400 font-medium text-center mb-2">Listen & repeat each phrase</p>
+            {vocab.map((item, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-zinc-400 mb-0.5">{item.english}</p>
+                  <p className="text-xl font-bold text-zinc-800">{item.cantonese}</p>
+                  {item.pronunciation && (
+                    <p className="text-xs font-mono text-indigo-400 mt-0.5">{item.pronunciation}</p>
+                  )}
+                </div>
+                <PlayButtonDark text={item.cantonese} />
+              </div>
+            ))}
+            <button
+              onClick={() => setPhase("flashcard")}
+              className="w-full mt-4 py-3.5 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+            >
+              Continue to Flashcards →
+            </button>
+          </>
+        )}
+
+        {phase === "done" && (
+          <div className="flex flex-col items-center pt-8 pb-4 gap-4">
+            <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
+              <CheckCircle size={40} className="text-indigo-500" />
+            </div>
+            <h3 className="text-xl font-extrabold text-zinc-800">Ready for the Exam!</h3>
+            <p className="text-sm text-zinc-500 text-center max-w-xs">
+              You've completed all practice phases. Take the final exam to earn your score.
+            </p>
+            {lesson.examBestScore !== undefined && (
+              <p className="text-sm text-zinc-400">Your best score: <span className="font-bold text-indigo-600">{lesson.examBestScore}%</span></p>
+            )}
+            <button
+              onClick={onStartExam}
+              className="w-full max-w-xs py-4 bg-indigo-500 text-white font-extrabold rounded-2xl shadow-lg hover:bg-indigo-600 active:scale-95 transition-all text-lg mt-2"
+            >
+              Take Final Exam
+            </button>
+            <button
+              onClick={() => setPhase("listen")}
+              className="text-sm text-zinc-400 hover:text-zinc-600"
+            >
+              Review phrases again
+            </button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── ConvFlashcardExercise ────────────────────────────────────────────────────
+
+function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
+  const [index, setIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const current = vocab[index];
+  const isLast = index === vocab.length - 1;
+
+  if (vocab.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 gap-4">
+        <p className="text-zinc-500 text-sm">No phrases available.</p>
+        <button onClick={onComplete} className="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold">Continue</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center p-6 gap-6">
+      <div className="text-sm text-zinc-400 font-medium">{index + 1} / {vocab.length}</div>
+      <div className="w-full max-w-sm">
+        <div onClick={() => setFlipped((f) => !f)} className="cursor-pointer select-none" style={{ perspective: 1000 }}>
+          <motion.div
+            animate={{ rotateY: flipped ? 180 : 0 }}
+            transition={{ duration: 0.4 }}
+            style={{ transformStyle: "preserve-3d", position: "relative", height: 220 }}
+          >
+            <div className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6" style={{ backfaceVisibility: "hidden" }}>
+              <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">English</span>
+              <span className="text-2xl font-bold text-zinc-800 text-center">{current.english}</span>
+              <span className="text-xs text-zinc-400 mt-4">Tap to reveal</span>
+            </div>
+            <div className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col items-center justify-center p-6" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+              <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-3xl font-bold text-white text-center">{current.cantonese}</span>
+                <PlayButton text={current.cantonese} />
+              </div>
+              {current.pronunciation && <span className="text-base text-indigo-200 font-mono">{current.pronunciation}</span>}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+      <div className="flex gap-3 w-full max-w-sm">
+        {index > 0 && (
+          <button onClick={() => { setIndex((i) => i - 1); setFlipped(false); }} className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all">Back</button>
+        )}
+        <button
+          onClick={() => { if (isLast) { onComplete(); } else { setIndex((i) => i + 1); setFlipped(false); } }}
+          disabled={!flipped}
+          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${flipped ? "bg-indigo-500 text-white hover:bg-indigo-600" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}`}
+        >
+          {isLast ? "Finish" : "Next"}
+        </button>
+      </div>
+      <div className="flex gap-1.5">
+        {vocab.map((_, i) => (
+          <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ConvMultipleChoiceExercise ───────────────────────────────────────────────
+
+function ConvMultipleChoiceExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+
+  if (vocab.length < 2) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 gap-4">
+        <p className="text-zinc-500 text-sm">Not enough phrases for a quiz.</p>
+        <button onClick={onComplete} className="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold">Continue</button>
+      </div>
+    );
+  }
+
+  const current = vocab[index];
+
+  const options = React.useMemo(() => {
+    const others = vocab.filter((_, i) => i !== index);
+    const shuffled = [...others].sort(() => Math.random() - 0.5).slice(0, Math.min(3, others.length));
+    return [...shuffled, current].sort(() => Math.random() - 0.5);
+  }, [index, vocab]);
+
+  const handleSelect = (cantonese: string) => {
+    if (selected !== null) return;
+    setSelected(cantonese);
+    setIsCorrect(cantonese === current.cantonese);
+  };
+
+  const handleNext = () => {
+    if (index + 1 >= vocab.length) { onComplete(); return; }
+    setIndex((i) => i + 1);
+    setSelected(null);
+    setIsCorrect(null);
+  };
+
+  return (
+    <div className="flex flex-col items-center p-6 gap-6">
+      <div className="text-sm text-zinc-400 font-medium">{index + 1} / {vocab.length}</div>
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-zinc-100 p-8 flex flex-col items-center justify-center min-h-[120px]">
+        <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">How do you say…</span>
+        <span className="text-2xl font-bold text-zinc-800 text-center">{current.english}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+        {options.map((opt) => {
+          const isSelected = selected === opt.cantonese;
+          const correct = opt.cantonese === current.cantonese;
+          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-indigo-300";
+          if (selected !== null) {
+            if (correct) style = "bg-green-50 border-green-400 text-green-700";
+            else if (isSelected) style = "bg-red-50 border-red-400 text-red-600";
+          }
+          return (
+            <button key={opt.cantonese} onClick={() => handleSelect(opt.cantonese)} className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all active:scale-95 ${style}`}>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xl font-bold">{opt.cantonese}</span>
+                <PlayButtonDark text={opt.cantonese} size="sm" />
+              </div>
+              {opt.pronunciation && <span className="text-xs font-mono text-zinc-400">{opt.pronunciation}</span>}
+            </button>
+          );
+        })}
+      </div>
+      {selected !== null && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+          <div className={`rounded-2xl p-4 flex items-center gap-3 ${isCorrect ? "bg-green-50" : "bg-red-50"}`}>
+            {isCorrect ? <Check size={20} className="text-green-500" /> : <X size={20} className="text-red-500" />}
+            <p className={`font-bold text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>
+              {isCorrect ? "Correct!" : `Answer: ${current.cantonese}`}
+            </p>
+          </div>
+          <button onClick={handleNext} className="mt-3 w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all">
+            {index + 1 >= vocab.length ? "Finish" : "Next"}
+          </button>
+        </motion.div>
+      )}
+      <div className="flex gap-1.5">
+        {vocab.map((_, i) => (
+          <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ExamView ─────────────────────────────────────────────────────────────────
+
+function ExamView({
+  lesson,
+  onBack,
+  onComplete,
+}: {
+  lesson: ConversationLesson;
+  onBack: () => void;
+  onComplete: (score: number) => void;
+}) {
+  const vocab = lesson.vocabulary;
+  const [index, setIndex] = useState(0);
+  const [scores, setScores] = useState<number[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [itemScore, setItemScore] = useState<number | null>(null);
+  const [finalScore, setFinalScore] = useState<number | null>(null);
+
+  const { startRecording, stopRecording } = useAudioRecorder();
+  const current = vocab[index];
+
+  const handleStartRecording = async () => {
+    try {
+      await startRecording();
+      setIsRecording(true);
+    } catch {
+      toast.error("Microphone access denied.");
+    }
+  };
+
+  const handleStopRecording = async () => {
+    setIsRecording(false);
+    setIsProcessing(true);
+    try {
+      const blob = await stopRecording();
+      const transcribed = await transcribeCantonese(blob);
+      const score = scoreChineseAccuracy(current.cantonese, transcribed);
+      setItemScore(score);
+    } catch {
+      toast.error("Could not process recording. Try again.");
+      setItemScore(0);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleNext = () => {
+    const updatedScores = [...scores, itemScore ?? 0];
+    if (index + 1 >= vocab.length) {
+      const avg = Math.round(updatedScores.reduce((a, b) => a + b, 0) / updatedScores.length);
+      setFinalScore(avg);
+      setScores(updatedScores);
+    } else {
+      setScores(updatedScores);
+      setIndex((i) => i + 1);
+      setItemScore(null);
+    }
+  };
+
+  if (finalScore !== null) {
+    const passed = finalScore >= 60;
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center"
+      >
+        <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${passed ? "bg-green-100" : "bg-red-100"}`}>
+          {passed ? <Trophy size={48} className="text-green-500" /> : <X size={48} className="text-red-500" />}
+        </div>
+        <h2 className="text-3xl font-extrabold text-zinc-800 mb-2">{finalScore}%</h2>
+        <p className={`text-lg font-bold mb-1 ${passed ? "text-green-600" : "text-red-600"}`}>
+          {passed ? "Passed!" : "Not quite"}
+        </p>
+        <p className="text-sm text-zinc-500 mb-8">
+          {passed ? "Great job! This lesson is marked complete." : "You need 60% to pass. Keep practising!"}
+        </p>
+        <button
+          onClick={() => onComplete(finalScore)}
+          className="w-full max-w-xs py-3.5 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+        >
+          Back to Lesson
+        </button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+      className="absolute inset-0 bg-zinc-50 z-30 flex flex-col"
+    >
+      <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+        <button onClick={onBack} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex-1">
+          <h2 className="font-bold text-lg text-zinc-800 leading-tight">Final Exam</h2>
+          <p className="text-xs text-zinc-400">{index + 1} / {vocab.length}</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+        <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 p-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2">Recite this phrase</p>
+          <p className="text-2xl font-bold text-zinc-800 mb-1">{current.cantonese}</p>
+          {current.pronunciation && (
+            <p className="text-sm font-mono text-indigo-400 mb-3">{current.pronunciation}</p>
+          )}
+          <p className="text-sm text-zinc-500 italic">{current.english}</p>
+          <div className="mt-4">
+            <PlayButtonDark text={current.cantonese} />
+          </div>
+        </div>
+
+        {itemScore === null ? (
+          <div className="flex flex-col items-center gap-4">
+            {isProcessing ? (
+              <div className="flex items-center gap-2 text-zinc-500">
+                <Loader2 size={20} className="animate-spin" />
+                <span className="text-sm">Analysing your speech…</span>
+              </div>
+            ) : isRecording ? (
+              <>
+                <button
+                  onClick={handleStopRecording}
+                  className="relative flex items-center justify-center w-24 h-24 rounded-full bg-red-500 text-white shadow-xl shadow-red-200 transition-transform active:scale-95"
+                >
+                  <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
+                  <MicOff size={36} className="relative z-10" />
+                </button>
+                <p className="text-sm text-zinc-500">Recording… tap to stop</p>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleStartRecording}
+                  className="flex items-center justify-center w-24 h-24 rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-200 transition-transform active:scale-95 hover:scale-105"
+                >
+                  <Mic size={36} />
+                </button>
+                <p className="text-sm text-zinc-500">Tap to record your answer</p>
+              </>
+            )}
+          </div>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
+            <div className={`rounded-2xl p-5 flex flex-col items-center gap-2 ${itemScore >= 60 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+              <span className={`text-4xl font-extrabold ${itemScore >= 60 ? "text-green-600" : "text-red-600"}`}>{itemScore}%</span>
+              <span className={`text-sm font-semibold ${itemScore >= 60 ? "text-green-700" : "text-red-700"}`}>
+                {itemScore >= 60 ? "Good!" : "Keep going"}
+              </span>
+            </div>
+            <button
+              onClick={handleNext}
+              className="w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+            >
+              {index + 1 >= vocab.length ? "See Results" : "Next"}
+            </button>
+          </motion.div>
+        )}
+
+        <div className="flex gap-1.5 justify-center">
+          {vocab.map((_, i) => (
+            <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
+          ))}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

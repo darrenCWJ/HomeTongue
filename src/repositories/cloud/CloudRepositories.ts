@@ -1,9 +1,10 @@
-import type { Phrase, Session, UserProfile, LessonProgress } from "../../types";
+import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson } from "../../types";
 import type {
   IPhraseRepository,
   IConversationRepository,
   IUserRepository,
   ILessonRepository,
+  IConversationLessonRepository,
 } from "../interfaces";
 
 const NOT_CONFIGURED =
@@ -44,6 +45,18 @@ export class CloudLessonRepository implements ILessonRepository {
     throw new Error(NOT_CONFIGURED);
   }
   async updateProgress(_progress: LessonProgress): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
+}
+
+export class CloudConversationLessonRepository implements IConversationLessonRepository {
+  async getAll(): Promise<ConversationLesson[]> {
+    throw new Error(NOT_CONFIGURED);
+  }
+  async save(_lesson: ConversationLesson): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
+  async update(_lesson: ConversationLesson): Promise<void> {
     throw new Error(NOT_CONFIGURED);
   }
 }

@@ -34,7 +34,13 @@ export async function getSuggestions(
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string;
   if (!apiKey || apiKey === "your-openai-api-key-here") return [];
 
-  const tone = userProfile?.preferredTone ?? "casual";
+  const activePersona = userProfile?.activePersona ?? "personal";
+  const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
+  const tone = activePersonaProfile?.tone ?? userProfile?.preferredTone ?? "casual";
+  const personaSummary = activePersonaProfile?.personaSummary ?? userProfile?.personaSummary;
+  const characteristicPhrases = activePersonaProfile?.characteristicPhrases ?? userProfile?.characteristicPhrases;
+  const jobTitle = activePersona === "work" ? userProfile?.personaProfiles?.work?.jobTitle : undefined;
+
   const recentHistory = conversationHistory.slice(-6);
 
   const historyText = recentHistory
@@ -43,9 +49,12 @@ export async function getSuggestions(
 
   const userContent = [
     userProfile?.name ? `User name: ${userProfile.name}` : "",
-    userProfile?.personaSummary ? `User persona: ${userProfile.personaSummary}` : "",
-    userProfile?.characteristicPhrases?.length
-      ? `Phrases they commonly use: ${userProfile.characteristicPhrases.join(", ")}`
+    personaSummary ? `User persona: ${personaSummary}` : "",
+    characteristicPhrases?.length
+      ? `Phrases they commonly use: ${characteristicPhrases.join(", ")}`
+      : "",
+    jobTitle
+      ? `The user is speaking in a work context as a ${jobTitle}. Keep suggestions professional and relevant to their role.`
       : "",
     `Tone preference: ${tone}`,
     historyText ? `Recent conversation:\n${historyText}` : "",

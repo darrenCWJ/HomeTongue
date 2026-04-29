@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Phrase, Session, UserProfile, LessonProgress } from "../../types";
+import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson } from "../../types";
 
 interface ProfileRow {
   key: "singleton";
@@ -11,6 +11,7 @@ class HomeTongueDB extends Dexie {
   sessions!: Table<Session, string>;
   profile!: Table<ProfileRow, string>;
   lessonProgress!: Table<LessonProgress, string>;
+  conversationLessons!: Table<ConversationLesson, string>;
 
   constructor() {
     super("hometongue");
@@ -19,6 +20,9 @@ class HomeTongueDB extends Dexie {
       sessions: "id, date",
       profile: "key",
       lessonProgress: "lessonId",
+    });
+    this.version(2).stores({
+      conversationLessons: "id, sessionId",
     });
   }
 }

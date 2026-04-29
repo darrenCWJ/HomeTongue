@@ -4,12 +4,14 @@ import {
   LocalConversationRepository,
   LocalUserRepository,
   LocalLessonRepository,
+  LocalConversationLessonRepository,
 } from "./local/LocalRepositories";
 import {
   CloudPhraseRepository,
   CloudConversationRepository,
   CloudUserRepository,
   CloudLessonRepository,
+  CloudConversationLessonRepository,
 } from "./cloud/CloudRepositories";
 
 function createRepositories(mode: string): Repositories {
@@ -19,6 +21,7 @@ function createRepositories(mode: string): Repositories {
       conversations: new CloudConversationRepository(),
       user: new CloudUserRepository(),
       lessons: new CloudLessonRepository(),
+      conversationLessons: new CloudConversationLessonRepository(),
     };
   }
   return {
@@ -26,6 +29,7 @@ function createRepositories(mode: string): Repositories {
     conversations: new LocalConversationRepository(),
     user: new LocalUserRepository(),
     lessons: new LocalLessonRepository(),
+    conversationLessons: new LocalConversationLessonRepository(),
   };
 }
 

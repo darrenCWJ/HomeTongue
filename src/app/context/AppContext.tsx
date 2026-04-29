@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { repositories } from "../../repositories";
-import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress } from "../../types";
+import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress, ConversationLesson, PersonaType } from "../../types";
 import { updatePersona } from "../../services/personaService";
 
-export type { Tone, Phrase, Message, Session };
+export type { Tone, Phrase, Message, Session, ConversationLesson, PersonaType };
 
 const DEFAULT_PHRASES: Phrase[] = [
   {
@@ -27,6 +27,7 @@ const DEFAULT_PHRASES: Phrase[] = [
 interface AppContextType {
   dialect: string;
   setDialect: (d: string) => void;
+  activePersona: PersonaType;
   tone: Tone;
   setTone: (t: Tone) => void;
   phrases: Phrase[];
@@ -34,35 +35,45 @@ interface AppContextType {
   messages: Message[];
   addMessage: (msg: Message) => void;
   clearMessages: () => void;
-  addBotSuggestions: (transcript: string, suggestions: Phrase[]) => void;
+  addBotSuggestions: (transcript: string, suggestions: Phrase[], messageId?: string) => void;
   learnedCount: number;
   incrementLearned: () => void;
   isSignedIn: boolean;
   setIsSignedIn: (val: boolean) => void;
   sessions: Session[];
-  saveSession: (messages: Message[]) => void;
+  saveSession: (messages: Message[], title: string) => void;
   discardChat: (messages: Message[]) => void;
+  conversationLessons: ConversationLesson[];
+  saveConversationLesson: (lesson: ConversationLesson) => void;
+  updateConversationLesson: (lesson: ConversationLesson) => void;
   addTranslation: (originalText: string, phrase: Phrase) => void;
   userProfile: UserProfile | null;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   lessonProgress: Record<string, LessonProgress>;
   updateLessonProgress: (progress: LessonProgress) => void;
   addPhrase: (phrase: Phrase) => void;
+  updatePhrase: (phrase: Phrase) => void;
+  updateMessage: (id: string, updates: Partial<Message>) => void;
+  removeMessage: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [dialect, setDialect] = useState("Cantonese");
-  const [tone, setTone] = useState<Tone>("casual");
 
   const [phrases, setPhrases] = useState<Phrase[]>(DEFAULT_PHRASES);
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [conversationLessons, setConversationLessons] = useState<ConversationLesson[]>([]);
   const [learnedCount, setLearnedCount] = useState(12);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
+
+  const activePersona: PersonaType = userProfile?.activePersona ?? "personal";
+  const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
+  const tone: Tone = activePersonaProfile?.tone ?? userProfile?.preferredTone ?? "casual";
 
   useEffect(() => {
     Promise.all([
@@ -70,11 +81,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       repositories.conversations.getAll(),
       repositories.user.getProfile(),
       repositories.lessons.getAllProgress(),
-    ]).then(([p, s, u, lp]) => {
+      repositories.conversationLessons.getAll(),
+    ]).then(([p, s, u, lp, cl]) => {
       setPhrases(p);
       setSessions(s);
       setUserProfile(u);
       setLessonProgress(lp);
+      setConversationLessons(cl);
     });
   }, []);
 
@@ -94,7 +107,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const clearMessages = () => setMessages([]);
 
-  const updatePersonaInBackground = (msgs: Message[], profile: UserProfile | null) => {
+  const updatePersonaInBackground = (msgs: Message[], profile: UserProfile | null, persona: PersonaType) => {
     const now = new Date().toISOString();
     const effectiveProfile: UserProfile = profile ?? {
       id: Date.now().toString(),
@@ -110,10 +123,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (result) {
         setUserProfile((prev) => {
           const base = prev ?? effectiveProfile;
+          const existingPersonaProfile = base.personaProfiles?.[persona];
           const updated: UserProfile = {
             ...base,
-            personaSummary: result.personaSummary,
-            characteristicPhrases: result.characteristicPhrases,
+            personaProfiles: {
+              ...base.personaProfiles,
+              [persona]: {
+                ...existingPersonaProfile,
+                personaSummary: result.personaSummary,
+                characteristicPhrases: result.characteristicPhrases,
+                tone: existingPersonaProfile?.tone ?? base.preferredTone ?? "casual",
+              },
+            },
+            ...(persona === "personal" ? {
+              personaSummary: result.personaSummary,
+              characteristicPhrases: result.characteristicPhrases,
+            } : {}),
             updatedAt: new Date().toISOString(),
           };
           repositories.user.saveProfile(updated);
@@ -123,24 +148,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const saveSession = (msgs: Message[]) => {
+  const saveSession = (msgs: Message[], title: string) => {
     const newSession: Session = {
       id: Date.now().toString(),
+      title,
       date: new Date().toLocaleDateString(),
       messages: msgs,
     };
     setSessions((prev) => [newSession, ...prev]);
     repositories.conversations.addSession(newSession);
-    updatePersonaInBackground(msgs, userProfile);
+    updatePersonaInBackground(msgs, userProfile, activePersona);
     setMessages([]);
   };
 
   const discardChat = (msgs: Message[]) => {
-    updatePersonaInBackground(msgs, userProfile);
+    updatePersonaInBackground(msgs, userProfile, activePersona);
     setMessages([]);
   };
 
-  const addBotSuggestions = (transcript: string, suggestions: Phrase[]) => {
+  const addBotSuggestions = (transcript: string, suggestions: Phrase[], messageId?: string) => {
     setPhrases((prev) => {
       const updated = [...prev];
       suggestions.forEach((s) => {
@@ -153,7 +179,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const msg: Message = {
-      id: Date.now().toString(),
+      id: messageId ?? Date.now().toString(),
       sender: "bot",
       text: transcript ? `Translating: "${transcript}"` : "Here are some ways to say that:",
       suggestions,
@@ -205,6 +231,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const setTone = (t: Tone) => {
+    updateUserProfile({
+      preferredTone: t,
+      personaProfiles: {
+        ...userProfile?.personaProfiles,
+        [activePersona]: { ...activePersonaProfile, tone: t },
+      },
+    });
+  };
+
   const updateLessonProgress = (progress: LessonProgress) => {
     setLessonProgress((prev) => ({ ...prev, [progress.lessonId]: progress }));
     repositories.lessons.updateProgress(progress);
@@ -219,11 +255,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updatePhrase = (phrase: Phrase) => {
+    setPhrases((prev) => {
+      const updated = prev.map((p) => (p.id === phrase.id ? phrase : p));
+      repositories.phrases.saveAll(updated);
+      return updated;
+    });
+  };
+
+  const updateMessage = (id: string, updates: Partial<Message>) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
+  };
+
+  const removeMessage = (id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const saveConversationLesson = (lesson: ConversationLesson) => {
+    setConversationLessons((prev) => [...prev, lesson]);
+    repositories.conversationLessons.save(lesson);
+  };
+
+  const updateConversationLesson = (lesson: ConversationLesson) => {
+    setConversationLessons((prev) => prev.map((l) => (l.id === lesson.id ? lesson : l)));
+    repositories.conversationLessons.update(lesson);
+  };
+
   return (
     <AppContext.Provider
       value={{
         dialect,
         setDialect,
+        activePersona,
         tone,
         setTone,
         phrases,
@@ -239,12 +302,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         sessions,
         saveSession,
         discardChat,
+        conversationLessons,
+        saveConversationLesson,
+        updateConversationLesson,
         addTranslation,
         userProfile,
         updateUserProfile,
         lessonProgress,
         updateLessonProgress,
         addPhrase,
+        updatePhrase,
+        updateMessage,
+        removeMessage,
       }}
     >
       {children}

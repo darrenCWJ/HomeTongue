@@ -1,4 +1,4 @@
-import type { Phrase, Session, UserProfile, LessonProgress } from "../types";
+import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson } from "../types";
 
 export interface IPhraseRepository {
   getAll(): Promise<Phrase[]>;
@@ -21,9 +21,16 @@ export interface ILessonRepository {
   updateProgress(progress: LessonProgress): Promise<void>;
 }
 
+export interface IConversationLessonRepository {
+  getAll(): Promise<ConversationLesson[]>;
+  save(lesson: ConversationLesson): Promise<void>;
+  update(lesson: ConversationLesson): Promise<void>;
+}
+
 export interface Repositories {
   phrases: IPhraseRepository;
   conversations: IConversationRepository;
   user: IUserRepository;
   lessons: ILessonRepository;
+  conversationLessons: IConversationLessonRepository;
 }

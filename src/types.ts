@@ -1,5 +1,27 @@
 export type Tone = "formal" | "casual" | "slang";
 
+export type PersonaType = "personal" | "work";
+
+export const WORK_JOB_TITLES = [
+  "Nurse",
+  "Doctor",
+  "Teacher",
+  "Engineer",
+  "Retail Staff",
+  "Construction Worker",
+  "Driver",
+  "Office Worker",
+] as const;
+
+export type WorkJobTitle = typeof WORK_JOB_TITLES[number];
+
+export interface PersonaProfile {
+  personaSummary?: string;
+  characteristicPhrases?: string[];
+  tone: Tone;
+  jobTitle?: WorkJobTitle;
+}
+
 export interface Phrase {
   id: string;
   original: string;
@@ -24,8 +46,21 @@ export interface Message {
 
 export interface Session {
   id: string;
+  title?: string;
   date: string;
   messages: Message[];
+}
+
+export interface ConversationLesson {
+  id: string;
+  sessionId: string;
+  title: string;
+  createdAt: string;
+  vocabulary: VocabItem[];
+  examBestScore?: number;
+  examCompleted: boolean;
+  examAttempts: number;
+  persona?: PersonaType;
 }
 
 export interface UserProfile {
@@ -39,6 +74,8 @@ export interface UserProfile {
   updatedAt: string;
   personaSummary?: string;
   characteristicPhrases?: string[];
+  activePersona?: PersonaType;
+  personaProfiles?: Partial<Record<PersonaType, PersonaProfile>>;
 }
 
 export interface VocabItem {

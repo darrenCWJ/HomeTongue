@@ -1,12 +1,33 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, MicOff, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw } from "lucide-react";
+import { Mic, MicOff, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, BookOpen } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import type { Phrase } from "../../types";
+import type { Phrase, VocabItem, Message } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
-import { useAudioRecorder, speakText, speakTextAndCapture, blobToDataUrl, playDataUrl } from "../../hooks/useElevenLabs";
+import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/useElevenLabs";
+import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import { translate, transcribeCantonese, transcribeEnglish, translateCantoneseToEnglish } from "../../services/translationService";
 import { getSuggestions } from "../../services/suggestionService";
+
+const PUNCT_RE = /[。！？，、；：…!?,;:]/g;
+const hasTwoChinese = (s: string) => (s.match(/[一-鿿㐀-䶿]/g) ?? []).length >= 2;
+
+function extractVocabFromMessages(msgs: Message[]): VocabItem[] {
+  const items: VocabItem[] = [];
+  for (const msg of msgs) {
+    if (msg.sender === "bot" && msg.text && msg.englishTranslation) {
+      msg.text.split(PUNCT_RE).filter(hasTwoChinese).forEach((s) =>
+        items.push({ english: msg.englishTranslation!, cantonese: s.trim(), pronunciation: "" })
+      );
+    }
+    if (msg.sender === "user" && msg.cantoneseText) {
+      msg.cantoneseText.split(PUNCT_RE).filter(hasTwoChinese).forEach((s) =>
+        items.push({ english: msg.text, cantonese: s.trim(), pronunciation: msg.pronunciation ?? "" })
+      );
+    }
+  }
+  return items;
+}
 
 export function ChatPage() {
   const {
@@ -14,13 +35,22 @@ export function ChatPage() {
     tone,
     toggleBookmark,
     addPhrase,
+    updatePhrase,
     messages,
     addMessage,
     addBotSuggestions,
+    updateMessage,
+    removeMessage,
     saveSession,
     discardChat,
     userProfile,
+    saveConversationLesson,
+    activePersona,
   } = useAppContext();
+
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [saveTitle, setSaveTitle] = useState("");
+  const [convertToLesson, setConvertToLesson] = useState(false);
 
   const [listeningMode, setListeningMode] = useState<"english" | "cantonese" | null>(null);
   const isListening = listeningMode !== null;
@@ -28,21 +58,60 @@ export function ChatPage() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [typedReply, setTypedReply] = useState("");
+  const [pendingEnglish, setPendingEnglish] = useState<{
+    text: string;
+    resultPromise: Promise<{ phrase: Phrase; audioDataUrl: string; play: () => Promise<void> }>;
+  } | null>(null);
 
   const { startRecording, stopRecording } = useAudioRecorder();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  type PrefetchResult = { phrase: Phrase; audioDataUrl: string; play: () => Promise<void> };
+  const prefetchCacheRef = useRef<Map<string, Promise<PrefetchResult>>>(new Map());
+
+  type RecordRef = { msgId: string; suggestionMsgId: string | null; mode: "cantonese" | "english"; timestamp: number; fullText: string };
+  const lastRecordRef = useRef<RecordRef | null>(null);
+  const suggestionGenRef = useRef(0);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, stage]);
 
-  const isBusy = stage !== null;
+  const isBusy = stage !== null || pendingEnglish !== null;
 
-  // After showing a Cantonese message, fetch reply suggestions non-blocking
-  const fetchSuggestions = (englishTranslation: string) => {
+  // After showing a Cantonese message, fetch suggestions, remove stale ones, and prefetch TTS
+  const fetchSuggestions = (englishTranslation: string, prevSuggestionMsgId: string | null = null) => {
+    const gen = ++suggestionGenRef.current;
+    const suggestionMsgId = `sug-${Date.now()}`;
+    if (prevSuggestionMsgId) removeMessage(prevSuggestionMsgId);
+    if (lastRecordRef.current) {
+      lastRecordRef.current = { ...lastRecordRef.current, suggestionMsgId };
+    }
     getSuggestions(englishTranslation, messages, userProfile)
       .then((chips) => {
-        if (chips.length > 0) addBotSuggestions("", chips);
+        if (suggestionGenRef.current !== gen) return; // superseded by a newer fetch
+        if (chips.length === 0) return;
+        addBotSuggestions("", chips, suggestionMsgId);
+        chips.forEach((chip) => {
+          const cacheKey = `${chip.original}:${tone}`;
+          if (prefetchCacheRef.current.has(cacheKey)) return;
+          const promise: Promise<PrefetchResult> = translate({ text: chip.original, preferredTone: tone }).then(
+            async (result) => {
+              const variant = result[tone];
+              const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
+              const phrase: Phrase = {
+                id: chip.id,
+                original: chip.original,
+                dialect: variant.text,
+                pronunciation: variant.pronunciation,
+                isBookmarked: false,
+                context: result.context,
+              };
+              return { phrase, audioDataUrl, play };
+            }
+          );
+          prefetchCacheRef.current.set(cacheKey, promise);
+        });
       })
       .catch(() => {});
   };
@@ -81,50 +150,47 @@ export function ChatPage() {
           return;
         }
         setStage("translating");
-        const englishTranslation = await translateCantoneseToEnglish(cantoneseText);
-        addMessage({
-          id: Date.now().toString(),
-          sender: "bot",
-          text: cantoneseText,
-          englishTranslation,
-          audioDataUrl,
-        });
-        fetchSuggestions(englishTranslation);
+        const isAppend =
+          lastRecordRef.current?.mode === "cantonese" &&
+          Date.now() - lastRecordRef.current.timestamp < 60_000;
+        if (isAppend) {
+          const prev = lastRecordRef.current!;
+          const combinedText = `${prev.fullText} ${cantoneseText}`;
+          const englishTranslation = await translateCantoneseToEnglish(combinedText);
+          updateMessage(prev.msgId, { text: combinedText, englishTranslation, audioDataUrl });
+          const prevSuggestionMsgId = prev.suggestionMsgId;
+          lastRecordRef.current = { ...prev, fullText: combinedText, timestamp: Date.now(), suggestionMsgId: null };
+          fetchSuggestions(englishTranslation, prevSuggestionMsgId);
+          toast.info("Added to previous message");
+        } else {
+          const englishTranslation = await translateCantoneseToEnglish(cantoneseText);
+          const msgId = Date.now().toString();
+          addMessage({ id: msgId, sender: "bot", text: cantoneseText, englishTranslation, audioDataUrl });
+          lastRecordRef.current = { msgId, suggestionMsgId: null, mode: "cantonese", timestamp: Date.now(), fullText: cantoneseText };
+          fetchSuggestions(englishTranslation, null);
+        }
       } else {
         const englishText = await transcribeEnglish(blob);
         if (!englishText) {
           toast.error("No speech detected. Please try again.");
           return;
         }
-        setStage("translating");
-        const result = await translate({ text: englishText, preferredTone: tone });
-        const variant = result[tone];
-        const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
-        const phrase: Phrase = {
-          id: Date.now().toString(),
-          original: englishText,
-          dialect: variant.text,
-          pronunciation: variant.pronunciation,
-          isBookmarked: false,
-          context: result.context,
-        };
-        addPhrase(phrase);
-        addMessage({
-          id: phrase.id,
-          sender: "user",
-          text: englishText,
-          cantoneseText: variant.text,
-          pronunciation: variant.pronunciation,
-          audioDataUrl,
+        // Kick off translation + TTS immediately while user reviews the transcript
+        const resultPromise = translate({ text: englishText, preferredTone: tone }).then(async (result) => {
+          const variant = result[tone];
+          const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
+          const phrase: Phrase = {
+            id: Date.now().toString(),
+            original: englishText,
+            dialect: variant.text,
+            pronunciation: variant.pronunciation,
+            isBookmarked: false,
+            context: result.context,
+          };
+          return { phrase, audioDataUrl, play };
         });
-        setPlayingId(phrase.id);
-        try {
-          await play();
-        } catch {
-          // autoplay may be blocked on this platform; audio is saved for manual replay
-        } finally {
-          setPlayingId(null);
-        }
+        setPendingEnglish({ text: englishText, resultPromise });
+        // setStage(null) runs in the finally block; user reviews transcript in the overlay
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -139,28 +205,76 @@ export function ChatPage() {
     setListeningMode(null);
   };
 
-  // Reply flow: English speaker selects/types → translate → TTS → show
-  const handleReply = async (englishText: string) => {
+  const confirmEnglishReply = async () => {
+    if (!pendingEnglish) return;
+    const { text, resultPromise } = pendingEnglish;
+    setPendingEnglish(null);
+    lastRecordRef.current = null;
     setStage("translating");
     try {
-      const result = await translate({ text: englishText, preferredTone: tone });
-      const variant = result[tone];
-      const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
-      const phrase: Phrase = {
-        id: Date.now().toString(),
-        original: englishText,
-        dialect: variant.text,
-        pronunciation: variant.pronunciation,
-        isBookmarked: false,
-        context: result.context,
-      };
+      const { phrase, audioDataUrl, play } = await resultPromise;
+      addPhrase(phrase);
+      addMessage({
+        id: phrase.id,
+        sender: "user",
+        text,
+        cantoneseText: phrase.dialect,
+        pronunciation: phrase.pronunciation,
+        audioDataUrl,
+      });
+      setPlayingId(phrase.id);
+      try {
+        await play();
+      } catch {
+        // autoplay may be blocked on this platform; audio is saved for manual replay
+      } finally {
+        setPlayingId(null);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Translation failed: ${msg}`);
+    } finally {
+      setStage(null);
+    }
+  };
+
+  const cancelEnglishReply = () => {
+    setPendingEnglish(null);
+  };
+
+  // Reply flow: English speaker selects/types → translate → TTS → show
+  // Suggestions are prefetched; cache hit means zero-wait on selection
+  const handleReply = async (englishText: string) => {
+    lastRecordRef.current = null; // chip/typed reply ends the append window
+    setStage("translating");
+    try {
+      const cacheKey = `${englishText}:${tone}`;
+      const cached = prefetchCacheRef.current.get(cacheKey);
+      let phrase: Phrase;
+      let audioDataUrl: string;
+      let play: () => Promise<void>;
+      if (cached) {
+        ({ phrase, audioDataUrl, play } = await cached);
+      } else {
+        const result = await translate({ text: englishText, preferredTone: tone });
+        const variant = result[tone];
+        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text));
+        phrase = {
+          id: Date.now().toString(),
+          original: englishText,
+          dialect: variant.text,
+          pronunciation: variant.pronunciation,
+          isBookmarked: false,
+          context: result.context,
+        };
+      }
       addPhrase(phrase);
       addMessage({
         id: phrase.id,
         sender: "user",
         text: englishText,
-        cantoneseText: variant.text,
-        pronunciation: variant.pronunciation,
+        cantoneseText: phrase.dialect,
+        pronunciation: phrase.pronunciation,
         audioDataUrl,
       });
       setPlayingId(phrase.id);
@@ -204,17 +318,43 @@ export function ChatPage() {
     }
   };
 
-  const handleSaveSession = () => {
+  const openSaveDialog = () => {
     if (messages.length === 0) {
       toast.error("No conversation to save yet.");
       return;
     }
-    saveSession(messages);
-    toast.success("Session saved!");
+    setSaveTitle("");
+    setConvertToLesson(false);
+    setIsSaveDialogOpen(true);
+  };
+
+  const confirmSave = () => {
+    const title = saveTitle.trim();
+    if (!title) return;
+    const sessionId = Date.now().toString();
+    saveSession(messages, title);
+    if (convertToLesson) {
+      const vocab = extractVocabFromMessages(messages);
+      saveConversationLesson({
+        id: sessionId,
+        sessionId,
+        title,
+        createdAt: new Date().toISOString(),
+        vocabulary: vocab,
+        examCompleted: false,
+        examAttempts: 0,
+        persona: "personal",
+      });
+    }
+    setIsSaveDialogOpen(false);
+    toast.success(convertToLesson ? "Saved & added to Learn!" : "Session saved!");
   };
 
   const handleNewChat = () => {
     if (messages.length === 0) return;
+    prefetchCacheRef.current.clear();
+    lastRecordRef.current = null;
+    setPendingEnglish(null);
     discardChat(messages);
   };
 
@@ -239,7 +379,7 @@ export function ChatPage() {
             </button>
           )}
           <button
-            onClick={handleSaveSession}
+            onClick={openSaveDialog}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium hover:bg-indigo-100 transition-colors"
           >
             <Save size={14} />
@@ -547,6 +687,107 @@ export function ChatPage() {
             <button
               onClick={() => setIsTyping(false)}
               className="mt-8 text-zinc-400 font-medium text-sm hover:text-zinc-600"
+            >
+              Cancel
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Save dialog overlay */}
+      <AnimatePresence>
+        {isSaveDialogOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col"
+          >
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-zinc-800 mb-1">Save Conversation</h3>
+              <p className="text-sm text-zinc-500">Give it a title so you can find it later</p>
+            </div>
+
+            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1.5">Title</label>
+            <input
+              type="text"
+              value={saveTitle}
+              onChange={(e) => setSaveTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmSave(); }}
+              placeholder="e.g. Ordering at a restaurant"
+              autoFocus
+              className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-zinc-800 mb-5"
+            />
+
+            {activePersona === "personal" && <button
+              onClick={() => setConvertToLesson((v) => !v)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 mb-6 transition-all ${
+                convertToLesson
+                  ? "border-indigo-400 bg-indigo-50"
+                  : "border-zinc-200 bg-white hover:border-indigo-200"
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${convertToLesson ? "bg-indigo-500" : "bg-zinc-100"}`}>
+                <BookOpen size={18} className={convertToLesson ? "text-white" : "text-zinc-500"} />
+              </div>
+              <div className="text-left flex-1">
+                <p className={`text-sm font-semibold ${convertToLesson ? "text-indigo-700" : "text-zinc-700"}`}>
+                  Convert to Lesson
+                </p>
+                <p className="text-xs text-zinc-400">Practice this conversation in Learn mode</p>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${convertToLesson ? "bg-indigo-500 border-indigo-500" : "border-zinc-300"}`}>
+                {convertToLesson && <div className="w-2 h-2 rounded-full bg-white" />}
+              </div>
+            </button>}
+
+            <button
+              onClick={confirmSave}
+              disabled={!saveTitle.trim()}
+              className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setIsSaveDialogOpen(false)}
+              className="mt-4 text-zinc-400 font-medium text-sm hover:text-zinc-600 text-center"
+            >
+              Cancel
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* English transcript review overlay */}
+      <AnimatePresence>
+        {pendingEnglish && (
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col items-center"
+          >
+            <div className="text-center mb-6 w-full">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 bg-indigo-100 text-indigo-700">
+                EN English speaker
+              </div>
+              <h3 className="text-2xl font-bold text-zinc-800 mb-1">Did you say this?</h3>
+              <p className="text-sm text-zinc-500">Check your recording, then send in Cantonese</p>
+            </div>
+            <div className="w-full max-w-md bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-4 mb-8">
+              <p className="text-lg font-semibold text-zinc-900 text-center">{pendingEnglish.text}</p>
+            </div>
+            <button
+              onClick={confirmEnglishReply}
+              className="w-full max-w-md py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors"
+            >
+              Send in Cantonese
+            </button>
+            <button
+              onClick={cancelEnglishReply}
+              className="mt-4 text-zinc-400 font-medium text-sm hover:text-zinc-600"
             >
               Cancel
             </button>
