@@ -1,14 +1,14 @@
 import { blobToDataUrl } from "./useElevenLabs";
 
-// Loaded from VITE_GOOGLE_API_JSON — must be a valid JSON string on a single line
-// If parsing fails, ensure the value is JSON.stringify'd to one line in .env
-const SERVICE_ACCOUNT = (() => {
-  try {
-    return JSON.parse(import.meta.env.VITE_GOOGLE_API_JSON as string);
-  } catch {
-    throw new Error("VITE_GOOGLE_API_JSON is not valid JSON — ensure the .env value is a single-line JSON string");
-  }
-})();
+let SERVICE_ACCOUNT: Record<string, string> | null = null;
+
+function getServiceAccount(): Record<string, string> {
+  if (SERVICE_ACCOUNT) return SERVICE_ACCOUNT;
+  const raw = import.meta.env.VITE_GOOGLE_API_JSON as string | undefined;
+  if (!raw) throw new Error("VITE_GOOGLE_API_JSON is not set");
+  SERVICE_ACCOUNT = JSON.parse(raw) as Record<string, string>;
+  return SERVICE_ACCOUNT;
+}
 
 const TTS_BASE_URL = "https://texttospeech.googleapis.com/v1";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -93,10 +93,11 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.token;
   }
 
+  const sa = getServiceAccount();
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
-    iss: SERVICE_ACCOUNT.client_email,
+    iss: sa.client_email,
     scope: SCOPE,
     aud: TOKEN_URL,
     exp: now + 3600,
@@ -107,7 +108,7 @@ async function getAccessToken(): Promise<string> {
   const payloadB64 = base64urlEncode(JSON.stringify(payload));
   const signingInput = `${headerB64}.${payloadB64}`;
 
-  const pemContents = (SERVICE_ACCOUNT.private_key as string)
+  const pemContents = (sa.private_key as string)
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
     .replace(/\n/g, "")
