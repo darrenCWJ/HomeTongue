@@ -1,4 +1,5 @@
-import { speakTextAndCapture, playDataUrl } from "../hooks/useElevenLabs";
+import { playDataUrl } from "../hooks/useElevenLabs";
+import { speakTextAndCapture, mapElevenLabsVoice } from "../hooks/useGoogleTTS";
 
 // In-memory cache for the current session (covers API fallback path)
 const sessionCache = new Map<string, string>();
@@ -29,7 +30,7 @@ export async function previewVoice(voiceId: string, text: string): Promise<void>
   }
 
   // 3. Call API, cache result for the rest of the session
-  const { audioDataUrl, play } = await speakTextAndCapture(text, voiceId);
+  const { audioDataUrl, play } = await speakTextAndCapture(text, mapElevenLabsVoice(voiceId));
   sessionCache.set(voiceId, audioDataUrl);
   await play();
 }
