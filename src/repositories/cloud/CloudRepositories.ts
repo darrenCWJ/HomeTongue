@@ -29,6 +29,12 @@ export class CloudConversationRepository implements IConversationRepository {
   async addSession(_session: Session): Promise<void> {
     throw new Error(NOT_CONFIGURED);
   }
+  async updateSession(_session: Session): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
+  async deleteSession(_id: string): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
 }
 
 export class CloudUserRepository implements IUserRepository {

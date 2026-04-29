@@ -3,16 +3,20 @@ import { Outlet, NavLink } from "react-router";
 import { MessageSquare, BookOpen, Bookmark, User } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { SignInPage } from "../pages/SignInPage";
+import { OnboardingPage } from "../pages/OnboardingPage";
 import { Toaster } from "sonner";
 
 export function Layout() {
-  const { isSignedIn } = useAppContext();
+  const { isSignedIn, userProfile } = useAppContext();
+  const needsOnboarding = isSignedIn && !userProfile?.name;
 
   return (
     <div className="flex justify-center bg-zinc-100 min-h-screen">
       <div className="w-full max-w-md bg-white h-screen flex flex-col shadow-2xl relative overflow-hidden">
         {!isSignedIn ? (
           <SignInPage />
+        ) : needsOnboarding ? (
+          <OnboardingPage />
         ) : (
           <>
             {/* Main Content Area */}

@@ -2,7 +2,7 @@ import type { Message, UserProfile, Phrase } from "../types";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 
-const SYSTEM_PROMPT = `You are a conversation assistant helping someone who does not speak Cantonese reply to a Cantonese speaker. Based on what the Cantonese speaker just said (given as an English translation) and the conversation history, suggest 3 natural English phrases the non-Cantonese speaker might want to say in reply.
+const SYSTEM_PROMPT = `You are a conversation assistant helping someone reply to a native dialect speaker. Based on what the native speaker just said (given as an English translation) and the conversation history, suggest 3 natural English phrases the user might want to say in reply.
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
@@ -13,10 +13,10 @@ Return ONLY a JSON array (no markdown, no explanation):
 
 Rules:
 - "english" is a natural English reply phrase
-- "cantonese" is the Cantonese translation using traditional Chinese characters
+- "cantonese" is the dialect translation using traditional Chinese characters
 - "pronunciation" uses Jyutping romanization (e.g. nei5 hou2)
 - "context" is a short usage note (1 sentence)
-- Suggestions must directly respond to what the Cantonese speaker said
+- Suggestions must directly respond to what the native speaker said
 - Match the formality level of the user's profile tone`;
 
 interface SuggestionItem {
@@ -58,7 +58,7 @@ export async function getSuggestions(
       : "",
     `Tone preference: ${tone}`,
     historyText ? `Recent conversation:\n${historyText}` : "",
-    `The Cantonese speaker just said (English translation): "${lastUserMessage}"`,
+    `The native speaker just said (English translation): "${lastUserMessage}"`,
     "Suggest 3 English replies the app owner might say in response, matching their personal voice and style.",
   ]
     .filter(Boolean)

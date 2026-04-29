@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { DEFAULT_VOICE_ID } from "../constants/voices";
 
 const API_KEY = import.meta.env.VITE_ELEVEN_LABS_API as string;
 const BASE_URL = "https://api.elevenlabs.io/v1";
@@ -12,12 +13,23 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)?.[1] ?? "audio/mpeg";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 export function playDataUrl(dataUrl: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const audio = new Audio(dataUrl);
-    audio.onended = resolve;
-    audio.onerror = () => reject(new Error("Audio playback failed"));
-    audio.play().catch(reject);
+    const objectUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+    const audio = new Audio(objectUrl);
+    const cleanup = () => URL.revokeObjectURL(objectUrl);
+    audio.onended = () => { cleanup(); resolve(); };
+    audio.onerror = () => { cleanup(); reject(new Error("Audio playback failed")); };
+    audio.play().catch((err) => { cleanup(); reject(err); });
   });
 }
 
@@ -39,6 +51,34 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
 
   const data = await response.json();
   return (data.text as string).trim();
+}
+
+export async function cloneVoice(blob: Blob, name: string): Promise<string> {
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("files", blob, "voice-sample.webm");
+  formData.append("description", "User recorded voice clone");
+
+  const response = await fetch(`${BASE_URL}/voices/add`, {
+    method: "POST",
+    headers: { "xi-api-key": API_KEY },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Voice cloning failed (${response.status}): ${error}`);
+  }
+
+  const data = await response.json();
+  return data.voice_id as string;
+}
+
+export async function deleteClonedVoice(voiceId: string): Promise<void> {
+  await fetch(`${BASE_URL}/voices/${voiceId}`, {
+    method: "DELETE",
+    headers: { "xi-api-key": API_KEY },
+  });
 }
 
 export function useAudioRecorder() {

@@ -48,6 +48,7 @@ export interface Session {
   id: string;
   title?: string;
   date: string;
+  title?: string;
   messages: Message[];
 }
 
@@ -68,6 +69,7 @@ export interface UserProfile {
   name: string;
   preferredDialect: string;
   preferredTone: Tone;
+  toneOverrideEnabled: boolean;
   personalityNotes: string;
   conversationCount: number;
   createdAt: string;
@@ -76,6 +78,8 @@ export interface UserProfile {
   characteristicPhrases?: string[];
   activePersona?: PersonaType;
   personaProfiles?: Partial<Record<PersonaType, PersonaProfile>>;
+  preferredVoiceId?: string;
+  customVoiceId?: string;
 }
 
 export interface VocabItem {

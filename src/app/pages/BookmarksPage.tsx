@@ -1,22 +1,78 @@
-import React, { useState } from "react";
-import { Bookmark, Volume2, Search, Filter, History, Play, ChevronDown } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 
+const CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "greetings", label: "Greetings", keywords: ["greeting", "hello", "meet", "introduction", "farewell", "welcome"] },
+  { id: "food", label: "Food & Dining", keywords: ["food", "eat", "drink", "restaurant", "dining", "hungry", "meal", "order", "cuisine"] },
+  { id: "transport", label: "Transport", keywords: ["transport", "mtr", "station", "train", "bus", "taxi", "travel", "ride", "getting around"] },
+  { id: "shopping", label: "Shopping", keywords: ["shop", "buy", "price", "cost", "pay", "money", "market", "store", "asking price", "purchase"] },
+  { id: "apologies", label: "Apologies", keywords: ["apolog", "sorry", "excuse", "pardon", "forgive"] },
+  { id: "thanks", label: "Thanks", keywords: ["thank", "gratitude", "grateful", "appreciat"] },
+  { id: "weather", label: "Weather", keywords: ["weather", "rain", "sun", "hot", "cold", "wind", "temperature", "climate"] },
+  { id: "directions", label: "Directions", keywords: ["direction", "where", "left", "right", "turn", "street", "road", "lost", "navigate", "location"] },
+  { id: "numbers", label: "Numbers & Time", keywords: ["number", "count", "how many", "how much", "time", "date", "quantity", "amount"] },
+] as const;
+
+type CategoryId = (typeof CATEGORIES)[number]["id"];
+
+function matchCategory(context: string): CategoryId {
+  const lower = context.toLowerCase();
+  for (const cat of CATEGORIES) {
+    if (cat.id === "all") continue;
+    if ("keywords" in cat && cat.keywords.some((kw) => lower.includes(kw))) return cat.id;
+  }
+  return "all";
+}
+
 export function BookmarksPage() {
-  const { phrases, toggleBookmark, sessions } = useAppContext();
-  const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
+  const { phrases, toggleBookmark, sessions, userProfile, renameSession, deleteSession } = useAppContext();
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
+
+  const allBookmarked = phrases.filter((p) => p.isBookmarked);
+  const bookmarkedPhrases = selectedCategory === "all"
+    ? allBookmarked
+    : allBookmarked.filter((p) => matchCategory(p.context) === selectedCategory);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const startEditing = (id: string, currentTitle: string) => {
+    setEditingSessionId(id);
+    setEditingTitle(currentTitle);
+    setTimeout(() => titleInputRef.current?.focus(), 50);
+  };
+
+  const commitTitle = (id: string) => {
+    const trimmed = editingTitle.trim();
+    if (trimmed) renameSession(id, trimmed);
+    setEditingSessionId(null);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    if (confirmDeleteId === id) {
+      deleteSession(id);
+      if (expandedSessionId === id) setExpandedSessionId(null);
+      setConfirmDeleteId(null);
+      toast.success("Conversation deleted.");
+    } else {
+      setConfirmDeleteId(id);
+    }
+  };
 
   const handleSpeak = async (phraseId: string, text: string) => {
     if (playingId) return;
     setPlayingId(phraseId);
     try {
-      await speakText(text);
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       toast.error("Audio playback failed. Check your connection.");
     } finally {
@@ -31,7 +87,7 @@ export function BookmarksPage() {
       if (audioDataUrl) {
         await playDataUrl(audioDataUrl);
       } else if (fallbackText) {
-        await speakText(fallbackText);
+        await speakText(fallbackText, userProfile?.preferredVoiceId);
       }
     } catch {
       toast.error("Audio playback failed.");
@@ -49,7 +105,7 @@ export function BookmarksPage() {
         {/* Tabs */}
         <div className="flex bg-zinc-100 rounded-lg p-1 mb-4">
           <button
-            onClick={() => setActiveTab("phrases")}
+            onClick={() => { setActiveTab("phrases"); setSelectedCategory("all"); }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "phrases" ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
             }`}
@@ -66,20 +122,34 @@ export function BookmarksPage() {
           </button>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2">
-            <Search size={16} className="text-zinc-400" />
-            <input 
-              type="text" 
-              placeholder="Search saved..." 
-              className="bg-transparent border-none outline-none text-sm w-full placeholder-zinc-400"
-            />
-          </div>
-          <button className="p-2 bg-zinc-100 rounded-xl text-zinc-600 hover:bg-zinc-200">
-            <Filter size={18} />
-          </button>
+        {/* Search */}
+        <div className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 mb-3">
+          <Search size={16} className="text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Search saved..."
+            className="bg-transparent border-none outline-none text-sm w-full placeholder-zinc-400"
+          />
         </div>
+
+        {/* Category filter chips — phrases tab only */}
+        {activeTab === "phrases" && (
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  selectedCategory === cat.id
+                    ? "bg-indigo-600 text-white"
+                    : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* List */}
@@ -152,30 +222,96 @@ export function BookmarksPage() {
               return (
                 <div key={session.id} className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
                   {/* Session header */}
-                  <button
-                    onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
+                  <div className="p-4 flex items-center gap-3">
+                    <button
+                      onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0"
+                    >
                       <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
                         <Play size={14} className="ml-0.5" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-zinc-800 text-sm">Conversation</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {editingSessionId === session.id ? (
+                            <input
+                              ref={titleInputRef}
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") commitTitle(session.id);
+                                if (e.key === "Escape") setEditingSessionId(null);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-sm font-semibold text-zinc-800 border-b-2 border-indigo-400 outline-none bg-transparent w-36"
+                            />
+                          ) : (
+                            <p className="font-semibold text-zinc-800 text-sm truncate">
+                              {session.title ?? "Conversation"}
+                            </p>
+                          )}
                           {hasAudio && (
-                            <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full flex-shrink-0">
                               🔊 Audio saved
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-zinc-400">{session.date} · {session.messages.length} messages</p>
                       </div>
+                    </button>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {editingSessionId === session.id ? (
+                        <>
+                          <button
+                            onClick={() => commitTitle(session.id)}
+                            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            onClick={() => setEditingSessionId(null)}
+                            className="p-1.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditing(session.id, session.title ?? "Conversation")}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(session.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              confirmDeleteId === session.id
+                                ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                : "text-zinc-400 hover:bg-zinc-100 hover:text-red-500"
+                            }`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          {confirmDeleteId === session.id && (
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="p-1.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                      <button
+                        onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                        className="text-xs text-indigo-500 font-medium ml-1 px-1"
+                      >
+                        {isExpanded ? "Close" : "Replay"}
+                      </button>
                     </div>
-                    <span className="text-xs text-indigo-500 font-medium">
-                      {isExpanded ? "Close" : "Replay"}
-                    </span>
-                  </button>
+                  </div>
 
                   {/* Expanded replay */}
                   {isExpanded && (

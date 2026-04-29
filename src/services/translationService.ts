@@ -2,15 +2,15 @@ import type { Tone, TranslationResult } from "../types";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 
-const SYSTEM_PROMPT = `You are a Cantonese dialect translation assistant. When given an English phrase, return ONLY a JSON object (no markdown, no explanation) with this exact structure:
+const SYSTEM_PROMPT = `You are a dialect translation assistant. When given an English phrase, return ONLY a JSON object (no markdown, no explanation) with this exact structure:
 {
   "formal": { "text": "<Traditional Chinese>", "pronunciation": "<Jyutping>" },
   "casual": { "text": "<Traditional Chinese>", "pronunciation": "<Jyutping>" },
   "slang": { "text": "<Traditional Chinese>", "pronunciation": "<Jyutping>" },
-  "predictedResponse": "<A likely Cantonese reply someone would give, in Traditional Chinese>",
+  "predictedResponse": "<A likely reply a native speaker would give, in Traditional Chinese>",
   "context": "<3-5 word usage context in English>"
 }
-Use Traditional Chinese characters for Cantonese (not Mandarin). Provide Jyutping romanization with tone numbers.`;
+Use Traditional Chinese characters (not Mandarin simplified). Provide Jyutping romanization with tone numbers.`;
 
 async function translateWithOpenAI(text: string): Promise<TranslationResult> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
@@ -29,7 +29,7 @@ async function translateWithOpenAI(text: string): Promise<TranslationResult> {
       model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Translate to Cantonese: "${text}"` },
+        { role: "user", content: `Translate to dialect: "${text}"` },
       ],
       temperature: 0.3,
       max_tokens: 400,
@@ -162,7 +162,7 @@ export async function translateCantoneseToEnglish(text: string): Promise<string>
         {
           role: "system",
           content:
-            "Translate the following Cantonese text to natural English. Return only the English translation, nothing else.",
+            "Translate the following dialect text to natural English. Return only the English translation, nothing else.",
         },
         { role: "user", content: text },
       ],

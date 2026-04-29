@@ -42,12 +42,16 @@ function scoreChineseAccuracy(expected: string, actual: string): number {
   return Math.round((correct / expectedChars.length) * 100);
 }
 
+const personalise = (text: string, name: string | undefined) =>
+  text.replace(/\{\{name\}\}/g, name || "you");
+
 interface ActiveLevel {
   categoryId: string;
   level: LessonLevel;
 }
 
 function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" }) {
+  const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlay = async (e: React.MouseEvent) => {
@@ -55,7 +59,7 @@ function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" })
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speakText(text);
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       // silently ignore playback errors
     } finally {
@@ -84,6 +88,7 @@ function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" })
 }
 
 function PlayButtonDark({ text, size = "md" }: { text: string; size?: "sm" | "md" }) {
+  const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlay = async (e: React.MouseEvent) => {
@@ -91,7 +96,7 @@ function PlayButtonDark({ text, size = "md" }: { text: string; size?: "sm" | "md
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speakText(text);
+      await speakText(text, userProfile?.preferredVoiceId);
     } catch {
       // silently ignore playback errors
     } finally {
@@ -122,7 +127,7 @@ function pickRandomVocab(): VocabItem {
 }
 
 export function LearnPage() {
-  const { learnedCount, phrases, lessonProgress, conversationLessons, updateConversationLesson } = useAppContext();
+  const { learnedCount, phrases, lessonProgress, conversationLessons, updateConversationLesson, userProfile } = useAppContext();
   const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
 
@@ -351,6 +356,7 @@ export function LearnPage() {
 // ─── DailyReviewModal ─────────────────────────────────────────────────────────
 
 function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => void }) {
+  const { userProfile } = useAppContext();
   const [flipped, setFlipped] = useState(false);
 
   return (
@@ -403,14 +409,14 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
                 >
                   <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">English</span>
                   <span className="text-2xl font-bold text-zinc-800 text-center">{card.english}</span>
-                  <span className="text-xs text-zinc-400 mt-3">Tap to reveal Cantonese</span>
+                  <span className="text-xs text-zinc-400 mt-3">Tap to reveal</span>
                 </div>
                 {/* Back */}
                 <div
                   className="absolute inset-0 bg-indigo-500 rounded-2xl flex flex-col items-center justify-center p-6"
                   style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                 >
-                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Translation</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-3xl font-bold text-white">{card.cantonese}</span>
                     <PlayButton text={card.cantonese} />
@@ -425,7 +431,7 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
               <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-2">How to use it</p>
               {card.exampleSentence ? (
                 <>
-                  <p className="text-base font-bold text-zinc-800 mb-1">{card.exampleSentence}</p>
+                  <p className="text-base font-bold text-zinc-800 mb-1">{personalise(card.exampleSentence, userProfile?.name)}</p>
                   <p className="text-xs text-zinc-500">Use <span className="font-semibold text-indigo-600">{card.cantonese}</span> ({card.pronunciation}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.</p>
                 </>
               ) : (
@@ -685,6 +691,7 @@ function FlashcardExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
+  const { userProfile } = useAppContext();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const items = level.vocabulary;
@@ -737,7 +744,7 @@ function FlashcardExercise({
               </div>
               <span className="text-lg text-indigo-200 font-mono">{current.pronunciation}</span>
               {current.exampleSentence && (
-                <span className="text-xs text-indigo-100 mt-4 text-center italic">{current.exampleSentence}</span>
+                <span className="text-xs text-indigo-100 mt-4 text-center italic">{personalise(current.exampleSentence, userProfile?.name)}</span>
               )}
             </div>
           </motion.div>
@@ -841,7 +848,7 @@ function MatchingExercise({
   return (
     <div className="p-6 flex flex-col gap-4">
       <p className="text-sm text-zinc-500 text-center">
-        Tap English, then its Cantonese match.
+        Tap English, then its dialect match.
       </p>
       <p className="text-xs text-zinc-400 text-center">
         Round {batchIndex + 1} / {totalBatches}
@@ -1029,6 +1036,7 @@ function FillBlankExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
+  const { userProfile } = useAppContext();
   const itemsWithSentences = level.vocabulary.filter((v) => v.exampleSentence);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -1046,7 +1054,7 @@ function FillBlankExercise({
   }
 
   const current = itemsWithSentences[index];
-  const sentence = current.exampleSentence ?? "";
+  const sentence = personalise(current.exampleSentence ?? "", userProfile?.name);
 
   const options = React.useMemo(() => {
     const others = level.vocabulary.filter((v) => v.cantonese !== current.cantonese);

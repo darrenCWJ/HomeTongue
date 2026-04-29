@@ -40,7 +40,7 @@ export const LESSONS: Lesson[] = [
       // Full vocabulary table — all 32 greetings phrases
       vocabulary: [
         // Level 1 — Basic Greetings
-        { english: "Hello", cantonese: "你好", pronunciation: "nei5 hou2", exampleSentence: "你好，我係Darren。" },
+        { english: "Hello", cantonese: "你好", pronunciation: "nei5 hou2", exampleSentence: "你好，我係{{name}}。" },
         { english: "Hi (informal)", cantonese: "哈囉", pronunciation: "haa1 lo3", exampleSentence: "哈囉！好耐冇見！" },
         { english: "Good morning", cantonese: "早晨", pronunciation: "zou2 san4", exampleSentence: "早晨！食咗早餐未？" },
         { english: "Good afternoon", cantonese: "午安", pronunciation: "ng5 on1", exampleSentence: "午安，你食咗飯未？" },
@@ -59,7 +59,7 @@ export const LESSONS: Lesson[] = [
         { english: "Long time no see", cantonese: "好耐冇見", pronunciation: "hou2 noi6 mou5 gin3" },
         // Level 3 — Introductions
         { english: "What's your name?", cantonese: "你叫咩名？", pronunciation: "nei5 giu3 me1 ming2?", exampleSentence: "你好，你叫咩名？" },
-        { english: "My name is...", cantonese: "我叫...", pronunciation: "ngo5 giu3...", exampleSentence: "我叫阿明，你呢？" },
+        { english: "My name is...", cantonese: "我叫...", pronunciation: "ngo5 giu3...", exampleSentence: "我叫{{name}}，你呢？" },
         { english: "Nice to meet you", cantonese: "好高興認識你", pronunciation: "hou2 gou1 hing3 jing6 sik1 nei5" },
         { english: "Me too", cantonese: "我都係", pronunciation: "ngo5 dou1 hai6" },
         { english: "Where are you from?", cantonese: "你係邊度人？", pronunciation: "nei5 hai6 bin1 dou6 jan4?", exampleSentence: "你係邊度人？香港人？" },
@@ -83,7 +83,7 @@ export const LESSONS: Lesson[] = [
           description: "Learn the 8 core greetings for any time of day",
           exerciseType: "flashcard",
           vocabulary: [
-            { english: "Hello", cantonese: "你好", pronunciation: "nei5 hou2", exampleSentence: "你好，我係Darren。" },
+            { english: "Hello", cantonese: "你好", pronunciation: "nei5 hou2", exampleSentence: "你好，我係{{name}}。" },
             { english: "Hi (informal)", cantonese: "哈囉", pronunciation: "haa1 lo3", exampleSentence: "哈囉！好耐冇見！" },
             { english: "Good morning", cantonese: "早晨", pronunciation: "zou2 san4", exampleSentence: "早晨！食咗早餐未？" },
             { english: "Good afternoon", cantonese: "午安", pronunciation: "ng5 on1", exampleSentence: "午安，你食咗飯未？" },
@@ -116,7 +116,7 @@ export const LESSONS: Lesson[] = [
           exerciseType: "multiple-choice",
           vocabulary: [
             { english: "What's your name?", cantonese: "你叫咩名？", pronunciation: "nei5 giu3 me1 ming2?", exampleSentence: "你好，你叫咩名？" },
-            { english: "My name is...", cantonese: "我叫...", pronunciation: "ngo5 giu3...", exampleSentence: "我叫阿明，你呢？" },
+            { english: "My name is...", cantonese: "我叫...", pronunciation: "ngo5 giu3...", exampleSentence: "我叫{{name}}，你呢？" },
             { english: "Nice to meet you", cantonese: "好高興認識你", pronunciation: "hou2 gou1 hing3 jing6 sik1 nei5" },
             { english: "Me too", cantonese: "我都係", pronunciation: "ngo5 dou1 hai6" },
             { english: "Where are you from?", cantonese: "你係邊度人？", pronunciation: "nei5 hai6 bin1 dou6 jan4?", exampleSentence: "你係邊度人？香港人？" },

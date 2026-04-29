@@ -9,6 +9,8 @@ export interface IPhraseRepository {
 export interface IConversationRepository {
   getAll(): Promise<Session[]>;
   addSession(session: Session): Promise<void>;
+  updateSession(session: Session): Promise<void>;
+  deleteSession(id: string): Promise<void>;
 }
 
 export interface IUserRepository {

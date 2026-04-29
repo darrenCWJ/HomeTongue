@@ -2,7 +2,7 @@ import type { Message, UserProfile } from "../types";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 
-const BASE_SYSTEM_PROMPT = `You are building a user persona profile for a language learning app. The user does not speak Cantonese — they are learning to communicate with Cantonese speakers through an AI translation assistant.
+const BASE_SYSTEM_PROMPT = `You are building a user persona profile for a dialect learning app. The user is learning to communicate with native dialect speakers through an AI translation assistant.
 
 Analyse the user's replies in the conversation provided and merge your observations into the existing persona. Focus on:
 - Communication style (brief/verbose, direct/indirect, question-asker vs statement-maker)
