@@ -1,28 +1,7 @@
 import { blobToDataUrl } from "./useElevenLabs";
 
-let SERVICE_ACCOUNT: Record<string, string> | null = null;
-
-function getServiceAccount(): Record<string, string> {
-  if (SERVICE_ACCOUNT) return SERVICE_ACCOUNT;
-  const raw = import.meta.env.VITE_GOOGLE_API_JSON as string | undefined;
-  if (!raw) throw new Error("VITE_GOOGLE_API_JSON is not set");
-  try {
-    SERVICE_ACCOUNT = JSON.parse(raw) as Record<string, string>;
-  } catch {
-    throw new Error(
-      "VITE_GOOGLE_API_JSON contains invalid JSON. It must be a single-line minified string — multi-line .env values are truncated by dotenv."
-    );
-  }
-  return SERVICE_ACCOUNT;
-}
-
-const TTS_BASE_URL = "https://texttospeech.googleapis.com/v1";
 const LANGUAGE_CODE = "yue-HK";
 
-// ──────────────────────────────────────────────────────────
-// Voice pack — Chirp 3: HD voices for Cantonese (yue-HK)
-// These names match ElevenLabs voice character equivalents
-// ──────────────────────────────────────────────────────────
 export interface GoogleTTSVoice {
   name: string;
   gender: "female" | "male";
@@ -66,12 +45,10 @@ export const GOOGLE_TTS_VOICES = {
 
 export type VoiceKey = keyof typeof GOOGLE_TTS_VOICES;
 
-// Default: Zephyr (Bright, Female) — equivalent to ElevenLabs Rachel
 export const DEFAULT_VOICE: VoiceKey = "zephyr";
 
-// Maps legacy ElevenLabs voice IDs to Google TTS voice keys
 const ELEVENLABS_VOICE_MAP: Record<string, VoiceKey> = {
-  "21m00Tcm4TlvDq8ikWAM": "zephyr", // Rachel → Zephyr (Bright Female)
+  "21m00Tcm4TlvDq8ikWAM": "zephyr",
 };
 
 export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {
@@ -79,105 +56,20 @@ export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {
 }
 
 // ──────────────────────────────────────────────────────────
-// Service account JWT → OAuth2 access token
-// ──────────────────────────────────────────────────────────
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-function base64urlEncode(input: Uint8Array | string): string {
-  const bytes =
-    typeof input === "string" ? new TextEncoder().encode(input) : input;
-  const binary = Array.from(bytes)
-    .map((b) => String.fromCharCode(b))
-    .join("");
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
-
-async function getAccessToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
-    return cachedToken.token;
-  }
-
-  const sa = getServiceAccount();
-  const now = Math.floor(Date.now() / 1000);
-
-  // Self-signed JWT used directly as Bearer token — no OAuth exchange needed.
-  // Audience must be the target API's service URL for Google to accept it.
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: sa.client_email,
-    sub: sa.client_email,
-    aud: TTS_BASE_URL.replace(/\/v\d.*$/, "/"),
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const headerB64 = base64urlEncode(JSON.stringify(header));
-  const payloadB64 = base64urlEncode(JSON.stringify(payload));
-  const signingInput = `${headerB64}.${payloadB64}`;
-
-  const pemContents = (sa.private_key as string)
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\\n/g, "")
-    .replace(/\s/g, "")
-    .trim();
-
-  let binaryDer: Uint8Array;
-  try {
-    binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
-  } catch {
-    throw new Error(
-      `Failed to decode private_key — invalid base64 after stripping headers. ` +
-      `Key length: ${pemContents.length}, ` +
-      `First 20 chars: "${pemContents.slice(0, 20)}", ` +
-      `Contains spaces: ${/\s/.test(pemContents)}, ` +
-      `Contains backslash-n: ${pemContents.includes("\\n")}`
-    );
-  }
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryDer.buffer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    new TextEncoder().encode(signingInput)
-  );
-
-  const jwt = `${signingInput}.${base64urlEncode(new Uint8Array(signature))}`;
-
-  cachedToken = { token: jwt, expiresAt: (now + 3600) * 1000 };
-  return jwt;
-}
-
-// ──────────────────────────────────────────────────────────
-// Core synthesis
+// Core synthesis — proxied through /api/tts to avoid CORS
 // ──────────────────────────────────────────────────────────
 async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob> {
-  const token = await getAccessToken();
   const voiceName = GOOGLE_TTS_VOICES[voiceKey].name;
 
   let res: Response;
   try {
-    res = await fetch(`${TTS_BASE_URL}/text:synthesize`, {
+    res = await fetch("/api/tts", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        input: { text },
-        voice: { languageCode: LANGUAGE_CODE, name: voiceName },
-        audioConfig: { audioEncoding: "MP3" },
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voiceName, languageCode: LANGUAGE_CODE }),
     });
   } catch (e) {
-    throw new Error(`TTS fetch failed (network/CORS): ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(`TTS request failed: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   if (!res.ok) {
@@ -189,6 +81,7 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
   if (!data.audioContent || typeof data.audioContent !== "string") {
     throw new Error(`TTS response missing audioContent: ${JSON.stringify(data).slice(0, 200)}`);
   }
+
   const binary = atob(data.audioContent);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -196,7 +89,7 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
 }
 
 // ──────────────────────────────────────────────────────────
-// Public API — same signatures as the old useElevenLabs TTS
+// Public API
 // ──────────────────────────────────────────────────────────
 export async function speakTextAndCapture(
   text: string,
@@ -209,14 +102,8 @@ export async function speakTextAndCapture(
   const play = () =>
     new Promise<void>((resolve, reject) => {
       const audio = new Audio(audioUrl);
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        reject(new Error("Audio playback failed"));
-      };
+      audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(audioUrl); reject(new Error("Audio playback failed")); };
       audio.play().catch(reject);
     });
 
@@ -232,14 +119,8 @@ export async function speakText(
 
   await new Promise<void>((resolve, reject) => {
     const audio = new Audio(audioUrl);
-    audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
-      resolve();
-    };
-    audio.onerror = () => {
-      URL.revokeObjectURL(audioUrl);
-      reject(new Error("Audio playback failed"));
-    };
+    audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
+    audio.onerror = () => { URL.revokeObjectURL(audioUrl); reject(new Error("Audio playback failed")); };
     audio.play().catch(reject);
   });
 }
