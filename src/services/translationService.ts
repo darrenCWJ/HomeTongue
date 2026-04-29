@@ -19,22 +19,27 @@ async function translateWithOpenAI(text: string): Promise<TranslationResult> {
   const model =
     (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
 
-  const response = await fetch(`${OPENAI_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Translate to dialect: "${text}"` },
-      ],
-      temperature: 0.3,
-      max_tokens: 400,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${OPENAI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Translate to dialect: "${text}"` },
+        ],
+        temperature: 0.3,
+        max_tokens: 400,
+      }),
+    });
+  } catch (e) {
+    throw new Error(`OpenAI fetch failed (network/CORS): ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   if (!response.ok) {
     throw new Error(`OpenAI API error: ${response.status}`);

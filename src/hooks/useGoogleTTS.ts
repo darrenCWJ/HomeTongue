@@ -149,14 +149,19 @@ async function getAccessToken(): Promise<string> {
 
   const jwt = `${signingInput}.${base64urlEncode(new Uint8Array(signature))}`;
 
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt,
+      }),
+    });
+  } catch (e) {
+    throw new Error(`GCP token fetch failed (network/CORS): ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   if (!res.ok) {
     const error = await res.text();
@@ -179,18 +184,23 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
   const token = await getAccessToken();
   const voiceName = GOOGLE_TTS_VOICES[voiceKey].name;
 
-  const res = await fetch(`${TTS_BASE_URL}/text:synthesize`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      input: { text },
-      voice: { languageCode: LANGUAGE_CODE, name: voiceName },
-      audioConfig: { audioEncoding: "MP3" },
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${TTS_BASE_URL}/text:synthesize`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: { text },
+        voice: { languageCode: LANGUAGE_CODE, name: voiceName },
+        audioConfig: { audioEncoding: "MP3" },
+      }),
+    });
+  } catch (e) {
+    throw new Error(`TTS fetch failed (network/CORS): ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   if (!res.ok) {
     const error = await res.text();
