@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+import { createSign } from "crypto";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthesize";
@@ -13,7 +13,7 @@ function base64url(str) {
 }
 
 async function getAccessToken(rawPrivateKey, clientEmail) {
-  // Normalize private key: server env vars often store \n as literal backslash-n
+  // Normalize: server env vars often store \n as literal backslash-n
   const privateKey = rawPrivateKey.replace(/\\n/g, "\n");
 
   const now = Math.floor(Date.now() / 1000);
@@ -22,7 +22,7 @@ async function getAccessToken(rawPrivateKey, clientEmail) {
     base64url(JSON.stringify({ iss: clientEmail, scope: SCOPE, aud: TOKEN_URL, exp: now + 3600, iat: now })),
   ].join(".");
 
-  const sign = crypto.createSign("RSA-SHA256");
+  const sign = createSign("RSA-SHA256");
   sign.update(signingInput);
   const sig = sign
     .sign(privateKey, "base64")
@@ -40,7 +40,7 @@ async function getAccessToken(rawPrivateKey, clientEmail) {
   return (await res.json()).access_token;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
@@ -85,4 +85,4 @@ module.exports = async function handler(req, res) {
     console.error("[api/tts] error:", err);
     return res.status(500).json({ error: err.message || String(err) });
   }
-};
+}
