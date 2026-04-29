@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Bookmark, Volume2, Search, Filter, History, Play, ChevronDown } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import { speakText, playDataUrl } from "../../hooks/useElevenLabs";
+import { playDataUrl } from "../../hooks/useElevenLabs";
+import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 
 export function BookmarksPage() {
