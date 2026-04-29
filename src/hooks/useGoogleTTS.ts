@@ -6,7 +6,13 @@ function getServiceAccount(): Record<string, string> {
   if (SERVICE_ACCOUNT) return SERVICE_ACCOUNT;
   const raw = import.meta.env.VITE_GOOGLE_API_JSON as string | undefined;
   if (!raw) throw new Error("VITE_GOOGLE_API_JSON is not set");
-  SERVICE_ACCOUNT = JSON.parse(raw) as Record<string, string>;
+  try {
+    SERVICE_ACCOUNT = JSON.parse(raw) as Record<string, string>;
+  } catch {
+    throw new Error(
+      "VITE_GOOGLE_API_JSON contains invalid JSON. It must be a single-line minified string — multi-line .env values are truncated by dotenv."
+    );
+  }
   return SERVICE_ACCOUNT;
 }
 

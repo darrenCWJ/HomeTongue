@@ -1,33 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, BookOpen } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import type { Phrase, VocabItem, Message } from "../../types";
+import type { Phrase, Message } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import { translate, transcribeCantonese, transcribeEnglish, translateCantoneseToEnglish } from "../../services/translationService";
 import { getSuggestions } from "../../services/suggestionService";
-
-const PUNCT_RE = /[。！？，、；：…!?,;:]/g;
-const hasTwoChinese = (s: string) => (s.match(/[一-鿿㐀-䶿]/g) ?? []).length >= 2;
-
-function extractVocabFromMessages(msgs: Message[]): VocabItem[] {
-  const items: VocabItem[] = [];
-  for (const msg of msgs) {
-    if (msg.sender === "bot" && msg.text && msg.englishTranslation) {
-      msg.text.split(PUNCT_RE).filter(hasTwoChinese).forEach((s) =>
-        items.push({ english: msg.englishTranslation!, cantonese: s.trim(), pronunciation: "" })
-      );
-    }
-    if (msg.sender === "user" && msg.cantoneseText) {
-      msg.cantoneseText.split(PUNCT_RE).filter(hasTwoChinese).forEach((s) =>
-        items.push({ english: msg.text, cantonese: s.trim(), pronunciation: msg.pronunciation ?? "" })
-      );
-    }
-  }
-  return items;
-}
+import { extractVocabFromMessages } from "../../utils/vocab";
 
 export function ChatPage() {
   const {
@@ -73,6 +54,11 @@ export function ChatPage() {
   const lastRecordRef = useRef<RecordRef | null>(null);
   const suggestionGenRef = useRef(0);
 
+  // Refs so the persona-change effect always calls the latest version without stale closures
+  const fetchSuggestionsRef = useRef<(e: string, prev: string | null) => void>(() => {});
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, stage]);
@@ -115,6 +101,19 @@ export function ChatPage() {
       })
       .catch(() => {});
   };
+
+  // Keep ref current so the effect below always calls the latest closure
+  fetchSuggestionsRef.current = fetchSuggestions;
+
+  // Regenerate suggestions when the user switches persona
+  useEffect(() => {
+    const last = lastRecordRef.current;
+    if (!last || last.mode !== "cantonese") return;
+    const lastMsg = messagesRef.current.find((m) => m.id === last.msgId);
+    if (!lastMsg?.englishTranslation) return;
+    fetchSuggestionsRef.current(lastMsg.englishTranslation, last.suggestionMsgId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePersona]);
 
   const startListeningCantonese = async () => {
     try {

@@ -1,4 +1,4 @@
-import type { Tone, TranslationResult } from "../types";
+import type { Tone, TranslationResult, WordChunk } from "../types";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 
@@ -122,7 +122,7 @@ function translateWithMock(text: string): TranslationResult {
   };
 }
 
-async function transcribeAudio(blob: Blob, language: string): Promise<string> {
+async function transcribeAudio(blob: Blob, language: string | null, prompt?: string): Promise<string> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
   if (!apiKey || apiKey === "your-openai-api-key-here") {
     throw new Error("VITE_OPENAI_API_KEY not configured");
@@ -130,7 +130,8 @@ async function transcribeAudio(blob: Blob, language: string): Promise<string> {
   const formData = new FormData();
   formData.append("file", blob, "recording.webm");
   formData.append("model", "whisper-1");
-  formData.append("language", language);
+  if (language) formData.append("language", language);
+  if (prompt) formData.append("prompt", prompt);
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
@@ -142,7 +143,7 @@ async function transcribeAudio(blob: Blob, language: string): Promise<string> {
 }
 
 export function transcribeCantonese(blob: Blob): Promise<string> {
-  return transcribeAudio(blob, "zh");
+  return transcribeAudio(blob, null, "廣東話，香港粵語，繁體中文，唔該，係，喺，咁，囉，你好，多謝");
 }
 
 export function transcribeEnglish(blob: Blob): Promise<string> {
@@ -173,6 +174,54 @@ export async function translateCantoneseToEnglish(text: string): Promise<string>
   if (!res.ok) return `[${text}]`;
   const data = await res.json();
   return ((data.choices[0]?.message?.content as string) ?? text).trim();
+}
+
+function simpleSplitChunks(cantonese: string, pronunciation: string): WordChunk[] {
+  const chars = [...cantonese].filter((ch) => /[一-鿿㐀-䶿]/.test(ch));
+  const sylls = pronunciation.trim().split(/\s+/);
+  return chars.map((ch, i) => ({ characters: ch, pronunciation: sylls[i] ?? "", meaning: "" }));
+}
+
+export async function generateWordBreakdown(
+  cantonese: string,
+  pronunciation: string,
+  english: string
+): Promise<WordChunk[]> {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  if (!apiKey || apiKey === "your-openai-api-key-here") {
+    return simpleSplitChunks(cantonese, pronunciation);
+  }
+  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
+  try {
+    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: `You are a Cantonese language teacher. Break a Cantonese phrase into meaningful word chunks. Group characters that form one semantic unit (e.g. 唔該 = "please/excuse me", 借過 = "let me pass"). Return ONLY a JSON object: {"chunks":[{"characters":"唔該","pronunciation":"m4 goi1","meaning":"please / excuse me"}]}`,
+          },
+          {
+            role: "user",
+            content: `Phrase: ${cantonese}\nFull Jyutping: ${pronunciation}\nEnglish: ${english}`,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 400,
+      }),
+    });
+    if (!res.ok) return simpleSplitChunks(cantonese, pronunciation);
+    const data = await res.json();
+    const raw = (data.choices[0]?.message?.content as string) ?? "{}";
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.chunks) && parsed.chunks.length > 0
+      ? parsed.chunks
+      : simpleSplitChunks(cantonese, pronunciation);
+  } catch {
+    return simpleSplitChunks(cantonese, pronunciation);
+  }
 }
 
 export interface TranslateOptions {

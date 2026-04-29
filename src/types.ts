@@ -62,6 +62,7 @@ export interface ConversationLesson {
   examCompleted: boolean;
   examAttempts: number;
   persona?: PersonaType;
+  currentPhase?: "listen" | "flashcard" | "done";
 }
 
 export interface UserProfile {
@@ -82,11 +83,19 @@ export interface UserProfile {
   customVoiceId?: string;
 }
 
+export interface WordChunk {
+  characters: string;
+  pronunciation: string;
+  meaning: string;
+}
+
 export interface VocabItem {
   english: string;
   cantonese: string;
   pronunciation: string;
   exampleSentence?: string;
+  audioDataUrl?: string;
+  breakdown?: WordChunk[];
 }
 
 export type ExerciseType = "flashcard" | "matching" | "multiple-choice" | "fill-blank" | "conversation";

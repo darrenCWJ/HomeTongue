@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import {
   Play,
-  Award,
-  Zap,
   ChevronRight,
+  Bookmark,
   BookOpen,
   ArrowLeft,
   CheckCircle,
@@ -19,9 +18,11 @@ import {
   Trophy,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import { useAudioRecorder } from "../../hooks/useElevenLabs";
+import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
-import { transcribeCantonese } from "../../services/translationService";
+import { transcribeCantonese, generateWordBreakdown } from "../../services/translationService";
+import { extractVocabFromMessages } from "../../utils/vocab";
+import type { WordChunk } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
 import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
 import { toast } from "sonner";
@@ -47,10 +48,11 @@ const personalise = (text: string, name: string | undefined) =>
 
 interface ActiveLevel {
   categoryId: string;
+  lessonId: string;
   level: LessonLevel;
 }
 
-function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" }) {
+function PlayButton({ text, size = "md", audioDataUrl }: { text: string; size?: "sm" | "md"; audioDataUrl?: string }) {
   const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -59,7 +61,11 @@ function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" })
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speakText(text, userProfile?.preferredVoiceId);
+      if (audioDataUrl) {
+        await playDataUrl(audioDataUrl);
+      } else {
+        await speakText(text, userProfile?.preferredVoiceId);
+      }
     } catch {
       // silently ignore playback errors
     } finally {
@@ -87,7 +93,7 @@ function PlayButton({ text, size = "md" }: { text: string; size?: "sm" | "md" })
   );
 }
 
-function PlayButtonDark({ text, size = "md" }: { text: string; size?: "sm" | "md" }) {
+function PlayButtonDark({ text, size = "md", audioDataUrl }: { text: string; size?: "sm" | "md"; audioDataUrl?: string }) {
   const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -96,7 +102,11 @@ function PlayButtonDark({ text, size = "md" }: { text: string; size?: "sm" | "md
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speakText(text, userProfile?.preferredVoiceId);
+      if (audioDataUrl) {
+        await playDataUrl(audioDataUrl);
+      } else {
+        await speakText(text, userProfile?.preferredVoiceId);
+      }
     } catch {
       // silently ignore playback errors
     } finally {
@@ -127,11 +137,12 @@ function pickRandomVocab(): VocabItem {
 }
 
 export function LearnPage() {
-  const { learnedCount, phrases, lessonProgress, conversationLessons, updateConversationLesson, userProfile } = useAppContext();
+  const { phrases, lessonProgress, conversationLessons, updateConversationLesson, userProfile } = useAppContext();
   const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
 
   const [view, setView] = useState<View>("main");
+  const [mainTab, setMainTab] = useState<"standard" | "custom">("standard");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<ActiveLevel | null>(null);
   const [dailyCard, setDailyCard] = useState<VocabItem | null>(null);
@@ -141,6 +152,12 @@ export function LearnPage() {
     LESSON_CATEGORIES.find((c) => c.id === activeCategoryId)?.title ?? activeCategoryId ?? "";
 
   const completedConvLessons = personalLessons.filter((l) => l.examCompleted).length;
+  const completedStandardLessons = LESSONS.filter((lesson) => {
+    const prog = lessonProgress[lesson.id];
+    return prog ? prog.completedLevels >= prog.totalLevels : false;
+  }).length;
+  const totalLessonsDone = completedConvLessons + completedStandardLessons;
+
   const scoredLessons = personalLessons.filter((l) => l.examBestScore !== undefined);
   const avgScore = scoredLessons.length > 0
     ? Math.round(scoredLessons.reduce((sum, l) => sum + (l.examBestScore ?? 0), 0) / scoredLessons.length)
@@ -153,7 +170,8 @@ export function LearnPage() {
 
   const handleSelectLevel = (level: LessonLevel) => {
     if (!activeCategoryId) return;
-    setActiveLevel({ categoryId: activeCategoryId, level });
+    const lesson = LESSONS.find((l) => l.categoryId === activeCategoryId);
+    setActiveLevel({ categoryId: activeCategoryId, lessonId: lesson?.id ?? "", level });
     setView("level");
   };
 
@@ -204,111 +222,117 @@ export function LearnPage() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "-50%", opacity: 0 }}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="absolute inset-0 flex flex-col p-4 pb-24 overflow-y-auto"
+            className="absolute inset-0 flex flex-col"
           >
-            <div className="mb-6 mt-2">
-              <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
-              <p className="text-sm text-zinc-500">Master your saved phrases</p>
+            {/* Fixed header zone — never shifts when tabs switch */}
+            <div className="flex-shrink-0 px-4 pt-4">
+              <div className="mb-6 mt-2">
+                <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
+                <p className="text-sm text-zinc-500">Master your saved phrases</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                    <Trophy size={20} className="text-green-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-zinc-800">{totalLessonsDone}</span>
+                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                    <Star size={20} className="text-purple-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
+                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Avg Score</span>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
+                <p className="text-sm font-bold relative z-10">Daily Review</p>
+                <button
+                  onClick={() => setDailyCard(pickRandomVocab())}
+                  className="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
+                >
+                  <Play size={16} className="fill-indigo-600 ml-0.5" />
+                </button>
+              </div>
+
+              {/* Tab switcher */}
+              <div className="flex bg-zinc-100 rounded-2xl p-1 mb-4">
+                <button
+                  onClick={() => setMainTab("standard")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
+                    mainTab === "standard"
+                      ? "bg-white text-zinc-800 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Standard Lesson
+                </button>
+                <button
+                  onClick={() => setMainTab("custom")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
+                    mainTab === "custom"
+                      ? "bg-white text-zinc-800 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Custom Conversation
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mb-2">
-                  <Zap size={20} className="text-orange-500" />
+            {/* Scrollable tab content only */}
+            <div className="flex-1 overflow-y-auto px-4 pb-24">
+              {mainTab === "standard" && (
+                <div className="space-y-3">
+                  {LESSON_CATEGORIES.map((cat) => {
+                    const lesson = LESSONS.find((l) => l.categoryId === cat.id);
+                    const prog = lesson ? lessonProgress[lesson.id] : null;
+                    const totalLevels = lesson?.content.levels?.length ?? 5;
+                    const progressPct = prog
+                      ? Math.round((prog.completedLevels / totalLevels) * 100)
+                      : 0;
+                    return (
+                      <LessonCard
+                        key={cat.id}
+                        title={cat.title}
+                        subtitle={cat.description}
+                        progress={progressPct}
+                        onClick={() => handleSelectCategory(cat.id)}
+                      />
+                    );
+                  })}
                 </div>
-                <span className="text-2xl font-bold text-zinc-800">3</span>
-                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Day Streak</span>
-              </div>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-2">
-                  <Award size={20} className="text-blue-500" />
-                </div>
-                <span className="text-2xl font-bold text-zinc-800">{learnedCount}</span>
-                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Phrases Learned</span>
-              </div>
-            </div>
+              )}
 
-            <div className="grid grid-cols-2 gap-3 mb-8">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
-                  <Trophy size={20} className="text-green-500" />
-                </div>
-                <span className="text-2xl font-bold text-zinc-800">{completedConvLessons}</span>
-                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
-              </div>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
-                  <Star size={20} className="text-purple-500" />
-                </div>
-                <span className="text-2xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
-                <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Avg Score</span>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl py-8 px-7 text-white shadow-md mb-8 relative overflow-hidden flex items-center justify-between">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
-              <div className="flex flex-col flex-1 pr-6 relative z-10">
-                <h2 className="text-base font-bold">Daily Review</h2>
-                <p className="text-indigo-100 text-xs">
-                  Pick a random phrase to learn and practise using it.
-                </p>
-              </div>
-              <button
-                onClick={() => setDailyCard(pickRandomVocab())}
-                className="bg-white text-indigo-600 rounded-full w-14 h-14 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
-              >
-                <Play size={22} className="fill-indigo-600 ml-1" />
-              </button>
+              {mainTab === "custom" && (
+                <>
+                  {personalLessons.length === 0 ? (
+                    <div className="bg-white rounded-2xl p-8 text-center border border-zinc-100 shadow-sm">
+                      <BookOpen size={32} className="text-zinc-300 mx-auto mb-3" />
+                      <p className="text-sm font-semibold text-zinc-500 mb-1">No custom lessons yet</p>
+                      <p className="text-xs text-zinc-400">Go to Saved Conversations and tap the bookmark icon to convert a chat into a lesson.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {personalLessons.map((cl) => (
+                        <ConversationLessonCard
+                          key={cl.id}
+                          lesson={cl}
+                          onClick={() => handleSelectConversationLesson(cl)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {dailyCard && (
               <DailyReviewModal card={dailyCard} onClose={() => setDailyCard(null)} />
-            )}
-
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-zinc-800">Suggested Lessons</h3>
-              <button className="text-xs font-medium text-indigo-600 hover:text-indigo-700">See All</button>
-            </div>
-
-            <div className="space-y-3 mb-8">
-              {LESSON_CATEGORIES.map((cat) => {
-                const lesson = LESSONS.find((l) => l.categoryId === cat.id);
-                const prog = lesson ? lessonProgress[lesson.id] : null;
-                const totalLevels = lesson?.content.levels?.length ?? 5;
-                const progressPct = prog
-                  ? Math.round((prog.completedLevels / totalLevels) * 100)
-                  : 0;
-                return (
-                  <LessonCard
-                    key={cat.id}
-                    title={cat.title}
-                    subtitle={cat.description}
-                    progress={progressPct}
-                    onClick={() => handleSelectCategory(cat.id)}
-                  />
-                );
-              })}
-            </div>
-
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-zinc-800">From Your Conversations</h3>
-            </div>
-
-            {personalLessons.length === 0 ? (
-              <div className="bg-white rounded-2xl p-6 text-center border border-zinc-100 shadow-sm">
-                <BookOpen size={28} className="text-zinc-300 mx-auto mb-2" />
-                <p className="text-sm text-zinc-400">Save a conversation and convert it to a lesson to get started.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {personalLessons.map((cl) => (
-                  <ConversationLessonCard
-                    key={cl.id}
-                    lesson={cl}
-                    onClick={() => handleSelectConversationLesson(cl)}
-                  />
-                ))}
-              </div>
             )}
           </motion.div>
         )}
@@ -327,6 +351,7 @@ export function LearnPage() {
           <LevelView
             key="level"
             level={activeLevel.level}
+            lessonId={activeLevel.lessonId}
             onBack={handleBackToRoadmap}
           />
         )}
@@ -622,8 +647,21 @@ function RoadmapView({
 
 // ─── LevelView ────────────────────────────────────────────────────────────────
 
-function LevelView({ level, onBack }: { level: LessonLevel; onBack: () => void }) {
+function LevelView({ level, lessonId, onBack }: { level: LessonLevel; lessonId: string; onBack: () => void }) {
+  const { lessonProgress, updateLessonProgress } = useAppContext();
   const [completed, setCompleted] = useState(false);
+
+  const handleComplete = () => {
+    const prev = lessonProgress[lessonId];
+    const lesson = LESSONS.find((l) => l.id === lessonId);
+    updateLessonProgress({
+      lessonId,
+      completedLevels: Math.max(level.level, prev?.completedLevels ?? 0),
+      totalLevels: lesson?.content.levels?.length ?? level.level,
+      lastAccessedAt: new Date().toISOString(),
+    });
+    setCompleted(true);
+  };
 
   if (completed) {
     return (
@@ -647,7 +685,7 @@ function LevelView({ level, onBack }: { level: LessonLevel; onBack: () => void }
     );
   }
 
-  const sharedProps = { level, onComplete: () => setCompleted(true), onBack };
+  const sharedProps = { level, onComplete: handleComplete, onBack };
 
   return (
     <motion.div
@@ -691,12 +729,31 @@ function FlashcardExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
-  const { userProfile } = useAppContext();
+  const { userProfile, phrases, addPhrase, toggleBookmark } = useAppContext();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const items = level.vocabulary;
   const current = items[index];
   const isLast = index === items.length - 1;
+
+  const phraseId = `lesson-${current.cantonese}`;
+  const savedPhrase = phrases.find((p) => p.id === phraseId);
+  const isBookmarked = savedPhrase?.isBookmarked ?? false;
+
+  const handleBookmark = () => {
+    if (!savedPhrase) {
+      addPhrase({
+        id: phraseId,
+        original: current.english,
+        dialect: current.cantonese,
+        pronunciation: current.pronunciation,
+        isBookmarked: true,
+        context: level.title,
+      });
+    } else {
+      toggleBookmark(phraseId);
+    }
+  };
 
   const handleNext = () => {
     if (isLast) {
@@ -746,6 +803,12 @@ function FlashcardExercise({
               {current.exampleSentence && (
                 <span className="text-xs text-indigo-100 mt-4 text-center italic">{personalise(current.exampleSentence, userProfile?.name)}</span>
               )}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleBookmark(); }}
+                className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition-colors"
+              >
+                <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-indigo-200"} />
+              </button>
             </div>
           </motion.div>
         </div>
@@ -1268,7 +1331,7 @@ function ConversationExercise({
 
 // ─── ConversationLessonView ───────────────────────────────────────────────────
 
-type LessonPhase = "listen" | "flashcard" | "quiz" | "done";
+type LessonPhase = "listen" | "flashcard" | "done";
 
 function ConversationLessonView({
   lesson,
@@ -1279,9 +1342,33 @@ function ConversationLessonView({
   onBack: () => void;
   onStartExam: () => void;
 }) {
-  const [phase, setPhase] = useState<LessonPhase>("listen");
+  const { updateConversationLesson, sessions } = useAppContext();
+  const [phase, setPhase] = useState<LessonPhase>(lesson.currentPhase ?? "listen");
+
+  const savePhase = (next: LessonPhase) => {
+    setPhase(next);
+    updateConversationLesson({ ...lesson, currentPhase: next });
+  };
 
   const vocab = lesson.vocabulary;
+
+  const handleRebuildLesson = () => {
+    const session = sessions.find((s) => s.id === lesson.sessionId);
+    if (!session) { toast.error("Original conversation not found."); return; }
+    const newVocab = extractVocabFromMessages(session.messages);
+    if (newVocab.length === 0) { toast.error("No phrases found in conversation."); return; }
+    updateConversationLesson({ ...lesson, vocabulary: newVocab, currentPhase: "listen" });
+    toast.success(`Rebuilt with ${newVocab.length} phrase${newVocab.length !== 1 ? "s" : ""}.`);
+    setPhase("listen");
+  };
+
+  const handleBreakdownComplete = (cache: Record<number, WordChunk[]>) => {
+    const updatedVocab = vocab.map((item, i) =>
+      cache[i] ? { ...item, breakdown: cache[i] } : item
+    );
+    updateConversationLesson({ ...lesson, vocabulary: updatedVocab, currentPhase: "flashcard" });
+    setPhase("flashcard");
+  };
 
   const statusChip = lesson.examCompleted
     ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Passed</span>
@@ -1299,41 +1386,22 @@ function ConversationLessonView({
         className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
       >
         <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
-          <button onClick={() => setPhase("listen")} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+          <button onClick={() => savePhase("listen")} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
             <ArrowLeft size={20} />
           </button>
-          <div>
+          <div className="flex-1 min-w-0">
             <h2 className="font-bold text-lg text-zinc-800 leading-tight">{lesson.title}</h2>
             <p className="text-xs text-zinc-400">Flashcards — flip to reveal</p>
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <ConvFlashcardExercise vocab={vocab} onComplete={() => setPhase("quiz")} />
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (phase === "quiz") {
-    return (
-      <motion.div
-        initial={{ x: "100%", opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-        className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
-      >
-        <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
-          <button onClick={() => setPhase("flashcard")} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
-            <ArrowLeft size={20} />
+          <button
+            onClick={() => savePhase("done")}
+            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors whitespace-nowrap"
+          >
+            Skip to Exam →
           </button>
-          <div>
-            <h2 className="font-bold text-lg text-zinc-800 leading-tight">{lesson.title}</h2>
-            <p className="text-xs text-zinc-400">Multiple choice</p>
-          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <ConvMultipleChoiceExercise vocab={vocab} onComplete={() => setPhase("done")} />
+          <ConvFlashcardExercise vocab={vocab} onComplete={() => setPhase("done")} />
         </div>
       </motion.div>
     );
@@ -1353,34 +1421,30 @@ function ConversationLessonView({
         </button>
         <div className="flex-1 min-w-0">
           <h2 className="font-bold text-lg text-zinc-800 leading-tight truncate">{lesson.title}</h2>
-          <p className="text-xs text-zinc-400">{vocab.length} phrases</p>
+          <button
+            onClick={handleRebuildLesson}
+            className="text-xs text-zinc-400 hover:text-indigo-500 transition-colors"
+          >
+            Rebuild phrases
+          </button>
         </div>
+        {lesson.examAttempts > 0 && phase === "listen" && (
+          <button
+            onClick={onStartExam}
+            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors whitespace-nowrap"
+          >
+            Skip to Exam →
+          </button>
+        )}
         {statusChip}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {phase === "listen" && (
-          <>
-            <p className="text-xs text-zinc-400 font-medium text-center mb-2">Listen & repeat each phrase</p>
-            {vocab.map((item, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-zinc-400 mb-0.5">{item.english}</p>
-                  <p className="text-xl font-bold text-zinc-800">{item.cantonese}</p>
-                  {item.pronunciation && (
-                    <p className="text-xs font-mono text-indigo-400 mt-0.5">{item.pronunciation}</p>
-                  )}
-                </div>
-                <PlayButtonDark text={item.cantonese} />
-              </div>
-            ))}
-            <button
-              onClick={() => setPhase("flashcard")}
-              className="w-full mt-4 py-3.5 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
-            >
-              Continue to Flashcards →
-            </button>
-          </>
+          <PhraseBreakdownExercise
+            vocab={vocab}
+            onComplete={handleBreakdownComplete}
+          />
         )}
 
         {phase === "done" && (
@@ -1402,7 +1466,7 @@ function ConversationLessonView({
               Take Final Exam
             </button>
             <button
-              onClick={() => setPhase("listen")}
+              onClick={() => savePhase("listen")}
               className="text-sm text-zinc-400 hover:text-zinc-600"
             >
               Review phrases again
@@ -1411,6 +1475,160 @@ function ConversationLessonView({
         )}
       </div>
     </motion.div>
+  );
+}
+
+// ─── PhraseBreakdownExercise ──────────────────────────────────────────────────
+
+function PhraseBreakdownExercise({
+  vocab,
+  onComplete,
+}: {
+  vocab: VocabItem[];
+  onComplete: (cache: Record<number, WordChunk[]>) => void;
+}) {
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [chunkIdx, setChunkIdx] = useState(0);
+  const [cache, setCache] = useState<Record<number, WordChunk[]>>(() => {
+    const initial: Record<number, WordChunk[]> = {};
+    vocab.forEach((item, i) => { if (item.breakdown?.length) initial[i] = item.breakdown; });
+    return initial;
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const item = vocab[phraseIdx];
+  const chunks = cache[phraseIdx];
+  const chunk = chunks?.[chunkIdx];
+  const isLastChunk = chunks ? chunkIdx === chunks.length - 1 : false;
+  const isLastPhrase = phraseIdx === vocab.length - 1;
+  const canGoBack = phraseIdx > 0 || chunkIdx > 0;
+
+  React.useEffect(() => {
+    if (!cache[phraseIdx]) {
+      setIsLoading(true);
+      generateWordBreakdown(vocab[phraseIdx].cantonese, vocab[phraseIdx].pronunciation ?? "", vocab[phraseIdx].english)
+        .then((result) => {
+          setCache((prev) => ({ ...prev, [phraseIdx]: result }));
+        })
+        .finally(() => setIsLoading(false));
+    }
+  }, [phraseIdx]);
+
+  const goNext = () => {
+    if (!isLastChunk) {
+      setChunkIdx((c) => c + 1);
+    } else if (!isLastPhrase) {
+      setPhraseIdx((p) => p + 1);
+      setChunkIdx(0);
+    } else {
+      onComplete(cache);
+    }
+  };
+
+  const goBack = () => {
+    if (chunkIdx > 0) {
+      setChunkIdx((c) => c - 1);
+    } else if (phraseIdx > 0) {
+      const prevChunks = cache[phraseIdx - 1];
+      setPhraseIdx((p) => p - 1);
+      setChunkIdx(prevChunks ? prevChunks.length - 1 : 0);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Phrase progress */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-zinc-400 font-medium">Phrase {phraseIdx + 1} of {vocab.length}</span>
+        <div className="flex gap-1">
+          {vocab.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all ${i === phraseIdx ? "w-5 bg-indigo-500" : i < phraseIdx ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Full phrase — always visible */}
+      <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+        <p className="text-xs text-zinc-400 mb-1">{item.english}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-2xl font-bold text-indigo-700">{item.cantonese}</p>
+          <PlayButtonDark text={item.cantonese} audioDataUrl={item.audioDataUrl} size="sm" />
+        </div>
+        {item.pronunciation && (
+          <p className="text-sm font-mono text-indigo-400 mt-0.5">{item.pronunciation}</p>
+        )}
+      </div>
+
+      {/* Chunk card */}
+      <div className="min-h-[220px] flex flex-col items-center justify-center gap-4">
+        {isLoading ? (
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 size={28} className="animate-spin text-indigo-400" />
+            <p className="text-xs text-zinc-400">Breaking down the phrase…</p>
+          </div>
+        ) : chunk ? (
+          <>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${phraseIdx}-${chunkIdx}`}
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -40 }}
+                transition={{ duration: 0.18 }}
+                className="w-full bg-white rounded-3xl shadow-sm border border-zinc-100 p-7 flex flex-col items-center gap-3"
+              >
+                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                  Word {chunkIdx + 1} of {chunks.length}
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-5xl font-bold text-zinc-800">{chunk.characters}</span>
+                  <PlayButtonDark text={chunk.characters} />
+                </div>
+                <span className="text-lg font-mono text-indigo-500">{chunk.pronunciation}</span>
+                {chunk.meaning && (
+                  <>
+                    <div className="w-full h-px bg-zinc-100" />
+                    <span className="text-base text-zinc-500 italic text-center">"{chunk.meaning}"</span>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Chunk progress dots */}
+            <div className="flex gap-1.5">
+              {chunks.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all ${i === chunkIdx ? "w-6 bg-indigo-500" : i < chunkIdx ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        {canGoBack && (
+          <button
+            onClick={goBack}
+            className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+          >
+            Back
+          </button>
+        )}
+        <button
+          onClick={goNext}
+          disabled={isLoading || !chunk}
+          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${!isLoading && chunk ? "bg-indigo-500 text-white hover:bg-indigo-600" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}`}
+        >
+          {isLastChunk && isLastPhrase ? "Finish" : isLastChunk ? "Next Phrase →" : "Next Word →"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1446,13 +1664,14 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
               <span className="text-2xl font-bold text-zinc-800 text-center">{current.english}</span>
               <span className="text-xs text-zinc-400 mt-4">Tap to reveal</span>
             </div>
-            <div className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col items-center justify-center p-6" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-              <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-3xl font-bold text-white text-center">{current.cantonese}</span>
-                <PlayButton text={current.cantonese} />
+            <div className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col items-center justify-center p-6 gap-3" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+              <div className="flex items-center gap-2">
+                <span className="text-3xl font-bold text-white text-center leading-snug">{current.cantonese}</span>
+                <PlayButton text={current.cantonese} audioDataUrl={current.audioDataUrl} />
               </div>
-              {current.pronunciation && <span className="text-base text-indigo-200 font-mono">{current.pronunciation}</span>}
+              {current.pronunciation && (
+                <span className="text-base text-indigo-200 font-mono text-center">{current.pronunciation}</span>
+              )}
             </div>
           </motion.div>
         </div>
@@ -1469,92 +1688,6 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
           {isLast ? "Finish" : "Next"}
         </button>
       </div>
-      <div className="flex gap-1.5">
-        {vocab.map((_, i) => (
-          <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── ConvMultipleChoiceExercise ───────────────────────────────────────────────
-
-function ConvMultipleChoiceExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
-  const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-
-  if (vocab.length < 2) {
-    return (
-      <div className="flex flex-col items-center justify-center p-6 gap-4">
-        <p className="text-zinc-500 text-sm">Not enough phrases for a quiz.</p>
-        <button onClick={onComplete} className="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold">Continue</button>
-      </div>
-    );
-  }
-
-  const current = vocab[index];
-
-  const options = React.useMemo(() => {
-    const others = vocab.filter((_, i) => i !== index);
-    const shuffled = [...others].sort(() => Math.random() - 0.5).slice(0, Math.min(3, others.length));
-    return [...shuffled, current].sort(() => Math.random() - 0.5);
-  }, [index, vocab]);
-
-  const handleSelect = (cantonese: string) => {
-    if (selected !== null) return;
-    setSelected(cantonese);
-    setIsCorrect(cantonese === current.cantonese);
-  };
-
-  const handleNext = () => {
-    if (index + 1 >= vocab.length) { onComplete(); return; }
-    setIndex((i) => i + 1);
-    setSelected(null);
-    setIsCorrect(null);
-  };
-
-  return (
-    <div className="flex flex-col items-center p-6 gap-6">
-      <div className="text-sm text-zinc-400 font-medium">{index + 1} / {vocab.length}</div>
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-zinc-100 p-8 flex flex-col items-center justify-center min-h-[120px]">
-        <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">How do you say…</span>
-        <span className="text-2xl font-bold text-zinc-800 text-center">{current.english}</span>
-      </div>
-      <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-        {options.map((opt) => {
-          const isSelected = selected === opt.cantonese;
-          const correct = opt.cantonese === current.cantonese;
-          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-indigo-300";
-          if (selected !== null) {
-            if (correct) style = "bg-green-50 border-green-400 text-green-700";
-            else if (isSelected) style = "bg-red-50 border-red-400 text-red-600";
-          }
-          return (
-            <button key={opt.cantonese} onClick={() => handleSelect(opt.cantonese)} className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all active:scale-95 ${style}`}>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-bold">{opt.cantonese}</span>
-                <PlayButtonDark text={opt.cantonese} size="sm" />
-              </div>
-              {opt.pronunciation && <span className="text-xs font-mono text-zinc-400">{opt.pronunciation}</span>}
-            </button>
-          );
-        })}
-      </div>
-      {selected !== null && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
-          <div className={`rounded-2xl p-4 flex items-center gap-3 ${isCorrect ? "bg-green-50" : "bg-red-50"}`}>
-            {isCorrect ? <Check size={20} className="text-green-500" /> : <X size={20} className="text-red-500" />}
-            <p className={`font-bold text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>
-              {isCorrect ? "Correct!" : `Answer: ${current.cantonese}`}
-            </p>
-          </div>
-          <button onClick={handleNext} className="mt-3 w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all">
-            {index + 1 >= vocab.length ? "Finish" : "Next"}
-          </button>
-        </motion.div>
-      )}
       <div className="flex gap-1.5">
         {vocab.map((_, i) => (
           <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
@@ -1581,6 +1714,7 @@ function ExamView({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [itemScore, setItemScore] = useState<number | null>(null);
+  const [transcribed, setTranscribed] = useState<string | null>(null);
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const { startRecording, stopRecording } = useAudioRecorder();
@@ -1600,16 +1734,18 @@ function ExamView({
     setIsProcessing(true);
     try {
       const blob = await stopRecording();
-      const transcribed = await transcribeCantonese(blob);
-      const score = scoreChineseAccuracy(current.cantonese, transcribed);
+      const result = await transcribeCantonese(blob);
+      const score = scoreChineseAccuracy(current.cantonese, result);
+      setTranscribed(result);
       setItemScore(score);
     } catch {
       toast.error("Could not process recording. Try again.");
-      setItemScore(0);
     } finally {
       setIsProcessing(false);
     }
   };
+
+  const handleRetry = () => { setItemScore(null); setTranscribed(null); };
 
   const handleNext = () => {
     const updatedScores = [...scores, itemScore ?? 0];
@@ -1621,6 +1757,7 @@ function ExamView({
       setScores(updatedScores);
       setIndex((i) => i + 1);
       setItemScore(null);
+      setTranscribed(null);
     }
   };
 
@@ -1715,18 +1852,41 @@ function ExamView({
           </div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
-            <div className={`rounded-2xl p-5 flex flex-col items-center gap-2 ${itemScore >= 60 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
-              <span className={`text-4xl font-extrabold ${itemScore >= 60 ? "text-green-600" : "text-red-600"}`}>{itemScore}%</span>
-              <span className={`text-sm font-semibold ${itemScore >= 60 ? "text-green-700" : "text-red-700"}`}>
-                {itemScore >= 60 ? "Good!" : "Keep going"}
-              </span>
+            <div className={`rounded-2xl p-5 flex flex-col gap-3 ${itemScore >= 60 ? "bg-green-50 border border-green-200" : "bg-orange-50 border border-orange-200"}`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-4xl font-extrabold ${itemScore >= 60 ? "text-green-600" : "text-orange-500"}`}>{itemScore}%</span>
+                <span className={`text-sm font-semibold ${itemScore >= 60 ? "text-green-700" : "text-orange-600"}`}>
+                  {itemScore >= 60 ? "Well done!" : "Not quite"}
+                </span>
+              </div>
+              <div className="w-full h-px bg-black/5" />
+              <div className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">Expected</span>
+                  <span className="font-bold text-zinc-700">{current.cantonese}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">You said</span>
+                  <span className={`font-bold ${itemScore >= 60 ? "text-green-700" : "text-orange-600"}`}>
+                    {transcribed || "—"}
+                  </span>
+                </div>
+              </div>
             </div>
-            <button
-              onClick={handleNext}
-              className="w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
-            >
-              {index + 1 >= vocab.length ? "See Results" : "Next"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRetry}
+                className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={handleNext}
+                className="flex-1 py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all text-sm"
+              >
+                {index + 1 >= vocab.length ? "See Results" : "Next →"}
+              </button>
+            </div>
           </motion.div>
         )}
 

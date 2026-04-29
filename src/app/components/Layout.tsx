@@ -1,20 +1,29 @@
-import React from "react";
+import React, { useState } from "react";
 import { Outlet, NavLink } from "react-router";
 import { MessageSquare, BookOpen, Bookmark, User } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { SignInPage } from "../pages/SignInPage";
+import { AuthPage } from "../pages/AuthPage";
 import { OnboardingPage } from "../pages/OnboardingPage";
 import { Toaster } from "sonner";
 
+const HAS_ACCESS_CODE = !!import.meta.env.VITE_ACCESS_CODE;
+
 export function Layout() {
   const { isSignedIn, userProfile } = useAppContext();
-  const needsOnboarding = isSignedIn && !userProfile?.name;
+  const [isEmailAuthed, setIsEmailAuthed] = useState(false);
+
+  // If no access code is configured, treat the gate as already passed
+  const accessCodePassed = !HAS_ACCESS_CODE || isSignedIn;
+  const needsOnboarding = accessCodePassed && isEmailAuthed && !userProfile?.name;
 
   return (
     <div className="flex justify-center bg-zinc-100 min-h-screen">
       <div className="w-full max-w-md bg-white h-screen flex flex-col shadow-2xl relative overflow-hidden">
-        {!isSignedIn ? (
+        {!accessCodePassed ? (
           <SignInPage />
+        ) : !isEmailAuthed ? (
+          <AuthPage onComplete={() => setIsEmailAuthed(true)} />
         ) : needsOnboarding ? (
           <OnboardingPage />
         ) : (

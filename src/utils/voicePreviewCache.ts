@@ -1,12 +1,11 @@
 import { playDataUrl } from "../hooks/useElevenLabs";
-import { speakTextAndCapture, mapElevenLabsVoice } from "../hooks/useGoogleTTS";
+import { speakTextAndCapture, type VoiceKey } from "../hooks/useGoogleTTS";
 
-// In-memory cache for the current session (covers API fallback path)
 const sessionCache = new Map<string, string>();
 
-export async function previewVoice(voiceId: string, text: string): Promise<void> {
-  // 1. Try the pre-bundled static file first (zero API cost)
-  const staticUrl = `/voice-previews/${voiceId}.mp3`;
+export async function previewVoice(voiceKey: VoiceKey, text: string): Promise<void> {
+  // 1. Try pre-bundled static file first (zero API cost)
+  const staticUrl = `/voice-previews/${voiceKey}.mp3`;
   try {
     const res = await fetch(staticUrl, { method: "HEAD" });
     if (res.ok) {
@@ -23,14 +22,14 @@ export async function previewVoice(voiceId: string, text: string): Promise<void>
   }
 
   // 2. Check in-memory session cache
-  const cached = sessionCache.get(voiceId);
+  const cached = sessionCache.get(voiceKey);
   if (cached) {
     await playDataUrl(cached);
     return;
   }
 
-  // 3. Call API, cache result for the rest of the session
-  const { audioDataUrl, play } = await speakTextAndCapture(text, mapElevenLabsVoice(voiceId));
-  sessionCache.set(voiceId, audioDataUrl);
+  // 3. Call Google TTS API, cache result for the rest of the session
+  const { audioDataUrl, play } = await speakTextAndCapture(text, voiceKey);
+  sessionCache.set(voiceKey, audioDataUrl);
   await play();
 }

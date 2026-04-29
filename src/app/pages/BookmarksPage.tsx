@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
-import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X } from "lucide-react";
+import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X, BookOpen } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
+import { extractVocabFromMessages } from "../../utils/vocab";
 
 const CATEGORIES = [
   { id: "all", label: "All" },
@@ -30,7 +31,7 @@ function matchCategory(context: string): CategoryId {
 }
 
 export function BookmarksPage() {
-  const { phrases, toggleBookmark, sessions, userProfile, renameSession, deleteSession } = useAppContext();
+  const { phrases, toggleBookmark, sessions, userProfile, renameSession, deleteSession, conversationLessons, saveConversationLesson } = useAppContext();
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
 
@@ -55,6 +56,29 @@ export function BookmarksPage() {
     const trimmed = editingTitle.trim();
     if (trimmed) renameSession(id, trimmed);
     setEditingSessionId(null);
+  };
+
+  const handleMakeLesson = (session: typeof sessions[number]) => {
+    const alreadyExists = conversationLessons.some((l) => l.sessionId === session.id);
+    if (alreadyExists) {
+      toast.info("This conversation is already a lesson.");
+      return;
+    }
+    const vocab = extractVocabFromMessages(session.messages);
+    if (vocab.length === 0) {
+      toast.error("No vocabulary found in this conversation.");
+      return;
+    }
+    saveConversationLesson({
+      id: session.id,
+      sessionId: session.id,
+      title: session.title ?? "Conversation",
+      createdAt: new Date().toISOString(),
+      vocabulary: vocab,
+      examCompleted: false,
+      examAttempts: 0,
+    });
+    toast.success("Added to Learn!");
   };
 
   const handleDeleteClick = (id: string) => {
@@ -278,6 +302,17 @@ export function BookmarksPage() {
                         </>
                       ) : (
                         <>
+                          <button
+                            onClick={() => handleMakeLesson(session)}
+                            title={conversationLessons.some((l) => l.sessionId === session.id) ? "Already a lesson" : "Make lesson"}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              conversationLessons.some((l) => l.sessionId === session.id)
+                                ? "text-indigo-400 bg-indigo-50"
+                                : "text-zinc-400 hover:bg-indigo-50 hover:text-indigo-500"
+                            }`}
+                          >
+                            <BookOpen size={14} />
+                          </button>
                           <button
                             onClick={() => startEditing(session.id, session.title ?? "Conversation")}
                             className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
