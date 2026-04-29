@@ -121,7 +121,18 @@ async function getAccessToken(): Promise<string> {
     .replace(/\s/g, "")
     .trim();
 
-  const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+  let binaryDer: Uint8Array;
+  try {
+    binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+  } catch {
+    throw new Error(
+      `Failed to decode private_key — invalid base64 after stripping headers. ` +
+      `Key length: ${pemContents.length}, ` +
+      `First 20 chars: "${pemContents.slice(0, 20)}", ` +
+      `Contains spaces: ${/\s/.test(pemContents)}, ` +
+      `Contains backslash-n: ${pemContents.includes("\\n")}`
+    );
+  }
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
     binaryDer.buffer,
@@ -187,7 +198,10 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
   }
 
   const data = await res.json();
-  const binary = atob(data.audioContent as string);
+  if (!data.audioContent || typeof data.audioContent !== "string") {
+    throw new Error(`TTS response missing audioContent: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+  const binary = atob(data.audioContent);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new Blob([bytes.buffer], { type: "audio/mpeg" });
