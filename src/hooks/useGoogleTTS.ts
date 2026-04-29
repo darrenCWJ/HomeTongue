@@ -17,8 +17,6 @@ function getServiceAccount(): Record<string, string> {
 }
 
 const TTS_BASE_URL = "https://texttospeech.googleapis.com/v1";
-const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const LANGUAGE_CODE = "yue-HK";
 
 // ──────────────────────────────────────────────────────────
@@ -101,11 +99,14 @@ async function getAccessToken(): Promise<string> {
 
   const sa = getServiceAccount();
   const now = Math.floor(Date.now() / 1000);
+
+  // Self-signed JWT used directly as Bearer token — no OAuth exchange needed.
+  // Audience must be the target API's service URL for Google to accept it.
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
     iss: sa.client_email,
-    scope: SCOPE,
-    aud: TOKEN_URL,
+    sub: sa.client_email,
+    aud: TTS_BASE_URL.replace(/\/v\d.*$/, "/"),
     exp: now + 3600,
     iat: now,
   };
@@ -133,6 +134,7 @@ async function getAccessToken(): Promise<string> {
       `Contains backslash-n: ${pemContents.includes("\\n")}`
     );
   }
+
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
     binaryDer.buffer,
@@ -149,32 +151,8 @@ async function getAccessToken(): Promise<string> {
 
   const jwt = `${signingInput}.${base64urlEncode(new Uint8Array(signature))}`;
 
-  let res: Response;
-  try {
-    res = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        assertion: jwt,
-      }),
-    });
-  } catch (e) {
-    throw new Error(`GCP token fetch failed (network/CORS): ${e instanceof Error ? e.message : String(e)}`);
-  }
-
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`GCP token exchange failed (${res.status}): ${error}`);
-  }
-
-  const data = await res.json();
-  cachedToken = {
-    token: data.access_token as string,
-    expiresAt: Date.now() + (data.expires_in as number) * 1000,
-  };
-
-  return cachedToken.token;
+  cachedToken = { token: jwt, expiresAt: (now + 3600) * 1000 };
+  return jwt;
 }
 
 // ──────────────────────────────────────────────────────────
