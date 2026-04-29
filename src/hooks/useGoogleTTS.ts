@@ -117,7 +117,8 @@ async function getAccessToken(): Promise<string> {
   const pemContents = (sa.private_key as string)
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\n/g, "")
+    .replace(/\\n/g, "")
+    .replace(/\s/g, "")
     .trim();
 
   const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
