@@ -20,7 +20,7 @@ import {
 import { useAppContext } from "../context/AppContext";
 import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
-import { transcribeCantonese, generateWordBreakdown } from "../../services/translationService";
+import { transcribeCantonese, generateWordBreakdown, scoreCantoneseAccuracy } from "../../services/translationService";
 import { extractVocabFromMessages } from "../../utils/vocab";
 import type { WordChunk } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
@@ -30,18 +30,6 @@ import type { LessonLevel, VocabItem, ConversationTurn, ConversationLesson } fro
 
 type View = "main" | "roadmap" | "level" | "conversation-lesson" | "exam";
 
-function scoreChineseAccuracy(expected: string, actual: string): number {
-  const CHINESE = /[一-鿿㐀-䶿]/g;
-  const expectedChars = expected.match(CHINESE) ?? [];
-  if (expectedChars.length === 0) return 0;
-  const pool = (actual.match(CHINESE) ?? []).slice();
-  let correct = 0;
-  for (const ch of expectedChars) {
-    const i = pool.indexOf(ch);
-    if (i !== -1) { correct++; pool.splice(i, 1); }
-  }
-  return Math.round((correct / expectedChars.length) * 100);
-}
 
 const personalise = (text: string, name: string | undefined) =>
   text.replace(/\{\{name\}\}/g, name || "you");
@@ -93,13 +81,14 @@ function PlayButton({ text, size = "md", audioDataUrl }: { text: string; size?: 
   );
 }
 
-function PlayButtonDark({ text, size = "md", audioDataUrl }: { text: string; size?: "sm" | "md"; audioDataUrl?: string }) {
+function PlayButtonDark({ text, size = "md", audioDataUrl, disabled: externalDisabled }: { text: string; size?: "sm" | "md"; audioDataUrl?: string; disabled?: boolean }) {
   const { userProfile } = useAppContext();
   const [isPlaying, setIsPlaying] = useState(false);
+  const disabled = isPlaying || !!externalDisabled;
 
   const handlePlay = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isPlaying) return;
+    if (disabled) return;
     setIsPlaying(true);
     try {
       if (audioDataUrl) {
@@ -120,8 +109,8 @@ function PlayButtonDark({ text, size = "md", audioDataUrl }: { text: string; siz
   return (
     <button
       onClick={handlePlay}
-      disabled={isPlaying}
-      className={`${sizeClasses} rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-500 flex items-center justify-center transition-colors flex-shrink-0`}
+      disabled={disabled}
+      className={`${sizeClasses} rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${disabled && externalDisabled ? "bg-zinc-100 text-zinc-300 cursor-not-allowed" : "bg-indigo-100 hover:bg-indigo-200 text-indigo-500"}`}
     >
       {isPlaying
         ? <Loader2 size={iconSize} className="animate-spin text-indigo-400" />
@@ -288,7 +277,10 @@ export function LearnPage() {
             <div className="flex-1 overflow-y-auto px-4 pb-24">
               {mainTab === "standard" && (
                 <div className="space-y-3">
-                  {LESSON_CATEGORIES.map((cat) => {
+                  {LESSON_CATEGORIES.filter((cat) => {
+                    const lesson = LESSONS.find((l) => l.categoryId === cat.id);
+                    return (lesson?.content.levels?.length ?? 0) > 0;
+                  }).map((cat) => {
                     const lesson = LESSONS.find((l) => l.categoryId === cat.id);
                     const prog = lesson ? lessonProgress[lesson.id] : null;
                     const totalLevels = lesson?.content.levels?.length ?? 5;
@@ -1735,7 +1727,7 @@ function ExamView({
     try {
       const blob = await stopRecording();
       const result = await transcribeCantonese(blob);
-      const score = scoreChineseAccuracy(current.cantonese, result);
+      const score = await scoreCantoneseAccuracy(current.cantonese, result);
       setTranscribed(result);
       setItemScore(score);
     } catch {
@@ -1816,7 +1808,7 @@ function ExamView({
           )}
           <p className="text-sm text-zinc-500 italic">{current.english}</p>
           <div className="mt-4">
-            <PlayButtonDark text={current.cantonese} />
+            <PlayButtonDark text={current.cantonese} disabled={isRecording || isProcessing} />
           </div>
         </div>
 

@@ -42,14 +42,15 @@ export interface Message {
   phraseId?: string;
   englishTranslation?: string;
   audioDataUrl?: string;
+  audioDataUrls?: string[];
 }
 
 export interface Session {
   id: string;
   title?: string;
   date: string;
-  title?: string;
   messages: Message[];
+  persona?: PersonaType;
 }
 
 export interface ConversationLesson {

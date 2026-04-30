@@ -156,6 +156,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       title,
       date: new Date().toLocaleDateString(),
       messages: msgs,
+      persona: activePersona,
     };
     setSessions((prev) => [newSession, ...prev]);
     repositories.conversations.addSession(newSession);

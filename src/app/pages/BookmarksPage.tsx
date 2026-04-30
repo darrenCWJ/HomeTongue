@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X, BookOpen } from "lucide-react";
+import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase } from "lucide-react";
+import type { PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import { playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
@@ -34,6 +35,7 @@ export function BookmarksPage() {
   const { phrases, toggleBookmark, sessions, userProfile, renameSession, deleteSession, conversationLessons, saveConversationLesson } = useAppContext();
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
+  const [sessionPersonaFilter, setSessionPersonaFilter] = useState<"all" | PersonaType>("all");
 
   const allBookmarked = phrases.filter((p) => p.isBookmarked);
   const bookmarkedPhrases = selectedCategory === "all"
@@ -174,6 +176,30 @@ export function BookmarksPage() {
             ))}
           </div>
         )}
+
+        {/* Persona filter chips — sessions tab only */}
+        {activeTab === "sessions" && (
+          <div className="flex gap-2">
+            {([
+              { id: "all", label: "All" },
+              { id: "personal", label: "Personal", icon: <Home size={11} /> },
+              { id: "work", label: "Work", icon: <Briefcase size={11} /> },
+            ] as { id: "all" | PersonaType; label: string; icon?: React.ReactNode }[]).map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setSessionPersonaFilter(f.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  sessionPersonaFilter === f.id
+                    ? "bg-indigo-600 text-white"
+                    : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                }`}
+              >
+                {f.icon}
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* List */}
@@ -229,7 +255,11 @@ export function BookmarksPage() {
             ))
           )
         ) : (
-          sessions.length === 0 ? (
+          (() => {
+            const filteredSessions = sessionPersonaFilter === "all"
+              ? sessions
+              : sessions.filter((s) => (s.persona ?? "personal") === sessionPersonaFilter);
+            return filteredSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-6">
               <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
                 <History size={24} className="text-zinc-400" />
@@ -239,8 +269,8 @@ export function BookmarksPage() {
                 Finish and save your roleplay conversations to review them later.
               </p>
             </div>
-          ) : (
-            sessions.map((session) => {
+            ) : (
+            filteredSessions.map((session) => {
               const isExpanded = expandedSessionId === session.id;
               const hasAudio = session.messages.some((m) => m.audioDataUrl);
               return (
@@ -279,7 +309,13 @@ export function BookmarksPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-zinc-400">{session.date} · {session.messages.length} messages</p>
+                        <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                          {session.date} · {session.messages.length} messages
+                          {session.persona === "work"
+                            ? <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-semibold"><Briefcase size={9} /> Work</span>
+                            : <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
+                          }
+                        </p>
                       </div>
                     </button>
 
@@ -404,7 +440,8 @@ export function BookmarksPage() {
                 </div>
               );
             })
-          )
+          );
+          })()
         )}
       </div>
     </div>

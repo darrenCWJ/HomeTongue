@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, MicOff, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, BookOpen } from "lucide-react";
+import { Mic, MicOff, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, BookOpen, Home, Briefcase, ChevronDown } from "lucide-react";
+import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import type { Phrase, Message } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
@@ -25,10 +26,12 @@ export function ChatPage() {
     saveSession,
     discardChat,
     userProfile,
+    updateUserProfile,
     saveConversationLesson,
     activePersona,
   } = useAppContext();
 
+  const [isPersonaSheetOpen, setIsPersonaSheetOpen] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const [convertToLesson, setConvertToLesson] = useState(false);
@@ -50,7 +53,7 @@ export function ChatPage() {
   type PrefetchResult = { phrase: Phrase; audioDataUrl: string; play: () => Promise<void> };
   const prefetchCacheRef = useRef<Map<string, Promise<PrefetchResult>>>(new Map());
 
-  type RecordRef = { msgId: string; suggestionMsgId: string | null; mode: "cantonese" | "english"; timestamp: number; fullText: string };
+  type RecordRef = { msgId: string; suggestionMsgId: string | null; mode: "cantonese" | "english"; timestamp: number; fullText: string; audioDataUrls: string[] };
   const lastRecordRef = useRef<RecordRef | null>(null);
   const suggestionGenRef = useRef(0);
 
@@ -155,17 +158,18 @@ export function ChatPage() {
         if (isAppend) {
           const prev = lastRecordRef.current!;
           const combinedText = `${prev.fullText} ${cantoneseText}`;
+          const accumulatedUrls = [...prev.audioDataUrls, audioDataUrl];
           const englishTranslation = await translateCantoneseToEnglish(combinedText);
-          updateMessage(prev.msgId, { text: combinedText, englishTranslation, audioDataUrl });
+          updateMessage(prev.msgId, { text: combinedText, englishTranslation, audioDataUrls: accumulatedUrls });
           const prevSuggestionMsgId = prev.suggestionMsgId;
-          lastRecordRef.current = { ...prev, fullText: combinedText, timestamp: Date.now(), suggestionMsgId: null };
+          lastRecordRef.current = { ...prev, fullText: combinedText, timestamp: Date.now(), suggestionMsgId: null, audioDataUrls: accumulatedUrls };
           fetchSuggestions(englishTranslation, prevSuggestionMsgId);
           toast.info("Added to previous message");
         } else {
           const englishTranslation = await translateCantoneseToEnglish(cantoneseText);
           const msgId = Date.now().toString();
-          addMessage({ id: msgId, sender: "bot", text: cantoneseText, englishTranslation, audioDataUrl });
-          lastRecordRef.current = { msgId, suggestionMsgId: null, mode: "cantonese", timestamp: Date.now(), fullText: cantoneseText };
+          addMessage({ id: msgId, sender: "bot", text: cantoneseText, englishTranslation, audioDataUrls: [audioDataUrl] });
+          lastRecordRef.current = { msgId, suggestionMsgId: null, mode: "cantonese", timestamp: Date.now(), fullText: cantoneseText, audioDataUrls: [audioDataUrl] };
           fetchSuggestions(englishTranslation, null);
         }
       } else {
@@ -304,10 +308,13 @@ export function ChatPage() {
     if (playingId) return;
     setPlayingId(id);
     try {
-      const stored = messages.find((m) => m.id === id)?.audioDataUrl;
-      if (stored) {
+      const msg = messages.find((m) => m.id === id);
+      const urls = msg?.audioDataUrls ?? (msg?.audioDataUrl ? [msg.audioDataUrl] : []);
+      if (urls.length > 0) {
         try {
-          await playDataUrl(stored);
+          for (const url of urls) {
+            await playDataUrl(url);
+          }
           return;
         } catch {
           // cached audio failed, fall through to fresh TTS
@@ -369,7 +376,16 @@ export function ChatPage() {
       <div className="px-4 py-3 border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
         <div>
           <h1 className="font-semibold text-zinc-800">Live Translation</h1>
-          <p className="text-xs text-zinc-500">Dialect ↔ English</p>
+          <button
+            onClick={() => setIsPersonaSheetOpen(true)}
+            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors mt-0.5"
+          >
+            {activePersona === "work"
+              ? <Briefcase size={11} />
+              : <Home size={11} />}
+            <span className="capitalize">{activePersona}</span>
+            <ChevronDown size={10} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
@@ -768,6 +784,92 @@ export function ChatPage() {
               Cancel
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Persona switcher sheet */}
+      <AnimatePresence>
+        {isPersonaSheetOpen && (
+          <>
+            <motion.div
+              key="persona-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30 z-30"
+              onClick={() => setIsPersonaSheetOpen(false)}
+            />
+            <motion.div
+              key="persona-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl z-40 px-6 pt-6 pb-10"
+            >
+              <div className="w-10 h-1 bg-zinc-200 rounded-full mx-auto mb-5" />
+              <h3 className="text-lg font-bold text-zinc-800 mb-1">Switch Persona</h3>
+              <p className="text-xs text-zinc-500 mb-4">Changes how the AI interprets your tone and suggestions.</p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {(["personal", "work"] as PersonaType[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => updateUserProfile({ activePersona: p })}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                      activePersona === p
+                        ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                        : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                    }`}
+                  >
+                    {p === "work"
+                      ? <Briefcase size={24} className={activePersona === p ? "text-indigo-600" : "text-zinc-400"} />
+                      : <Home size={24} className={activePersona === p ? "text-indigo-600" : "text-zinc-400"} />}
+                    <span className={`font-semibold text-sm capitalize ${activePersona === p ? "text-indigo-700" : "text-zinc-600"}`}>
+                      {p}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {activePersona === "work" && (
+                <div>
+                  <p className="text-xs text-zinc-500 font-medium mb-2">Job title</p>
+                  <div className="flex flex-wrap gap-2">
+                    {WORK_JOB_TITLES.map((title) => {
+                      const current = userProfile?.personaProfiles?.work?.jobTitle;
+                      const isSelected = current === title;
+                      const handleJobTitle = (t: WorkJobTitle) => {
+                        updateUserProfile({
+                          personaProfiles: {
+                            ...userProfile?.personaProfiles,
+                            work: {
+                              tone: userProfile?.personaProfiles?.work?.tone ?? "formal",
+                              ...userProfile?.personaProfiles?.work,
+                              jobTitle: isSelected ? undefined : t,
+                            },
+                          },
+                        });
+                      };
+                      return (
+                        <button
+                          key={title}
+                          onClick={() => handleJobTitle(title)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                            isSelected
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300"
+                          }`}
+                        >
+                          {title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 

@@ -34,7 +34,7 @@ async function translateWithOpenAI(text: string): Promise<TranslationResult> {
           { role: "user", content: `Translate to dialect: "${text}"` },
         ],
         temperature: 0.3,
-        max_tokens: 400,
+        max_tokens: 2000,
       }),
     });
   } catch (e) {
@@ -53,7 +53,7 @@ async function translateWithOpenAI(text: string): Promise<TranslationResult> {
 function translateWithMock(text: string): TranslationResult {
   const lower = text.toLowerCase();
 
-  if (lower.includes("hello") || lower.startsWith("hi") || lower.includes("hey")) {
+  if (/^(hello|hi|hey)[!?.,\s]*$/.test(lower)) {
     return {
       formal: { text: "您好！", pronunciation: "nei5 hou2!" },
       casual: { text: "喂，你好呀！", pronunciation: "wai3, nei5 hou2 aa3!" },
@@ -148,7 +148,7 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
 }
 
 export function transcribeCantonese(blob: Blob): Promise<string> {
-  return transcribeAudio(blob, null, "廣東話，香港粵語，繁體中文，唔該，係，喺，咁，囉，你好，多謝");
+  return transcribeAudio(blob, "zh", "廣東話口語，繁體中文。你好呀，唔該晒，係咁㗎，我喺度，好靚呀，咁樣囉。");
 }
 
 export function transcribeEnglish(blob: Blob): Promise<string> {
@@ -181,20 +181,59 @@ export async function translateCantoneseToEnglish(text: string): Promise<string>
   return ((data.choices[0]?.message?.content as string) ?? text).trim();
 }
 
-function simpleSplitChunks(cantonese: string, pronunciation: string): WordChunk[] {
-  const chars = [...cantonese].filter((ch) => /[一-鿿㐀-䶿]/.test(ch));
-  const sylls = pronunciation.trim().split(/\s+/);
-  return chars.map((ch, i) => ({ characters: ch, pronunciation: sylls[i] ?? "", meaning: "" }));
+function splitByPunctuation(cantonese: string): string[] {
+  return cantonese
+    .split(/[，,。！!？?…、—；;：:]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }
 
 export async function generateWordBreakdown(
   cantonese: string,
-  pronunciation: string,
-  english: string
+  _pronunciation: string,
+  _english: string
 ): Promise<WordChunk[]> {
+  const segments = splitByPunctuation(cantonese);
+  const fallback = segments.map((seg) => ({ characters: seg, pronunciation: "", meaning: "" }));
+
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  if (!apiKey || apiKey === "your-openai-api-key-here") return fallback;
+
+  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
+  try {
+    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: `You are a Cantonese language teacher. For each Cantonese segment given, provide its Jyutping pronunciation and a short English meaning. Return ONLY a JSON object with this exact structure: {"chunks":[{"characters":"幾時輪到我呀","pronunciation":"gei2 si4 lun4 dou3 ngo5 aa3","meaning":"when is it my turn"}]}. Preserve the order and exact characters of each segment.`,
+          },
+          {
+            role: "user",
+            content: `Segments: ${JSON.stringify(segments)}`,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 600,
+      }),
+    });
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const raw = (data.choices[0]?.message?.content as string) ?? "{}";
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.chunks) && parsed.chunks.length > 0 ? parsed.chunks : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function scoreCantoneseAccuracy(expected: string, actual: string): Promise<number> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
   if (!apiKey || apiKey === "your-openai-api-key-here") {
-    return simpleSplitChunks(cantonese, pronunciation);
+    return simpleFallbackScore(expected, actual);
   }
   const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
   try {
@@ -206,27 +245,45 @@ export async function generateWordBreakdown(
         messages: [
           {
             role: "system",
-            content: `You are a Cantonese language teacher. Break a Cantonese phrase into meaningful word chunks. Group characters that form one semantic unit (e.g. 唔該 = "please/excuse me", 借過 = "let me pass"). Return ONLY a JSON object: {"chunks":[{"characters":"唔該","pronunciation":"m4 goi1","meaning":"please / excuse me"}]}`,
+            content: `You are a Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said, score their accuracy from 0 to 100.
+
+Scoring rules:
+- Full marks (100) only if all Cantonese-specific particles and words are correct (e.g. 啲, 囉, 嘅, 喺, 唔, 係, 咁, 咋, 囉, 㗎, 囉).
+- Heavily penalise Mandarin substitutions: e.g. saying 點 instead of 啲, 的 instead of 嘅, 不 instead of 唔, 是 instead of 係, 在 instead of 喺. Each such substitution costs 20–30 points.
+- Penalise missing or extra words proportionally.
+- Ignore punctuation differences.
+- Return ONLY a JSON object: {"score": 85}`,
           },
           {
             role: "user",
-            content: `Phrase: ${cantonese}\nFull Jyutping: ${pronunciation}\nEnglish: ${english}`,
+            content: `Expected: ${expected}\nStudent said: ${actual}`,
           },
         ],
-        temperature: 0.2,
-        max_tokens: 400,
+        temperature: 0,
+        max_tokens: 20,
       }),
     });
-    if (!res.ok) return simpleSplitChunks(cantonese, pronunciation);
+    if (!res.ok) return simpleFallbackScore(expected, actual);
     const data = await res.json();
     const raw = (data.choices[0]?.message?.content as string) ?? "{}";
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed.chunks) && parsed.chunks.length > 0
-      ? parsed.chunks
-      : simpleSplitChunks(cantonese, pronunciation);
+    return typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : simpleFallbackScore(expected, actual);
   } catch {
-    return simpleSplitChunks(cantonese, pronunciation);
+    return simpleFallbackScore(expected, actual);
   }
+}
+
+function simpleFallbackScore(expected: string, actual: string): number {
+  const CHINESE = /[一-鿿㐀-䶿]/g;
+  const expectedChars = expected.match(CHINESE) ?? [];
+  if (expectedChars.length === 0) return 0;
+  const pool = (actual.match(CHINESE) ?? []).slice();
+  let correct = 0;
+  for (const ch of expectedChars) {
+    const i = pool.indexOf(ch);
+    if (i !== -1) { correct++; pool.splice(i, 1); }
+  }
+  return Math.round((correct / expectedChars.length) * 100);
 }
 
 export interface TranslateOptions {
@@ -235,9 +292,9 @@ export interface TranslateOptions {
 }
 
 export async function translate(options: TranslateOptions): Promise<TranslationResult> {
-  try {
-    return await translateWithOpenAI(options.text);
-  } catch {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  if (!apiKey) {
     return translateWithMock(options.text);
   }
+  return await translateWithOpenAI(options.text);
 }

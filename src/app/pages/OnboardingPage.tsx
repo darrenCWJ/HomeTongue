@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Globe2, Sparkles, ArrowRight, Volume2, Check, Loader2 } from "lucide-react";
+import { Globe2, Sparkles, ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
+import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
-type Step = "name" | "voice";
+type Step = "name" | "voice" | "persona";
+const STEPS: Step[] = ["name", "voice", "persona"];
 
 export function OnboardingPage() {
   const { updateUserProfile } = useAppContext();
@@ -16,6 +18,10 @@ export function OnboardingPage() {
   const [voiceId, setVoiceId] = useState(VOICES[0].id);
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [selectedPersona, setSelectedPersona] = useState<PersonaType>("personal");
+  const [selectedJobTitle, setSelectedJobTitle] = useState<WorkJobTitle | null>(null);
+
+  const stepIndex = STEPS.indexOf(step);
 
   const handlePreview = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -36,8 +42,22 @@ export function OnboardingPage() {
     setStep("voice");
   };
 
+  const handleVoiceNext = () => {
+    setStep("persona");
+  };
+
   const handleFinish = () => {
-    updateUserProfile({ name: name.trim(), preferredVoiceId: voiceId });
+    const updates: Parameters<typeof updateUserProfile>[0] = {
+      name: name.trim(),
+      preferredVoiceId: voiceId,
+      activePersona: selectedPersona,
+    };
+    if (selectedPersona === "work" && selectedJobTitle) {
+      updates.personaProfiles = {
+        work: { tone: "formal", jobTitle: selectedJobTitle },
+      };
+    }
+    updateUserProfile(updates);
   };
 
   return (
@@ -66,11 +86,11 @@ export function OnboardingPage() {
 
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-6">
-          {(["name", "voice"] as Step[]).map((s) => (
+          {STEPS.map((s, i) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all duration-300 ${
-                s === step ? "w-6 bg-indigo-600" : step === "voice" && s === "name" ? "w-2 bg-indigo-300" : "w-2 bg-zinc-200"
+                s === step ? "w-6 bg-indigo-600" : i < stepIndex ? "w-2 bg-indigo-300" : "w-2 bg-zinc-200"
               }`}
             />
           ))}
@@ -197,6 +217,99 @@ export function OnboardingPage() {
                   );
                 })}
               </div>
+
+              <button
+                onClick={handleVoiceNext}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200"
+              >
+                Continue
+                <ArrowRight size={18} />
+              </button>
+            </motion.div>
+          )}
+
+          {step === "persona" && (
+            <motion.div
+              key="persona"
+              initial={{ x: 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -40, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
+            >
+              <h2 className="text-xl font-bold text-zinc-800 mb-1">How will you use HomeTongue?</h2>
+              <p className="text-zinc-500 text-sm mb-5">
+                This helps the AI tailor translations to your context. You can change this anytime.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => setSelectedPersona("personal")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                    selectedPersona === "personal"
+                      ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                      : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                  }`}
+                >
+                  <Home size={28} className={selectedPersona === "personal" ? "text-indigo-600" : "text-zinc-400"} />
+                  <span className={`font-semibold text-sm ${selectedPersona === "personal" ? "text-indigo-700" : "text-zinc-600"}`}>
+                    Personal
+                  </span>
+                  <span className="text-xs text-zinc-400 text-center leading-tight">Home & family conversations</span>
+                  {selectedPersona === "personal" && (
+                    <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center mt-1">
+                      <Check size={12} className="text-white" />
+                    </div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setSelectedPersona("work")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                    selectedPersona === "work"
+                      ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                      : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                  }`}
+                >
+                  <Briefcase size={28} className={selectedPersona === "work" ? "text-indigo-600" : "text-zinc-400"} />
+                  <span className={`font-semibold text-sm ${selectedPersona === "work" ? "text-indigo-700" : "text-zinc-600"}`}>
+                    Work
+                  </span>
+                  <span className="text-xs text-zinc-400 text-center leading-tight">Professional context</span>
+                  {selectedPersona === "work" && (
+                    <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center mt-1">
+                      <Check size={12} className="text-white" />
+                    </div>
+                  )}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {selectedPersona === "work" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-4"
+                  >
+                    <p className="text-xs text-zinc-500 font-medium mb-2 pt-1">What's your job? <span className="text-zinc-400">(optional)</span></p>
+                    <div className="flex flex-wrap gap-2">
+                      {WORK_JOB_TITLES.map((title) => (
+                        <button
+                          key={title}
+                          onClick={() => setSelectedJobTitle((prev) => prev === title ? null : title)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                            selectedJobTitle === title
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300"
+                          }`}
+                        >
+                          {title}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <button
                 onClick={handleFinish}
