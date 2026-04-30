@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, MicOff, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, BookOpen, Home, Briefcase, ChevronDown } from "lucide-react";
-import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
+import { Mic, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, BookOpen, Home, Briefcase, ChevronDown, Languages } from "lucide-react";
+import { WORK_JOB_TITLES, DIALECTS, type WorkJobTitle, type PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import type { Phrase, Message } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
-import { translate, transcribeCantonese, transcribeEnglish, translateCantoneseToEnglish } from "../../services/translationService";
+import { translate, transcribeCantonese, transcribeEnglish, translateCantoneseToEnglish, curateAndGroupVocab } from "../../services/translationService";
 import { getSuggestions } from "../../services/suggestionService";
-import { extractVocabFromMessages } from "../../utils/vocab";
 
 export function ChatPage() {
   const {
@@ -29,13 +28,18 @@ export function ChatPage() {
     updateUserProfile,
     saveConversationLesson,
     activePersona,
+    dialect,
+    setDialect,
   } = useAppContext();
 
   const [isPersonaSheetOpen, setIsPersonaSheetOpen] = useState(false);
+  const [isDialectSheetOpen, setIsDialectSheetOpen] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const [convertToLesson, setConvertToLesson] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
+  const [latestSuggestions, setLatestSuggestions] = useState<Phrase[]>([]);
   const [listeningMode, setListeningMode] = useState<"english" | "cantonese" | null>(null);
   const isListening = listeningMode !== null;
   const [stage, setStage] = useState<"transcribing" | "translating" | null>(null);
@@ -56,6 +60,7 @@ export function ChatPage() {
   type RecordRef = { msgId: string; suggestionMsgId: string | null; mode: "cantonese" | "english"; timestamp: number; fullText: string; audioDataUrls: string[] };
   const lastRecordRef = useRef<RecordRef | null>(null);
   const suggestionGenRef = useRef(0);
+  const recordingStartRef = useRef<number | null>(null);
 
   // Refs so the persona-change effect always calls the latest version without stale closures
   const fetchSuggestionsRef = useRef<(e: string, prev: string | null) => void>(() => {});
@@ -81,6 +86,7 @@ export function ChatPage() {
         if (suggestionGenRef.current !== gen) return; // superseded by a newer fetch
         if (chips.length === 0) return;
         addBotSuggestions("", chips, suggestionMsgId);
+        setLatestSuggestions(chips);
         chips.forEach((chip) => {
           const cacheKey = `${chip.original}:${tone}`;
           if (prefetchCacheRef.current.has(cacheKey)) return;
@@ -121,6 +127,7 @@ export function ChatPage() {
   const startListeningCantonese = async () => {
     try {
       await startRecording();
+      recordingStartRef.current = Date.now();
       setListeningMode("cantonese");
     } catch {
       toast.error("Microphone access denied. Please allow microphone permissions.");
@@ -130,6 +137,7 @@ export function ChatPage() {
   const startListeningEnglish = async () => {
     try {
       await startRecording();
+      recordingStartRef.current = Date.now();
       setListeningMode("english");
     } catch {
       toast.error("Microphone access denied. Please allow microphone permissions.");
@@ -139,6 +147,16 @@ export function ChatPage() {
   const stopListening = async () => {
     const mode = listeningMode;
     setListeningMode(null);
+
+    const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 0;
+    recordingStartRef.current = null;
+
+    if (elapsed < 1000) {
+      stopRecording().catch(() => {});
+      toast.error("Recording too short — hold the button for at least 1 second.");
+      return;
+    }
+
     setStage("transcribing");
     try {
       const blob = await stopRecording();
@@ -203,11 +221,6 @@ export function ChatPage() {
     }
   };
 
-  const cancelListening = () => {
-    stopRecording().catch(() => {});
-    setListeningMode(null);
-  };
-
   const confirmEnglishReply = async () => {
     if (!pendingEnglish) return;
     const { text, resultPromise } = pendingEnglish;
@@ -249,6 +262,7 @@ export function ChatPage() {
   // Suggestions are prefetched; cache hit means zero-wait on selection
   const handleReply = async (englishText: string) => {
     lastRecordRef.current = null; // chip/typed reply ends the append window
+    setLatestSuggestions([]);
     setStage("translating");
     try {
       const cacheKey = `${englishText}:${tone}`;
@@ -338,26 +352,37 @@ export function ChatPage() {
     setIsSaveDialogOpen(true);
   };
 
-  const confirmSave = () => {
+  const confirmSave = async () => {
     const title = saveTitle.trim();
     if (!title) return;
+    setIsSaving(true);
     const sessionId = Date.now().toString();
-    saveSession(messages, title);
-    if (convertToLesson) {
-      const vocab = extractVocabFromMessages(messages);
-      saveConversationLesson({
-        id: sessionId,
-        sessionId,
-        title,
-        createdAt: new Date().toISOString(),
-        vocabulary: vocab,
-        examCompleted: false,
-        examAttempts: 0,
-        persona: "personal",
-      });
+    try {
+      saveSession(messages, title);
+      if (convertToLesson) {
+        const groups = await curateAndGroupVocab(messages);
+        const total = groups.length;
+        groups.forEach((vocab, i) => {
+          saveConversationLesson({
+            id: `${sessionId}-${i}`,
+            sessionId,
+            title: total > 1 ? `${title} (${i + 1}/${total})` : title,
+            createdAt: new Date().toISOString(),
+            vocabulary: vocab,
+            examCompleted: false,
+            examAttempts: 0,
+            persona: "personal",
+          });
+        });
+      }
+      setIsSaveDialogOpen(false);
+      toast.success(convertToLesson ? "Saved & added to Learn!" : "Session saved!");
+    } catch {
+      toast.error("Failed to process lesson. Session saved without lesson.");
+      setIsSaveDialogOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaveDialogOpen(false);
-    toast.success(convertToLesson ? "Saved & added to Learn!" : "Session saved!");
   };
 
   const handleNewChat = () => {
@@ -376,16 +401,25 @@ export function ChatPage() {
       <div className="px-4 py-3 border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
         <div>
           <h1 className="font-semibold text-zinc-800">Live Translation</h1>
-          <button
-            onClick={() => setIsPersonaSheetOpen(true)}
-            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors mt-0.5"
-          >
-            {activePersona === "work"
-              ? <Briefcase size={11} />
-              : <Home size={11} />}
-            <span className="capitalize">{activePersona}</span>
-            <ChevronDown size={10} />
-          </button>
+          <div className="flex items-center gap-2 mt-0.5">
+            <button
+              onClick={() => setIsPersonaSheetOpen(true)}
+              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+            >
+              {activePersona === "work" ? <Briefcase size={11} /> : <Home size={11} />}
+              <span className="capitalize">{activePersona}</span>
+              <ChevronDown size={10} />
+            </button>
+            <span className="text-zinc-300 text-xs">·</span>
+            <button
+              onClick={() => setIsDialectSheetOpen(true)}
+              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+            >
+              <Languages size={11} />
+              <span>{dialect}</span>
+              <ChevronDown size={10} />
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
@@ -422,7 +456,7 @@ export function ChatPage() {
                 粵
               </div>
               <div>
-                <p className="text-sm font-semibold text-zinc-800">Native speaker talks</p>
+                <p className="text-sm font-semibold text-zinc-800">Dialect speaker talks</p>
                 <p className="text-xs text-zinc-500 mt-0.5">Their speech → shown in English for you</p>
               </div>
             </div>
@@ -434,7 +468,7 @@ export function ChatPage() {
                 EN
               </div>
               <div>
-                <p className="text-sm font-semibold text-zinc-800">You speak English</p>
+                <p className="text-sm font-semibold text-zinc-800">You speak (non-dialect)</p>
                 <p className="text-xs text-zinc-500 mt-0.5">Your speech → translated & spoken in their dialect</p>
               </div>
             </div>
@@ -443,12 +477,19 @@ export function ChatPage() {
           <div className="flex items-center gap-5">
             <div className="flex flex-col items-center gap-2">
               <button
-                onClick={startListeningCantonese}
-                className="flex items-center justify-center w-20 h-20 rounded-full bg-purple-600 text-white shadow-xl shadow-purple-200 transition-transform active:scale-95"
+                onPointerDown={startListeningCantonese}
+                onPointerUp={listeningMode === "cantonese" ? stopListening : undefined}
+                onPointerLeave={listeningMode === "cantonese" ? stopListening : undefined}
+                onContextMenu={(e) => e.preventDefault()}
+                disabled={isListening && listeningMode !== "cantonese"}
+                className={`relative flex items-center justify-center w-20 h-20 rounded-full text-white shadow-xl transition-transform active:scale-95 disabled:opacity-50 ${listeningMode === "cantonese" ? "bg-red-500 shadow-red-200 scale-105" : "bg-purple-600 shadow-purple-200"}`}
               >
-                <Mic size={30} />
+                {listeningMode === "cantonese" && (
+                  <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
+                )}
+                <Mic size={30} className="relative z-10" />
               </button>
-              <span className="text-xs font-bold text-purple-600">粵 Native</span>
+              <span className="text-xs font-bold text-purple-600">Dialect</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <button
@@ -461,17 +502,24 @@ export function ChatPage() {
             </div>
             <div className="flex flex-col items-center gap-2">
               <button
-                onClick={startListeningEnglish}
-                className="flex items-center justify-center w-20 h-20 rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-200 transition-transform active:scale-95"
+                onPointerDown={startListeningEnglish}
+                onPointerUp={listeningMode === "english" ? stopListening : undefined}
+                onPointerLeave={listeningMode === "english" ? stopListening : undefined}
+                onContextMenu={(e) => e.preventDefault()}
+                disabled={isListening && listeningMode !== "english"}
+                className={`relative flex items-center justify-center w-20 h-20 rounded-full text-white shadow-xl transition-transform active:scale-95 disabled:opacity-50 ${listeningMode === "english" ? "bg-red-500 shadow-red-200 scale-105" : "bg-indigo-600 shadow-indigo-200"}`}
               >
-                <Mic size={30} />
+                {listeningMode === "english" && (
+                  <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
+                )}
+                <Mic size={30} className="relative z-10" />
               </button>
-              <span className="text-xs font-bold text-indigo-600">EN English</span>
+              <span className="text-xs font-bold text-indigo-600">Non-Dialect</span>
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 pb-36 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 pb-52 space-y-3">
           {messages.map((msg) => {
             const isIncomingCantonese = msg.sender === "bot" && !!msg.englishTranslation;
             const isSuggestionRow = msg.sender === "bot" && !msg.englishTranslation && !!msg.suggestions?.length;
@@ -494,36 +542,22 @@ export function ChatPage() {
                   <div className="max-w-[78%] bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3">
                     <p className="text-lg font-semibold text-zinc-900 leading-snug">{msg.text}</p>
                     <p className="text-xs text-indigo-500 mt-1 font-medium">{msg.englishTranslation}</p>
+                    <div className="mt-2 pt-2 border-t border-zinc-100">
+                      <button
+                        onClick={() => replayPhrase(msg.id, msg.text)}
+                        disabled={!!playingId}
+                        className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 transition-colors"
+                      >
+                        {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
+                        {isPlaying ? "Playing..." : "Replay"}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               );
             }
 
-            if (isSuggestionRow) {
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col gap-2 pl-10"
-                >
-                  <p className="text-xs text-zinc-400 font-medium">Suggested replies:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {msg.suggestions!.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => handleReply(s.original)}
-                        disabled={isBusy}
-                        className="px-3 py-2 bg-white border border-indigo-200 rounded-xl text-left shadow-sm hover:border-indigo-400 hover:bg-indigo-50 active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        <p className="text-xs font-medium text-zinc-800">{s.original}</p>
-                        <p className="text-xs text-indigo-500 mt-0.5">{s.dialect}</p>
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              );
-            }
+            if (isSuggestionRow) return null;
 
             if (isOutgoingReply) {
               return (
@@ -604,23 +638,56 @@ export function ChatPage() {
         </div>
       )}
 
+      {/* Suggestion strip */}
+      <AnimatePresence>
+        {latestSuggestions.length > 0 && messages.length > 0 && !isBusy && !isListening && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="absolute bottom-[112px] left-0 right-0 z-20 px-4"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Say</span>
+              {latestSuggestions.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => handleReply(s.original)}
+                  disabled={isBusy}
+                  className="px-3 py-1.5 bg-white border border-indigo-200 rounded-full text-xs font-medium text-zinc-700 shadow-sm hover:border-indigo-400 hover:bg-indigo-50 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                >
+                  {s.original}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom action bar */}
-      {!isListening && messages.length > 0 && (
+      {messages.length > 0 && !isBusy && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex gap-3 items-end">
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={startListeningCantonese}
-              disabled={isBusy}
-              className="flex items-center justify-center w-14 h-14 rounded-full bg-purple-600 text-white shadow-lg shadow-purple-200 transition-transform active:scale-95 disabled:opacity-50"
+              onPointerDown={startListeningCantonese}
+              onPointerUp={listeningMode === "cantonese" ? stopListening : undefined}
+              onPointerLeave={listeningMode === "cantonese" ? stopListening : undefined}
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isListening && listeningMode !== "cantonese"}
+              className={`relative flex items-center justify-center w-14 h-14 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 ${listeningMode === "cantonese" ? "bg-red-500 shadow-red-200 scale-110" : "bg-purple-600 shadow-purple-200"}`}
             >
-              <Mic size={22} />
+              {listeningMode === "cantonese" && (
+                <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
+              )}
+              <Mic size={22} className="relative z-10" />
             </button>
-            <span className="text-[10px] font-bold text-purple-600">粵</span>
+            <span className="text-[10px] font-bold text-purple-600">Dialect</span>
           </div>
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={() => setIsTyping(true)}
-              disabled={isBusy}
+              disabled={isListening}
               className="flex items-center justify-center w-14 h-14 rounded-full bg-white border-2 border-zinc-300 text-zinc-500 shadow-lg shadow-zinc-100 transition-transform active:scale-95 disabled:opacity-50"
             >
               <Keyboard size={22} />
@@ -629,51 +696,22 @@ export function ChatPage() {
           </div>
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={startListeningEnglish}
-              disabled={isBusy}
-              className="flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-200 transition-transform active:scale-95 disabled:opacity-50"
+              onPointerDown={startListeningEnglish}
+              onPointerUp={listeningMode === "english" ? stopListening : undefined}
+              onPointerLeave={listeningMode === "english" ? stopListening : undefined}
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={isListening && listeningMode !== "english"}
+              className={`relative flex items-center justify-center w-14 h-14 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 ${listeningMode === "english" ? "bg-red-500 shadow-red-200 scale-110" : "bg-indigo-600 shadow-indigo-200"}`}
             >
-              <Mic size={22} />
+              {listeningMode === "english" && (
+                <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
+              )}
+              <Mic size={22} className="relative z-10" />
             </button>
-            <span className="text-[10px] font-bold text-indigo-600">EN</span>
+            <span className="text-[10px] font-bold text-indigo-600">Non-Dialect</span>
           </div>
         </div>
       )}
-
-      {/* Listening overlay */}
-      <AnimatePresence>
-        {isListening && (
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col items-center"
-          >
-            <div className="text-center mb-8">
-              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 ${listeningMode === "english" ? "bg-indigo-100 text-indigo-700" : "bg-purple-100 text-purple-700"}`}>
-                {listeningMode === "english" ? "EN English speaker" : "粵 Native speaker"}
-              </div>
-              <h3 className="text-2xl font-bold text-zinc-800">Recording...</h3>
-              <p className="text-sm text-zinc-500 mt-2">
-                {listeningMode === "english"
-                  ? "Speak in English — will be translated to their dialect"
-                  : "Native speaker is talking"}
-              </p>
-            </div>
-            <button
-              onClick={stopListening}
-              className="relative flex items-center justify-center w-28 h-28 rounded-full bg-red-500 text-white shadow-xl shadow-red-200 transition-transform active:scale-95"
-            >
-              <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
-              <MicOff size={40} className="relative z-10" />
-            </button>
-            <button onClick={cancelListening} className="mt-8 text-zinc-400 font-medium text-sm hover:text-zinc-600">
-              Cancel
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Typing overlay */}
       <AnimatePresence>
@@ -748,7 +786,7 @@ export function ChatPage() {
               className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-zinc-800 mb-5"
             />
 
-            {activePersona === "personal" && <button
+            <button
               onClick={() => setConvertToLesson((v) => !v)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 mb-6 transition-all ${
                 convertToLesson
@@ -768,14 +806,14 @@ export function ChatPage() {
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${convertToLesson ? "bg-indigo-500 border-indigo-500" : "border-zinc-300"}`}>
                 {convertToLesson && <div className="w-2 h-2 rounded-full bg-white" />}
               </div>
-            </button>}
+            </button>
 
             <button
               onClick={confirmSave}
-              disabled={!saveTitle.trim()}
+              disabled={!saveTitle.trim() || isSaving}
               className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors disabled:opacity-40"
             >
-              Save
+              {isSaving ? "Processing…" : "Save"}
             </button>
             <button
               onClick={() => setIsSaveDialogOpen(false)}
@@ -873,6 +911,81 @@ export function ChatPage() {
         )}
       </AnimatePresence>
 
+      {/* Dialect switcher sheet */}
+      <AnimatePresence>
+        {isDialectSheetOpen && (
+          <>
+            <motion.div
+              key="dialect-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30 z-30"
+              onClick={() => setIsDialectSheetOpen(false)}
+            />
+            <motion.div
+              key="dialect-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl z-40 px-6 pt-6 pb-10"
+            >
+              <div className="w-10 h-1 bg-zinc-200 rounded-full mx-auto mb-5" />
+              <h3 className="text-lg font-bold text-zinc-800 mb-1">Select Dialect</h3>
+              <p className="text-xs text-zinc-500 mb-4">Choose which dialect to translate into.</p>
+
+              <div className="space-y-2">
+                {DIALECTS.map((d) => (
+                  <button
+                    key={d.value}
+                    disabled={!d.available}
+                    onClick={() => {
+                      if (d.available) {
+                        setDialect(d.value);
+                        setIsDialectSheetOpen(false);
+                      }
+                    }}
+                    className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl border-2 transition-all ${
+                      dialect === d.value && d.available
+                        ? "bg-indigo-50 border-indigo-400"
+                        : d.available
+                        ? "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                        : "bg-zinc-50 border-zinc-100 opacity-40 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold ${
+                      dialect === d.value && d.available
+                        ? "bg-indigo-500 text-white"
+                        : d.available
+                        ? "bg-zinc-200 text-zinc-600"
+                        : "bg-zinc-200 text-zinc-400"
+                    }`}>
+                      {d.character}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className={`text-sm font-semibold ${
+                        dialect === d.value && d.available ? "text-indigo-700" : d.available ? "text-zinc-700" : "text-zinc-400"
+                      }`}>
+                        {d.label}
+                      </p>
+                      {!d.available && (
+                        <p className="text-xs text-zinc-400">Coming soon</p>
+                      )}
+                    </div>
+                    {dialect === d.value && d.available && (
+                      <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* English transcript review overlay */}
       <AnimatePresence>
         {pendingEnglish && (
@@ -885,7 +998,7 @@ export function ChatPage() {
           >
             <div className="text-center mb-6 w-full">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 bg-indigo-100 text-indigo-700">
-                EN English speaker
+                Non-Dialect speaker
               </div>
               <h3 className="text-2xl font-bold text-zinc-800 mb-1">Did you say this?</h3>
               <p className="text-sm text-zinc-500">Check your recording, then send in Cantonese</p>

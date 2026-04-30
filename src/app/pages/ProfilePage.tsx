@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from "react"; // useRef kept for dropdownRef
-import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2 } from "lucide-react";
+import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2, Type, Pencil } from "lucide-react";
 import { useAppContext, Tone } from "../context/AppContext";
-import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
+import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType, type FontSize } from "../../types";
+
+const FONT_SIZES: { key: FontSize; label: string; previewPx: number }[] = [
+  { key: "small",  label: "Small",  previewPx: 14 },
+  { key: "normal", label: "Normal", previewPx: 16 },
+  { key: "large",  label: "Large",  previewPx: 18 },
+  { key: "xl",     label: "XL",     previewPx: 20 },
+];
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
 
@@ -13,11 +20,14 @@ export function ProfilePage() {
     setIsSignedIn,
     userProfile, updateUserProfile,
     activePersona,
+    fontSize, setFontSize,
   } = useAppContext();
 
   const [isDialectDropdownOpen, setIsDialectDropdownOpen] = useState(false);
   const [isJobTitleDropdownOpen, setIsJobTitleDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
 
@@ -43,12 +53,27 @@ export function ProfilePage() {
     if (trimmed !== (userProfile?.name ?? "")) {
       updateUserProfile({ name: trimmed });
     }
+    setIsEditingName(false);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") nameInputRef.current?.blur();
+  };
+
+  const handleEditNameClick = () => {
+    setIsEditingName(true);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const jobTitleDropdownRef = useRef<HTMLDivElement>(null);
 
-  const dialects = ["Cantonese", "Hokkien", "Teochew", "Hakka"];
+  const dialects = [
+    { label: "Cantonese", available: true },
+    { label: "Hokkien",   available: false },
+    { label: "Teochew",   available: false },
+    { label: "Hakka",     available: false },
+  ];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -101,24 +126,36 @@ export function ProfilePage() {
             <Sparkles size={16} className="text-yellow-500 fill-yellow-500" />
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-zinc-900">
-          {userProfile?.name || "Your Persona"}
-        </h1>
+        <div className="flex items-center justify-center gap-2">
+          {isEditingName ? (
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onBlur={handleNameBlur}
+              onKeyDown={handleNameKeyDown}
+              placeholder="Enter your name"
+              className="text-2xl font-bold text-center text-zinc-900 bg-transparent border-b-2 border-indigo-400 focus:outline-none w-48"
+            />
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-zinc-900">
+                {userProfile?.name || "Your Persona"}
+              </h1>
+              <button
+                onClick={handleEditNameClick}
+                className="text-zinc-400 hover:text-indigo-500 transition-colors"
+                aria-label="Edit name"
+              >
+                <Pencil size={16} />
+              </button>
+            </>
+          )}
+        </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold mt-2 border border-indigo-100 shadow-sm">
           <Brain size={14} />
           <span>{personaSummary ? "AI Persona Active" : "Persona Building..."}</span>
-        </div>
-
-        {/* Name input */}
-        <div className="mt-4 w-full max-w-xs mx-auto">
-          <input
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onBlur={handleNameBlur}
-            placeholder="Enter your name"
-            className="w-full text-center text-sm px-4 py-2 rounded-xl border border-zinc-200 bg-zinc-50 focus:outline-none focus:border-indigo-400 text-zinc-700 placeholder-zinc-400"
-          />
         </div>
       </div>
 
@@ -272,19 +309,28 @@ export function ProfilePage() {
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-zinc-200 overflow-hidden z-20">
                 {dialects.map((d) => (
                   <button
-                    key={d}
+                    key={d.label}
+                    disabled={!d.available}
                     onClick={() => {
-                      setDialect(d);
+                      if (!d.available) return;
+                      setDialect(d.label);
                       setIsDialectDropdownOpen(false);
                     }}
-                    className={`w-full p-4 flex items-center justify-between hover:bg-indigo-50 transition-colors ${
-                      dialect === d ? "bg-indigo-50" : ""
+                    className={`w-full p-4 flex items-center justify-between transition-colors ${
+                      !d.available
+                        ? "cursor-not-allowed"
+                        : dialect === d.label
+                          ? "bg-indigo-50 hover:bg-indigo-50"
+                          : "hover:bg-indigo-50"
                     }`}
                   >
-                    <span className={`font-medium ${dialect === d ? "text-indigo-600" : "text-zinc-800"}`}>
-                      {d}
-                    </span>
-                    {dialect === d && <Check size={18} className="text-indigo-600" />}
+                    <div className="text-left">
+                      <span className={`font-medium ${!d.available ? "text-zinc-300" : dialect === d.label ? "text-indigo-600" : "text-zinc-800"}`}>
+                        {d.label}
+                      </span>
+                      {!d.available && <p className="text-[11px] text-zinc-300 leading-tight">Coming soon</p>}
+                    </div>
+                    {dialect === d.label && d.available && <Check size={18} className="text-indigo-600" />}
                   </button>
                 ))}
               </div>
@@ -346,6 +392,39 @@ export function ProfilePage() {
                     )}
                   </div>
                 </label>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Text Size */}
+        <section>
+          <div className="flex items-center gap-2 mb-3 px-2">
+            <Type size={18} className="text-zinc-400" />
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Text Size</h2>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-4">
+            <div className="grid grid-cols-4 gap-2">
+              {FONT_SIZES.map(({ key, label, previewPx }) => (
+                <button
+                  key={key}
+                  onClick={() => setFontSize(key)}
+                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
+                    fontSize === key
+                      ? "border-indigo-400 bg-indigo-50"
+                      : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
+                  }`}
+                >
+                  <span
+                    className={`font-bold leading-none ${fontSize === key ? "text-indigo-600" : "text-zinc-600"}`}
+                    style={{ fontSize: previewPx }}
+                  >
+                    A
+                  </span>
+                  <span className={`text-[11px] font-medium ${fontSize === key ? "text-indigo-500" : "text-zinc-400"}`}>
+                    {label}
+                  </span>
+                </button>
               ))}
             </div>
           </div>

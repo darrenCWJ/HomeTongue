@@ -1,11 +1,12 @@
 import React, { useState, useRef } from "react";
-import { Bookmark, Volume2, Search, History, Play, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase } from "lucide-react";
+import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase } from "lucide-react";
 import type { PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import { playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 import { extractVocabFromMessages } from "../../utils/vocab";
+import { LanguageFilter } from "../components/LanguageFilter";
 
 const CATEGORIES = [
   { id: "all", label: "All" },
@@ -126,7 +127,10 @@ export function BookmarksPage() {
     <div className="flex flex-col h-full bg-zinc-50 pb-20">
       {/* Header */}
       <div className="bg-white px-4 py-4 border-b border-zinc-200 sticky top-0 z-10 shadow-sm">
-        <h1 className="text-xl font-bold text-zinc-800 mb-4">Saved Content</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold text-zinc-800">Saved Content</h1>
+          <LanguageFilter />
+        </div>
         
         {/* Tabs */}
         <div className="flex bg-zinc-100 rounded-lg p-1 mb-4">
@@ -276,13 +280,14 @@ export function BookmarksPage() {
               return (
                 <div key={session.id} className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
                   {/* Session header */}
-                  <div className="p-4 flex items-center gap-3">
+                  <div className="p-5 flex items-center gap-3">
                     <button
                       onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
                       className="flex items-center gap-3 flex-1 text-left min-w-0"
                     >
-                      <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
-                        <Play size={14} className="ml-0.5" />
+                      <div className="flex items-center gap-1.5 bg-indigo-50 rounded-full px-2.5 py-1.5 text-indigo-600 flex-shrink-0">
+                        <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                        <span className="text-xs font-medium">{isExpanded ? "Close" : "View"}</span>
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -296,10 +301,10 @@ export function BookmarksPage() {
                                 if (e.key === "Escape") setEditingSessionId(null);
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="text-sm font-semibold text-zinc-800 border-b-2 border-indigo-400 outline-none bg-transparent w-36"
+                              className="text-base font-semibold text-zinc-800 border-b-2 border-indigo-400 outline-none bg-transparent w-36"
                             />
                           ) : (
-                            <p className="font-semibold text-zinc-800 text-sm truncate">
+                            <p className="font-semibold text-zinc-800 text-base truncate">
                               {session.title ?? "Conversation"}
                             </p>
                           )}
@@ -316,6 +321,9 @@ export function BookmarksPage() {
                             : <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
                           }
                         </p>
+                        {session.messages[0]?.text && (
+                          <p className="text-xs text-zinc-400 truncate mt-0.5 italic">{session.messages[0].text}</p>
+                        )}
                       </div>
                     </button>
 
@@ -325,13 +333,13 @@ export function BookmarksPage() {
                         <>
                           <button
                             onClick={() => commitTitle(session.id)}
-                            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                            className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                           >
                             <Check size={14} />
                           </button>
                           <button
                             onClick={() => setEditingSessionId(null)}
-                            className="p-1.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                            className="p-2.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
                           >
                             <X size={14} />
                           </button>
@@ -339,25 +347,14 @@ export function BookmarksPage() {
                       ) : (
                         <>
                           <button
-                            onClick={() => handleMakeLesson(session)}
-                            title={conversationLessons.some((l) => l.sessionId === session.id) ? "Already a lesson" : "Make lesson"}
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              conversationLessons.some((l) => l.sessionId === session.id)
-                                ? "text-indigo-400 bg-indigo-50"
-                                : "text-zinc-400 hover:bg-indigo-50 hover:text-indigo-500"
-                            }`}
-                          >
-                            <BookOpen size={14} />
-                          </button>
-                          <button
                             onClick={() => startEditing(session.id, session.title ?? "Conversation")}
-                            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                            className="p-2.5 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
                           >
                             <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => handleDeleteClick(session.id)}
-                            className={`p-1.5 rounded-lg transition-colors ${
+                            className={`p-2.5 rounded-lg transition-colors ${
                               confirmDeleteId === session.id
                                 ? "bg-red-100 text-red-600 hover:bg-red-200"
                                 : "text-zinc-400 hover:bg-zinc-100 hover:text-red-500"
@@ -368,23 +365,32 @@ export function BookmarksPage() {
                           {confirmDeleteId === session.id && (
                             <button
                               onClick={() => setConfirmDeleteId(null)}
-                              className="p-1.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                              className="p-2.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
                             >
                               <X size={14} />
                             </button>
                           )}
                         </>
                       )}
-                      <button
-                        onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
-                        className="text-xs text-indigo-500 font-medium ml-1 px-1"
-                      >
-                        {isExpanded ? "Close" : "Replay"}
-                      </button>
                     </div>
                   </div>
 
-                  {/* Expanded replay */}
+                  {/* Convert to lesson strip */}
+                  {conversationLessons.some((l) => l.sessionId === session.id) ? (
+                    <div className="w-full flex items-center justify-center gap-2 py-2.5 border-t border-indigo-100 bg-indigo-50/50 text-indigo-400 text-xs font-medium">
+                      <BookOpen size={13} /> Already a lesson
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleMakeLesson(session)}
+                      className="w-full flex items-center justify-center gap-2 py-3 border-t border-indigo-100 bg-indigo-50 text-indigo-600 text-sm font-semibold hover:bg-indigo-100 transition-colors active:scale-[0.99]"
+                    >
+                      <BookOpen size={15} />
+                      Convert to Lesson
+                    </button>
+                  )}
+
+                  {/* Expanded chat */}
                   {isExpanded && (
                     <div className="border-t border-zinc-100 p-3 space-y-2 bg-zinc-50 max-h-[60vh] overflow-y-auto">
                       {session.messages

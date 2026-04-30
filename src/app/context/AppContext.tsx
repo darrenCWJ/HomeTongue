@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { repositories } from "../../repositories";
-import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress, ConversationLesson, PersonaType } from "../../types";
+import { db } from "../../repositories/local/db";
+import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress, ConversationLesson, PersonaType, FontSize } from "../../types";
+import { FONT_SIZE_PX } from "../../types";
 import { updatePersona } from "../../services/personaService";
 
-export type { Tone, Phrase, Message, Session, ConversationLesson, PersonaType };
+export type { Tone, Phrase, Message, Session, ConversationLesson, PersonaType, FontSize };
+export { FONT_SIZE_PX };
 
 const DEFAULT_PHRASES: Phrase[] = [
   {
@@ -57,7 +60,10 @@ interface AppContextType {
   updatePhrase: (phrase: Phrase) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
   removeMessage: (id: string) => void;
+  fontSize: FontSize;
+  setFontSize: (size: FontSize) => void;
 }
+
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -69,13 +75,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [conversationLessons, setConversationLessons] = useState<ConversationLesson[]>([]);
   const [learnedCount, setLearnedCount] = useState(12);
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isSignedIn, setIsSignedInState] = useState(() => localStorage.getItem("ht_signed_in") === "true");
+  const setIsSignedIn = (val: boolean) => {
+    localStorage.setItem("ht_signed_in", String(val));
+    setIsSignedInState(val);
+  };
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
 
   const activePersona: PersonaType = userProfile?.activePersona ?? "personal";
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
   const tone: Tone = activePersonaProfile?.tone ?? userProfile?.preferredTone ?? "casual";
+  const fontSize: FontSize = userProfile?.fontSize ?? "normal";
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--font-size", FONT_SIZE_PX[fontSize]);
+  }, [fontSize]);
 
   useEffect(() => {
     Promise.all([
@@ -84,14 +99,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       repositories.user.getProfile(),
       repositories.lessons.getAllProgress(),
       repositories.conversationLessons.getAll(),
-    ]).then(([p, s, u, lp, cl]) => {
+      db.draftMessages.get("draft"),
+    ]).then(([p, s, u, lp, cl, draft]) => {
       setPhrases(p);
       setSessions(s);
       setUserProfile(u);
       setLessonProgress(lp);
       setConversationLessons(cl);
+      if (draft && draft.messages.length > 0) setMessages(draft.messages);
     });
   }, []);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      db.draftMessages.delete("draft").catch(() => {});
+    } else {
+      db.draftMessages.put({ key: "draft", messages }).catch(() => {});
+    }
+  }, [messages]);
 
   const toggleBookmark = (id: string) => {
     setPhrases((prev) => {
@@ -258,6 +283,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const setFontSize = (size: FontSize) => {
+    document.documentElement.style.setProperty("--font-size", FONT_SIZE_PX[size]);
+    updateUserProfile({ fontSize: size });
+  };
+
   const updateLessonProgress = (progress: LessonProgress) => {
     setLessonProgress((prev) => ({ ...prev, [progress.lessonId]: progress }));
     repositories.lessons.updateProgress(progress);
@@ -333,6 +363,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updatePhrase,
         updateMessage,
         removeMessage,
+        fontSize,
+        setFontSize,
       }}
     >
       {children}

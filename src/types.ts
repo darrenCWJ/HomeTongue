@@ -1,5 +1,28 @@
 export type Tone = "formal" | "casual" | "slang";
 
+export interface DialectOption {
+  value: string;
+  label: string;
+  character: string;
+  available: boolean;
+}
+
+export const DIALECTS: DialectOption[] = [
+  { value: "Cantonese", label: "Cantonese", character: "粵", available: true },
+  { value: "Hokkien",   label: "Hokkien",   character: "閩", available: false },
+  { value: "Hakka",     label: "Hakka",     character: "客", available: false },
+  { value: "Teochew",   label: "Teochew",   character: "潮", available: false },
+];
+
+export type FontSize = "small" | "normal" | "large" | "xl";
+
+export const FONT_SIZE_PX: Record<FontSize, string> = {
+  small: "14px",
+  normal: "16px",
+  large: "18px",
+  xl: "20px",
+};
+
 export type PersonaType = "personal" | "work";
 
 export const WORK_JOB_TITLES = [
@@ -82,6 +105,7 @@ export interface UserProfile {
   personaProfiles?: Partial<Record<PersonaType, PersonaProfile>>;
   preferredVoiceId?: string;
   customVoiceId?: string;
+  fontSize?: FontSize;
 }
 
 export interface WordChunk {

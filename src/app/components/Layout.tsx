@@ -11,7 +11,11 @@ const HAS_ACCESS_CODE = !!import.meta.env.VITE_ACCESS_CODE;
 
 export function Layout() {
   const { isSignedIn, userProfile } = useAppContext();
-  const [isEmailAuthed, setIsEmailAuthed] = useState(false);
+  const [isEmailAuthed, setIsEmailAuthedState] = useState(() => localStorage.getItem("ht_email_authed") === "true");
+  const setIsEmailAuthed = (val: boolean) => {
+    localStorage.setItem("ht_email_authed", String(val));
+    setIsEmailAuthedState(val);
+  };
 
   // If no access code is configured, treat the gate as already passed
   const accessCodePassed = !HAS_ACCESS_CODE || isSignedIn;
@@ -19,7 +23,7 @@ export function Layout() {
 
   return (
     <div className="flex justify-center bg-zinc-100 min-h-screen">
-      <div className="w-full max-w-md bg-white h-screen flex flex-col shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-[448px] bg-white h-screen flex flex-col shadow-2xl relative overflow-hidden">
         {!accessCodePassed ? (
           <SignInPage />
         ) : !isEmailAuthed ? (

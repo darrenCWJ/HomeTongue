@@ -1,4 +1,5 @@
-import type { Tone, TranslationResult, WordChunk } from "../types";
+import type { Tone, TranslationResult, WordChunk, Message, VocabItem } from "../types";
+import { extractVocabFromMessages } from "../utils/vocab";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 
@@ -286,6 +287,40 @@ function simpleFallbackScore(expected: string, actual: string): number {
   return Math.round((correct / expectedChars.length) * 100);
 }
 
+export async function getExampleMeta(cantonese: string): Promise<{ translation: string; pronunciation: string }> {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  if (!apiKey || apiKey === "your-openai-api-key-here") return { translation: "", pronunciation: "" };
+  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
+  try {
+    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: 'Given a Cantonese sentence, return JSON with exactly two fields: "translation" (natural English meaning) and "pronunciation" (full Jyutping romanization with tone numbers). Return ONLY valid JSON, no other text.',
+          },
+          { role: "user", content: cantonese },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+        max_tokens: 200,
+      }),
+    });
+    if (!res.ok) return { translation: "", pronunciation: "" };
+    const data = await res.json() as { choices: { message: { content: string } }[] };
+    const content = JSON.parse(data.choices[0]?.message?.content ?? "{}") as { translation?: string; pronunciation?: string };
+    return {
+      translation: content.translation ?? "",
+      pronunciation: content.pronunciation ?? "",
+    };
+  } catch {
+    return { translation: "", pronunciation: "" };
+  }
+}
+
 export interface TranslateOptions {
   text: string;
   preferredTone: Tone;
@@ -297,4 +332,54 @@ export async function translate(options: TranslateOptions): Promise<TranslationR
     return translateWithMock(options.text);
   }
   return await translateWithOpenAI(options.text);
+}
+
+const PART_SIZE = 15;
+
+export async function curateAndGroupVocab(msgs: Message[]): Promise<VocabItem[][]> {
+  const allVocab = extractVocabFromMessages(msgs);
+  if (allVocab.length === 0) return [];
+  if (allVocab.length <= PART_SIZE) return [allVocab];
+
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  if (!apiKey || apiKey === "your-openai-api-key-here") return sequentialSplit(allVocab);
+
+  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
+  const phraseList = allVocab.map((v, i) => `${i}: ${v.cantonese} — ${v.english}`).join("\n");
+
+  try {
+    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: `You are a Cantonese language teacher. Group the following numbered phrases into thematic lesson parts for a language learner. Each part should have at most ${PART_SIZE} phrases. Keep contextually related phrases together (e.g. greetings, food, transport, family). Return ONLY valid JSON: {"parts":[[0,1,2],[3,4,5]]}. Use every index exactly once.`,
+          },
+          {
+            role: "user",
+            content: `Group these ${allVocab.length} phrases:\n${phraseList}`,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 1000,
+      }),
+    });
+    if (!res.ok) return sequentialSplit(allVocab);
+    const data = await res.json();
+    const raw = (data.choices[0]?.message?.content as string) ?? "{}";
+    const parsed = JSON.parse(raw) as { parts: number[][] };
+    if (!Array.isArray(parsed.parts)) return sequentialSplit(allVocab);
+    return parsed.parts.map((indices) => indices.map((i) => allVocab[i]).filter(Boolean));
+  } catch {
+    return sequentialSplit(allVocab);
+  }
+}
+
+function sequentialSplit(vocab: VocabItem[]): VocabItem[][] {
+  const parts: VocabItem[][] = [];
+  for (let i = 0; i < vocab.length; i += PART_SIZE) parts.push(vocab.slice(i, i + PART_SIZE));
+  return parts;
 }

@@ -1,15 +1,22 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Globe2, Sparkles, ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
+import { Globe2, Sparkles, ArrowRight, Volume2, Check, Loader2, Home, Briefcase, Type } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
-import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
+import { WORK_JOB_TITLES, FONT_SIZE_PX, type WorkJobTitle, type PersonaType, type FontSize } from "../../types";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
-type Step = "name" | "voice" | "persona";
-const STEPS: Step[] = ["name", "voice", "persona"];
+const FONT_SIZES: { key: FontSize; label: string; previewPx: number }[] = [
+  { key: "small",  label: "Small",  previewPx: 14 },
+  { key: "normal", label: "Normal", previewPx: 16 },
+  { key: "large",  label: "Large",  previewPx: 18 },
+  { key: "xl",     label: "XL",     previewPx: 20 },
+];
+
+type Step = "name" | "voice" | "textsize" | "persona";
+const STEPS: Step[] = ["name", "voice", "textsize", "persona"];
 
 export function OnboardingPage() {
   const { updateUserProfile } = useAppContext();
@@ -20,6 +27,7 @@ export function OnboardingPage() {
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>("personal");
   const [selectedJobTitle, setSelectedJobTitle] = useState<WorkJobTitle | null>(null);
+  const [onboardFontSize, setOnboardFontSize] = useState<FontSize>("normal");
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -43,7 +51,12 @@ export function OnboardingPage() {
   };
 
   const handleVoiceNext = () => {
-    setStep("persona");
+    setStep("textsize");
+  };
+
+  const handleFontSizeSelect = (size: FontSize) => {
+    setOnboardFontSize(size);
+    document.documentElement.style.setProperty("--font-size", FONT_SIZE_PX[size]);
   };
 
   const handleFinish = () => {
@@ -51,6 +64,7 @@ export function OnboardingPage() {
       name: name.trim(),
       preferredVoiceId: voiceId,
       activePersona: selectedPersona,
+      fontSize: onboardFontSize,
     };
     if (selectedPersona === "work" && selectedJobTitle) {
       updates.personaProfiles = {
@@ -220,6 +234,63 @@ export function OnboardingPage() {
 
               <button
                 onClick={handleVoiceNext}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200"
+              >
+                Continue
+                <ArrowRight size={18} />
+              </button>
+            </motion.div>
+          )}
+
+          {step === "textsize" && (
+            <motion.div
+              key="textsize"
+              initial={{ x: 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -40, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Type size={20} className="text-indigo-500" />
+                <h2 className="text-xl font-bold text-zinc-800">Choose your text size</h2>
+              </div>
+              <p className="text-zinc-500 text-sm mb-5">
+                Pick whatever feels most comfortable to read.
+              </p>
+
+              {/* Live preview — resizes with the selection */}
+              <div className="bg-zinc-50 rounded-2xl p-4 mb-5 border border-zinc-100">
+                <p className="font-medium text-zinc-800">Hello, how are you?</p>
+                <p className="text-zinc-500 mt-0.5">你好嗎？ · nei5 hou2 maa1?</p>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2 mb-6">
+                {FONT_SIZES.map(({ key, label, previewPx }) => (
+                  <button
+                    key={key}
+                    onClick={() => handleFontSizeSelect(key)}
+                    className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
+                      onboardFontSize === key
+                        ? "border-indigo-500 bg-indigo-50"
+                        : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
+                    }`}
+                  >
+                    <span
+                      className={`font-bold leading-none ${onboardFontSize === key ? "text-indigo-600" : "text-zinc-600"}`}
+                      style={{ fontSize: previewPx }}
+                    >
+                      A
+                    </span>
+                    <span className={`text-[11px] font-medium ${onboardFontSize === key ? "text-indigo-500" : "text-zinc-400"}`}>
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setStep("persona")}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200"
               >
                 Continue
