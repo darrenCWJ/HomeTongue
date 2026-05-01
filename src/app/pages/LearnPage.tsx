@@ -15,13 +15,13 @@ import {
   Mic,
   MicOff,
   Trophy,
+  Trash2,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText, GOOGLE_TTS_VOICES, DEFAULT_VOICE } from "../../hooks/useGoogleTTS";
 import type { VoiceKey } from "../../hooks/useGoogleTTS";
 import { transcribeCantonese, generateWordBreakdown, scoreCantoneseAccuracy, getExampleMeta } from "../../services/translationService";
-import { extractVocabFromMessages } from "../../utils/vocab";
 import type { WordChunk } from "../../types";
 import { motion, AnimatePresence, animate, useMotionValue } from "motion/react";
 import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
@@ -154,7 +154,7 @@ function getDailyVocab(): VocabItem {
 }
 
 export function LearnPage() {
-  const { phrases, lessonProgress, conversationLessons, updateConversationLesson, userProfile } = useAppContext();
+  const { phrases, lessonProgress, conversationLessons, updateConversationLesson, deleteConversationLesson, userProfile } = useAppContext();
   const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
   const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
 
@@ -346,6 +346,7 @@ export function LearnPage() {
                           key={cl.id}
                           lesson={cl}
                           onClick={() => handleSelectConversationLesson(cl)}
+                          onDelete={() => deleteConversationLesson(cl.id)}
                         />
                       ))}
                     </div>
@@ -540,7 +541,7 @@ function LessonCard({
 
 // ─── ConversationLessonCard ───────────────────────────────────────────────────
 
-function ConversationLessonCard({ lesson, onClick }: { lesson: ConversationLesson; onClick: () => void }) {
+function ConversationLessonCard({ lesson, onClick, onDelete }: { lesson: ConversationLesson; onClick: () => void; onDelete: () => void }) {
   const statusLabel = lesson.examCompleted
     ? "Passed"
     : lesson.examAttempts > 0
@@ -570,6 +571,13 @@ function ConversationLessonCard({ lesson, onClick }: { lesson: ConversationLesso
           )}
         </div>
       </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+        aria-label="Delete lesson"
+      >
+        <Trash2 size={16} />
+      </button>
       <ChevronRight size={20} className="text-zinc-300 flex-shrink-0" />
     </div>
   );
@@ -1470,7 +1478,7 @@ function ConversationLessonView({
   onBack: () => void;
   onStartExam: () => void;
 }) {
-  const { updateConversationLesson, sessions } = useAppContext();
+  const { updateConversationLesson } = useAppContext();
   const [phase, setPhase] = useState<LessonPhase>(lesson.currentPhase ?? "listen");
 
   const savePhase = (next: LessonPhase) => {
@@ -1479,16 +1487,6 @@ function ConversationLessonView({
   };
 
   const vocab = lesson.vocabulary;
-
-  const handleRebuildLesson = () => {
-    const session = sessions.find((s) => s.id === lesson.sessionId);
-    if (!session) { toast.error("Original conversation not found."); return; }
-    const newVocab = extractVocabFromMessages(session.messages);
-    if (newVocab.length === 0) { toast.error("No phrases found in conversation."); return; }
-    updateConversationLesson({ ...lesson, vocabulary: newVocab, currentPhase: "listen" });
-    toast.success(`Rebuilt with ${newVocab.length} phrase${newVocab.length !== 1 ? "s" : ""}.`);
-    setPhase("listen");
-  };
 
   const handleBreakdownComplete = (cache: Record<number, WordChunk[]>) => {
     const updatedVocab = vocab.map((item, i) =>
@@ -1549,12 +1547,6 @@ function ConversationLessonView({
         </button>
         <div className="flex-1 min-w-0">
           <h2 className="font-bold text-lg text-zinc-800 leading-tight truncate">{lesson.title}</h2>
-          <button
-            onClick={handleRebuildLesson}
-            className="text-xs text-zinc-400 hover:text-indigo-500 transition-colors"
-          >
-            Rebuild phrases
-          </button>
         </div>
         {phase === "listen" && (
           <button

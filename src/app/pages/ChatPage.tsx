@@ -446,7 +446,7 @@ export function ChatPage() {
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <h2 className="text-xl font-bold text-zinc-800 mb-1">Start Conversation</h2>
           <p className="text-zinc-500 text-sm mb-8 max-w-[300px]">
-            Everyone takes a turn. Tap the button for whoever is speaking, or type your reply.
+            Everyone takes a turn. Hold the button for whoever is speaking, or type your reply.
           </p>
 
           {/* Direction cards */}

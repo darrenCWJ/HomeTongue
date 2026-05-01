@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase } from "lucide-react";
-import type { PersonaType } from "../../types";
+import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase, Mic } from "lucide-react";
+import type { PersonaType, Session } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import { playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText } from "../../hooks/useGoogleTTS";
@@ -47,6 +47,8 @@ export function BookmarksPage() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [pendingConvertSession, setPendingConvertSession] = useState<Session | null>(null);
+  const [audioSourceType, setAudioSourceType] = useState<"recorded" | "transcribed">("recorded");
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const startEditing = (id: string, currentTitle: string) => {
@@ -61,13 +63,22 @@ export function BookmarksPage() {
     setEditingSessionId(null);
   };
 
-  const handleMakeLesson = (session: typeof sessions[number]) => {
+  const handleMakeLesson = (session: Session) => {
     const alreadyExists = conversationLessons.some((l) => l.sessionId === session.id);
     if (alreadyExists) {
       toast.info("This conversation is already a lesson.");
       return;
     }
-    const vocab = extractVocabFromMessages(session.messages);
+    if ((session.persona ?? "personal") === "personal") {
+      setAudioSourceType("recorded");
+      setPendingConvertSession(session);
+    } else {
+      convertToLesson(session, "transcribed");
+    }
+  };
+
+  const convertToLesson = (session: Session, audioSource: "recorded" | "transcribed") => {
+    const vocab = extractVocabFromMessages(session.messages, audioSource);
     if (vocab.length === 0) {
       toast.error("No vocabulary found in this conversation.");
       return;
@@ -81,6 +92,7 @@ export function BookmarksPage() {
       examCompleted: false,
       examAttempts: 0,
     });
+    setPendingConvertSession(null);
     toast.success("Added to Learn!");
   };
 
@@ -380,6 +392,49 @@ export function BookmarksPage() {
                     <div className="w-full flex items-center justify-center gap-2 py-2.5 border-t border-indigo-100 bg-indigo-50/50 text-indigo-400 text-xs font-medium">
                       <BookOpen size={13} /> Already a lesson
                     </div>
+                  ) : pendingConvertSession?.id === session.id ? (
+                    <div className="border-t border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
+                      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Choose voice for lesson</p>
+                      <div className="flex gap-2">
+                        {(["recorded", "transcribed"] as const).map((src) => (
+                          <button
+                            key={src}
+                            onClick={() => setAudioSourceType(src)}
+                            className={`flex-1 flex items-center gap-2.5 px-3 py-3 rounded-2xl border-2 transition-all ${
+                              audioSourceType === src
+                                ? "border-indigo-500 bg-white"
+                                : "border-zinc-200 bg-white hover:border-indigo-200"
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${audioSourceType === src ? "bg-indigo-500" : "bg-zinc-100"}`}>
+                              <Mic size={15} className={audioSourceType === src ? "text-white" : "text-zinc-400"} />
+                            </div>
+                            <div className="text-left">
+                              <p className={`text-xs font-semibold leading-tight ${audioSourceType === src ? "text-indigo-700" : "text-zinc-700"}`}>
+                                {src === "recorded" ? "Recorded" : "Synthesised"}
+                              </p>
+                              <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">
+                                {src === "recorded" ? "Actual dialect audio" : "Text-to-speech"}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setPendingConvertSession(null)}
+                          className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-500 text-sm font-medium hover:bg-zinc-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => convertToLesson(session, audioSourceType)}
+                          className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+                        >
+                          Convert
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <button
                       onClick={() => handleMakeLesson(session)}
@@ -450,6 +505,7 @@ export function BookmarksPage() {
           })()
         )}
       </div>
+
     </div>
   );
 }

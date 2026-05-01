@@ -51,6 +51,7 @@ interface AppContextType {
   conversationLessons: ConversationLesson[];
   saveConversationLesson: (lesson: ConversationLesson) => void;
   updateConversationLesson: (lesson: ConversationLesson) => void;
+  deleteConversationLesson: (id: string) => void;
   addTranslation: (originalText: string, phrase: Phrase) => void;
   userProfile: UserProfile | null;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
@@ -196,6 +197,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (session) repositories.conversations.updateSession(session);
       return updated;
     });
+    setConversationLessons((prev) =>
+      prev.map((l) => {
+        if (l.sessionId !== id) return l;
+        const updated = { ...l, title };
+        repositories.conversationLessons.update(updated);
+        return updated;
+      })
+    );
   };
 
   const deleteSession = (id: string) => {
@@ -328,6 +337,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     repositories.conversationLessons.update(lesson);
   };
 
+  const deleteConversationLesson = (id: string) => {
+    setConversationLessons((prev) => prev.filter((l) => l.id !== id));
+    repositories.conversationLessons.delete(id);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -354,6 +368,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         conversationLessons,
         saveConversationLesson,
         updateConversationLesson,
+        deleteConversationLesson,
         addTranslation,
         userProfile,
         updateUserProfile,

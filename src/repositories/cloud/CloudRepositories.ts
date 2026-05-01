@@ -65,4 +65,7 @@ export class CloudConversationLessonRepository implements IConversationLessonRep
   async update(_lesson: ConversationLesson): Promise<void> {
     throw new Error(NOT_CONFIGURED);
   }
+  async delete(_id: string): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
 }

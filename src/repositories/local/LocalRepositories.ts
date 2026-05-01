@@ -105,4 +105,8 @@ export class LocalConversationLessonRepository implements IConversationLessonRep
   async update(lesson: ConversationLesson): Promise<void> {
     await db.conversationLessons.put(lesson);
   }
+
+  async delete(id: string): Promise<void> {
+    await db.conversationLessons.delete(id);
+  }
 }

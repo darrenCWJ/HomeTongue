@@ -2,7 +2,10 @@ import type { Message, VocabItem } from "../types";
 
 const hasTwoChinese = (s: string) => (s.match(/[一-鿿㐀-䶿]/g) ?? []).length >= 2;
 
-export function extractVocabFromMessages(msgs: Message[]): VocabItem[] {
+export function extractVocabFromMessages(
+  msgs: Message[],
+  audioSource: "recorded" | "transcribed" = "transcribed"
+): VocabItem[] {
   const items: VocabItem[] = [];
   const seen = new Set<string>();
 
@@ -15,6 +18,7 @@ export function extractVocabFromMessages(msgs: Message[]): VocabItem[] {
           english: msg.englishTranslation,
           cantonese,
           pronunciation: "",
+          audioDataUrl: audioSource === "recorded" ? msg.audioDataUrls?.[0] : undefined,
         });
       }
     }

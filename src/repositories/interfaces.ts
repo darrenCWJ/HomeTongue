@@ -27,6 +27,7 @@ export interface IConversationLessonRepository {
   getAll(): Promise<ConversationLesson[]>;
   save(lesson: ConversationLesson): Promise<void>;
   update(lesson: ConversationLesson): Promise<void>;
+  delete(id: string): Promise<void>;
 }
 
 export interface Repositories {
