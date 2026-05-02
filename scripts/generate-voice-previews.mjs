@@ -23,16 +23,14 @@ const SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
 const VOICES = [
-  { key: "zephyr",  name: "yue-HK-Chirp3-HD-Zephyr"  },
-  { key: "aoede",   name: "yue-HK-Chirp3-HD-Aoede"   },
-  { key: "kore",    name: "yue-HK-Chirp3-HD-Kore"    },
-  { key: "sulafat", name: "yue-HK-Chirp3-HD-Sulafat" },
-  { key: "leda",    name: "yue-HK-Chirp3-HD-Leda"    },
-  { key: "puck",    name: "yue-HK-Chirp3-HD-Puck"    },
-  { key: "charon",  name: "yue-HK-Chirp3-HD-Charon"  },
-  { key: "fenrir",  name: "yue-HK-Chirp3-HD-Fenrir"  },
-  { key: "orus",    name: "yue-HK-Chirp3-HD-Orus"    },
-  { key: "achird",  name: "yue-HK-Chirp3-HD-Achird"  },
+  // Female
+  { key: "zephyr",       name: "yue-HK-Chirp3-HD-Zephyr"       },
+  { key: "aoede",        name: "yue-HK-Chirp3-HD-Aoede"        },
+  { key: "vindemiatrix", name: "yue-HK-Chirp3-HD-Vindemiatrix" },
+  // Male
+  { key: "puck",         name: "yue-HK-Chirp3-HD-Puck"         },
+  { key: "charon",       name: "yue-HK-Chirp3-HD-Charon"       },
+  { key: "fenrir",       name: "yue-HK-Chirp3-HD-Fenrir"       },
 ];
 
 function base64urlEncode(input) {
