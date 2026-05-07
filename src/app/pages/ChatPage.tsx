@@ -9,6 +9,7 @@ import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/useEle
 import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import { translate, transcribeCantonese, transcribeEnglish, translateCantoneseToEnglish } from "../../services/translationService";
 import { getSuggestions } from "../../services/suggestionService";
+import { useTour } from "../components/tour/TourProvider";
 
 export function ChatPage() {
   const {
@@ -33,6 +34,8 @@ export function ChatPage() {
     sessionTags,
     setPhraseTags,
   } = useAppContext();
+  const { isActive: isTourActive, activeTour } = useTour();
+  const showDemoBubble = isTourActive && activeTour === "chat" && !messages.some((m) => m.sender === "bot" && !!m.englishTranslation);
 
   const [isPersonaSheetOpen, setIsPersonaSheetOpen] = useState(false);
   const [isDialectSheetOpen, setIsDialectSheetOpen] = useState(false);
@@ -505,6 +508,7 @@ export function ChatPage() {
           <h1 className="font-semibold text-zinc-800">Live Translation</h1>
           <div className="flex items-center gap-2 mt-0.5">
             <button
+              data-tour="chat-persona-selector"
               onClick={() => setIsPersonaSheetOpen(true)}
               className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
             >
@@ -514,6 +518,7 @@ export function ChatPage() {
             </button>
             <span className="text-zinc-300 text-xs">·</span>
             <button
+              data-tour="chat-dialect-selector"
               onClick={() => setIsDialectSheetOpen(true)}
               className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
             >
@@ -534,6 +539,7 @@ export function ChatPage() {
             </button>
           )}
           <button
+            data-tour="chat-save-conversation"
             onClick={openSaveDialog}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium hover:bg-indigo-100 transition-colors"
           >
@@ -544,16 +550,49 @@ export function ChatPage() {
       </div>
 
       {/* Empty state */}
-      {messages.length === 0 && !stage ? (
+      {messages.length === 0 && !stage && !showDemoBubble ? (
         <div className="flex-1 flex items-center justify-center p-6">
           <p className="text-zinc-400 text-sm text-center">
             Tap the mic button or type your message for translation
           </p>
         </div>
+      ) : showDemoBubble ? (
+        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
+          <div className="flex items-end gap-2 justify-start">
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-purple-600">
+              粵
+            </div>
+            <div className="flex flex-col max-w-[78%]">
+              <div
+                data-tour="chat-message-bubble"
+                className="relative bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3"
+              >
+                <button
+                  data-tour="chat-bookmark-button"
+                  className="absolute top-2 right-2 text-zinc-300 hover:text-zinc-500 transition-colors"
+                >
+                  <Bookmark size={14} />
+                </button>
+                <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">你好，好高興認識你！</p>
+                <p className="text-xs text-indigo-500 mt-1 font-medium">Hello, nice to meet you!</p>
+                <div className="mt-2 pt-2 border-t border-zinc-100">
+                  <button
+                    data-tour="chat-replay-button"
+                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                  >
+                    <RotateCcw size={12} />
+                    Replay
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
-          {messages.map((msg) => {
+          {messages.map((msg, msgIndex) => {
             const isIncomingCantonese = msg.sender === "bot" && !!msg.englishTranslation;
+            const isFirstBotMsg = isIncomingCantonese && msgIndex === messages.findIndex((m) => m.sender === "bot" && !!m.englishTranslation);
             const isSuggestionRow = msg.sender === "bot" && !msg.englishTranslation && !!msg.suggestions?.length;
             const isOutgoingReply = msg.sender === "user";
             const isPlaying = playingId === msg.id;
@@ -573,6 +612,7 @@ export function ChatPage() {
                   </div>
                   <div className="flex flex-col max-w-[78%]">
                     <div
+                      {...(isFirstBotMsg ? { "data-tour": "chat-message-bubble" } : {})}
                       className="relative bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3"
                       onPointerDown={(e) => handleBubblePointerDown(e, msg)}
                       onPointerUp={cancelBubbleLongPress}
@@ -581,6 +621,7 @@ export function ChatPage() {
                       onContextMenu={(e) => e.preventDefault()}
                     >
                       <button
+                        {...(isFirstBotMsg ? { "data-tour": "chat-bookmark-button" } : {})}
                         onClick={() => toggleBookmark(msg.id)}
                         onPointerDown={(e) => e.stopPropagation()}
                         className="absolute top-2 right-2 text-zinc-300 hover:text-zinc-500 transition-colors"
@@ -591,6 +632,7 @@ export function ChatPage() {
                       <p className="text-xs text-indigo-500 mt-1 font-medium">{msg.englishTranslation}</p>
                       <div className="mt-2 pt-2 border-t border-zinc-100">
                         <button
+                          {...(isFirstBotMsg ? { "data-tour": "chat-replay-button" } : {})}
                           onClick={() => replayPhrase(msg.id, msg.text)}
                           onPointerDown={(e) => e.stopPropagation()}
                           disabled={!!playingId}
@@ -763,6 +805,7 @@ export function ChatPage() {
       {!isBusy && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-3 items-center select-none">
           <button
+            data-tour="chat-dialect-mic"
             onPointerDown={() => handleMicPointerDown(startListeningCantonese)}
             onPointerUp={() => handleMicPointerUp("cantonese")}
             onPointerLeave={() => handleMicPointerLeave("cantonese")}
@@ -780,6 +823,7 @@ export function ChatPage() {
           </button>
 
           <button
+            data-tour="chat-type-button"
             onClick={() => setIsTyping(true)}
             disabled={isListening}
             className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border-2 border-zinc-300 text-zinc-600 shadow-lg shadow-zinc-100 transition-transform active:scale-95 disabled:opacity-50 select-none"
@@ -789,6 +833,7 @@ export function ChatPage() {
           </button>
 
           <button
+            data-tour="chat-english-mic"
             onPointerDown={() => handleMicPointerDown(startListeningEnglish)}
             onPointerUp={() => handleMicPointerUp("english")}
             onPointerLeave={() => handleMicPointerLeave("english")}

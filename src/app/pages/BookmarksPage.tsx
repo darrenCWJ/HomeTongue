@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase, Mic, Plus, Tag as TagIcon, StickyNote, ArrowLeft } from "lucide-react";
 import type { PersonaType, Session } from "../../types";
 import { useAppContext } from "../context/AppContext";
@@ -8,14 +8,26 @@ import { toast } from "sonner";
 import { extractVocabFromMessages } from "../../utils/vocab";
 import { LanguageFilter } from "../components/LanguageFilter";
 import { motion, AnimatePresence } from "motion/react";
+import { useTour } from "../components/tour/TourProvider";
 
 
 export function BookmarksPage() {
   const { phrases, toggleBookmark, addPhrase, sessions, userProfile, renameSession, deleteSession, conversationLessons, saveConversationLesson, phraseTags, sessionTags, createTag, deleteTag, setPhraseTags, setSessionTags } = useAppContext();
+  const { isActive: isTourActive, activeTour, currentStep } = useTour();
+  const isTourMode = isTourActive && activeTour === "bookmarks";
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
-  const [sessionTagFilter, setSessionTagFilter] = useState<string | null>(null);
-  const [sessionPersonaFilter, setSessionPersonaFilter] = useState<"all" | PersonaType>("all");
+
+  useEffect(() => {
+    if (!isTourMode) return;
+    if (currentStep === 4) {
+      setActiveTab("sessions");
+    } else if (currentStep < 4) {
+      setActiveTab("phrases");
+    }
+  }, [isTourMode, currentStep]);
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Set<string>>(new Set());
+  const [sessionTagFilters, setSessionTagFilters] = useState<Set<string>>(new Set());
+  const [sessionPersonaFilters, setSessionPersonaFilters] = useState<Set<PersonaType>>(new Set());
   const [isCreatingTag, setIsCreatingTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [editingTagsPhraseId, setEditingTagsPhraseId] = useState<string | null>(null);
@@ -31,8 +43,8 @@ export function BookmarksPage() {
 
   const handleDeleteTag = useCallback((tagId: string) => {
     setPendingTagDeletions((prev) => new Set([...prev, tagId]));
-    if (selectedTagFilter === tagId) setSelectedTagFilter(null);
-    if (sessionTagFilter === tagId) setSessionTagFilter(null);
+    setSelectedTagFilters((prev) => { const next = new Set(prev); next.delete(tagId); return next; });
+    setSessionTagFilters((prev) => { const next = new Set(prev); next.delete(tagId); return next; });
 
     const timer = setTimeout(() => {
       deleteTag(tagId);
@@ -60,12 +72,12 @@ export function BookmarksPage() {
         },
       },
     });
-  }, [deleteTag, selectedTagFilter, sessionTagFilter]);
+  }, [deleteTag]);
 
   const allBookmarked = phrases.filter((p) => p.isBookmarked || (p.tags?.length ?? 0) > 0);
   const searchLower = searchQuery.toLowerCase().trim();
   const bookmarkedPhrases = allBookmarked
-    .filter((p) => !selectedTagFilter || p.tags?.includes(selectedTagFilter))
+    .filter((p) => selectedTagFilters.size === 0 || p.tags?.some((t) => selectedTagFilters.has(t)))
     .filter((p) => !searchLower || p.original.toLowerCase().includes(searchLower));
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -237,13 +249,13 @@ export function BookmarksPage() {
       <div className="bg-white px-4 py-4 border-b border-zinc-200 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold text-zinc-800">Saved Content</h1>
-          <LanguageFilter />
+          <div data-tour="bookmarks-language-filter"><LanguageFilter /></div>
         </div>
         
         {/* Tabs */}
-        <div className="flex bg-zinc-100 rounded-lg p-1 mb-4">
+        <div data-tour="bookmarks-tabs" className="flex bg-zinc-100 rounded-lg p-1 mb-4">
           <button
-            onClick={() => { setActiveTab("phrases"); setSelectedTagFilter(null); }}
+            onClick={() => { setActiveTab("phrases"); setSelectedTagFilters(new Set()); }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "phrases" ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
             }`}
@@ -283,11 +295,11 @@ export function BookmarksPage() {
           const displayedPhraseTags = tagsExpanded ? visiblePhraseTags : visiblePhraseTags.slice(0, 3);
           const hasMorePhraseTags = visiblePhraseTags.length > 3;
           return (
-          <div className="flex flex-wrap gap-2">
+          <div data-tour="bookmarks-tag-filter" className="flex flex-wrap gap-2">
             <button
-              onClick={() => setSelectedTagFilter(null)}
+              onClick={() => setSelectedTagFilters(new Set())}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                !selectedTagFilter
+                selectedTagFilters.size === 0
                   ? "bg-indigo-600 text-white"
                   : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
               }`}
@@ -297,9 +309,13 @@ export function BookmarksPage() {
             {displayedPhraseTags.map((tag) => (
               <button
                 key={tag.id}
-                onClick={() => !isEditingTags && setSelectedTagFilter(selectedTagFilter === tag.id ? null : tag.id)}
+                onClick={() => !isEditingTags && setSelectedTagFilters((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id);
+                  return next;
+                })}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
-                  selectedTagFilter === tag.id
+                  selectedTagFilters.has(tag.id)
                     ? "bg-indigo-600 text-white"
                     : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                 }`}
@@ -385,16 +401,29 @@ export function BookmarksPage() {
           const hasMoreSessionTags = visibleSessionTags.length > 3;
           return (
           <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { setSessionPersonaFilters(new Set()); setSessionTagFilters(new Set()); }}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                sessionPersonaFilters.size === 0 && sessionTagFilters.size === 0
+                  ? "bg-indigo-600 text-white"
+                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              }`}
+            >
+              All
+            </button>
             {([
-              { id: "all", label: "All" },
-              { id: "personal", label: "Personal", icon: <Home size={11} /> },
-              { id: "work", label: "Work", icon: <Briefcase size={11} /> },
-            ] as { id: "all" | PersonaType; label: string; icon?: React.ReactNode }[]).map((f) => (
+              { id: "personal" as PersonaType, label: "Personal", icon: <Home size={11} /> },
+              { id: "work" as PersonaType, label: "Work", icon: <Briefcase size={11} /> },
+            ]).map((f) => (
               <button
                 key={f.id}
-                onClick={() => { setSessionPersonaFilter(f.id); setSessionTagFilter(null); }}
+                onClick={() => setSessionPersonaFilters((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
+                  return next;
+                })}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  sessionPersonaFilter === f.id && !sessionTagFilter
+                  sessionPersonaFilters.has(f.id)
                     ? "bg-indigo-600 text-white"
                     : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
                 }`}
@@ -406,9 +435,13 @@ export function BookmarksPage() {
             {displayedSessionTags.map((tag) => (
               <button
                 key={tag.id}
-                onClick={() => !isEditingTags && setSessionTagFilter(sessionTagFilter === tag.id ? null : tag.id)}
+                onClick={() => !isEditingTags && setSessionTagFilters((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id);
+                  return next;
+                })}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
-                  sessionTagFilter === tag.id
+                  sessionTagFilters.has(tag.id)
                     ? "bg-indigo-600 text-white"
                     : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                 }`}
@@ -491,7 +524,7 @@ export function BookmarksPage() {
       {/* List */}
       <div className="p-4 space-y-3 overflow-y-auto">
         {activeTab === "phrases" ? (
-          bookmarkedPhrases.length === 0 ? (
+          bookmarkedPhrases.length === 0 && !isTourMode ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-6">
               <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
                 <Bookmark size={24} className="text-zinc-400" />
@@ -501,9 +534,27 @@ export function BookmarksPage() {
                 Bookmark phrases in the chat to build your personal dialect phrasebook.
               </p>
             </div>
+          ) : bookmarkedPhrases.length === 0 && isTourMode ? (
+            <div data-tour="bookmarks-phrase-card" className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 relative">
+              <div className="absolute top-4 right-4 flex items-center gap-1">
+                <button className="text-indigo-500 hover:text-indigo-600">
+                  <Bookmark size={20} className="fill-indigo-500" />
+                </button>
+              </div>
+              <div className="pr-16">
+                <p className="text-lg font-medium text-zinc-800 mb-1">你好，好高興認識你！</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm text-zinc-500 italic">nei5 hou2, hou2 gou1 hing3 jing6 sik1 nei5</p>
+                  <button className="p-1.5 rounded-full bg-zinc-50 text-zinc-400 hover:bg-zinc-100">
+                    <Volume2 size={14} />
+                  </button>
+                </div>
+                <p className="text-sm text-zinc-600">Hello, nice to meet you!</p>
+              </div>
+            </div>
           ) : (
-            bookmarkedPhrases.map((phrase) => (
-              <div key={phrase.id} className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 relative">
+            bookmarkedPhrases.map((phrase, phraseIdx) => (
+              <div key={phrase.id} {...(phraseIdx === 0 ? { "data-tour": "bookmarks-phrase-card" } : {})} className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 relative">
                 <div className="absolute top-4 right-4 flex items-center gap-1">
                   <button
                     onClick={() => setEditingTagsPhraseId(editingTagsPhraseId === phrase.id ? null : phrase.id)}
@@ -598,11 +649,9 @@ export function BookmarksPage() {
           )
         ) : (
           (() => {
-            let filteredSessions = sessionTagFilter
-              ? sessions.filter((s) => s.tags?.includes(sessionTagFilter))
-              : sessionPersonaFilter === "all"
-                ? sessions
-                : sessions.filter((s) => (s.persona ?? "personal") === sessionPersonaFilter);
+            let filteredSessions = sessions
+              .filter((s) => sessionPersonaFilters.size === 0 || sessionPersonaFilters.has((s.persona ?? "personal") as PersonaType))
+              .filter((s) => sessionTagFilters.size === 0 || s.tags?.some((t) => sessionTagFilters.has(t)));
             if (searchLower) {
               filteredSessions = filteredSessions.filter((s) =>
                 s.messages.some((m) =>
@@ -611,7 +660,7 @@ export function BookmarksPage() {
                 )
               );
             }
-            return filteredSessions.length === 0 ? (
+            return filteredSessions.length === 0 && !isTourMode ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-6">
               <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
                 <History size={24} className="text-zinc-400" />
@@ -621,11 +670,56 @@ export function BookmarksPage() {
                 Finish and save your roleplay conversations to review them later.
               </p>
             </div>
+            ) : filteredSessions.length === 0 && isTourMode ? (
+            <div data-tour="bookmarks-session-card" className="bg-white rounded-2xl shadow-sm border border-zinc-100">
+              <div className="p-5 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-zinc-800 text-base truncate">Morning Greeting</p>
+                  </div>
+                  <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                    2025-05-08 · 4 messages
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
+                  </p>
+                  <p className="text-xs text-zinc-400 truncate mt-0.5 italic">你好，好高興認識你！</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-100">
+                    More
+                  </button>
+                  <button className="flex items-center gap-1.5 bg-indigo-50 rounded-full px-2.5 py-1.5 text-indigo-600 flex-shrink-0">
+                    <ChevronDown size={14} className="rotate-[-90deg]" />
+                    <span className="text-xs font-medium">View</span>
+                  </button>
+                </div>
+              </div>
+              {/* Expanded preview */}
+              <div className="border-t border-zinc-100 p-3 space-y-2 bg-zinc-50">
+                <div className="flex items-end gap-2 justify-start">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-[9px] font-bold text-purple-600 flex-shrink-0 mb-1">
+                    粵
+                  </div>
+                  <div className="max-w-[75%] rounded-2xl rounded-bl-sm bg-white border border-zinc-200 px-3 py-2">
+                    <p className="text-sm font-semibold leading-snug text-zinc-800">你好，好高興認識你！</p>
+                    <p className="text-xs mt-0.5 text-indigo-500">Hello, nice to meet you!</p>
+                  </div>
+                </div>
+                <div className="flex items-end gap-2 justify-end">
+                  <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-indigo-500 text-white px-3 py-2">
+                    <p className="text-sm font-semibold leading-snug text-white">Nice to meet you too!</p>
+                    <p className="text-xs mt-0.5 text-indigo-200">我都好高興認識你！</p>
+                  </div>
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-600 flex-shrink-0 mb-1">
+                    EN
+                  </div>
+                </div>
+              </div>
+            </div>
             ) : (
-            filteredSessions.map((session) => {
+            filteredSessions.map((session, sessionIdx) => {
               const hasAudio = session.messages.some((m) => m.audioDataUrl);
               return (
-                <div key={session.id} className="bg-white rounded-2xl shadow-sm border border-zinc-100">
+                <div key={session.id} {...(sessionIdx === 0 ? { "data-tour": "bookmarks-session-card" } : {})} className="bg-white rounded-2xl shadow-sm border border-zinc-100">
                   {/* Session header */}
                   <div className="p-5 flex items-center gap-3">
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}>

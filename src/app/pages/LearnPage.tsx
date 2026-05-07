@@ -250,18 +250,18 @@ export function LearnPage() {
                   <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
                   <p className="text-sm text-zinc-500">Master your saved phrases</p>
                 </div>
-                <LanguageFilter />
+                <div data-tour="learn-language-filter"><LanguageFilter /></div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                <div data-tour="learn-lessons-done" className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
                   <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1.5">
                     <Trophy size={16} className="text-green-500" />
                   </div>
                   <span className="text-xl font-bold text-zinc-800">{totalLessonsDone}</span>
                   <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
                 </div>
-                <div className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                <div data-tour="learn-dialect-fluency" className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
                   <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mb-1.5">
                     <Star size={16} className="text-purple-500" />
                   </div>
@@ -270,7 +270,7 @@ export function LearnPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3">
+              <div data-tour="learn-word-of-day" className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
                 <p className="text-sm font-bold relative z-10">Word of the Day</p>
                 <button
@@ -282,7 +282,7 @@ export function LearnPage() {
               </div>
 
               {/* Tab switcher */}
-              <div className="flex bg-zinc-100 rounded-2xl p-1 mb-4 sticky top-0 z-10">
+              <div data-tour="learn-tab-switcher" className="flex bg-zinc-100 rounded-2xl p-1 mb-4 sticky top-0 z-10">
                 <button
                   onClick={() => setMainTab("standard")}
                   className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
@@ -305,7 +305,7 @@ export function LearnPage() {
                 </button>
               </div>
               {mainTab === "standard" && (
-                <div className="space-y-3">
+                <div data-tour="learn-lesson-cards" className="space-y-3">
                   {LESSON_CATEGORIES.filter((cat) => {
                     const lesson = LESSONS.find((l) => l.categoryId === cat.id);
                     return (lesson?.content.levels?.length ?? 0) > 0;
@@ -330,7 +330,7 @@ export function LearnPage() {
               )}
 
               {mainTab === "custom" && (
-                <>
+                <div data-tour="learn-conversation-lessons">
                   {personalLessons.length === 0 ? (
                     <div className="bg-white rounded-2xl p-8 text-center border border-zinc-100 shadow-sm">
                       <BookOpen size={32} className="text-zinc-300 mx-auto mb-3" />
@@ -352,7 +352,7 @@ export function LearnPage() {
                       ))}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 

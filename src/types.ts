@@ -94,6 +94,8 @@ export interface ConversationLesson {
   currentPhase?: "listen" | "flashcard" | "done";
 }
 
+export type TourPageId = "chat" | "learn" | "bookmarks" | "profile";
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -111,6 +113,7 @@ export interface UserProfile {
   preferredVoiceId?: string;
   customVoiceId?: string;
   suggestedRepliesEnabled?: boolean;
+  tourCompleted?: Partial<Record<TourPageId, boolean>>;
 }
 
 export interface WordChunk {

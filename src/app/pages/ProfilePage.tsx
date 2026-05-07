@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from "react"; // useRef kept for dropdownRef
-import { User, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2, Pencil } from "lucide-react";
+import { User, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2, Pencil, HelpCircle, MessageCircle, BookOpen, Bookmark } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useAppContext } from "../context/AppContext";
 import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
+import { useTour } from "../components/tour/TourProvider";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
@@ -13,6 +15,8 @@ export function ProfilePage() {
     userProfile, updateUserProfile,
     activePersona,
   } = useAppContext();
+  const { startTour } = useTour();
+  const navigate = useNavigate();
 
   const [isJobTitleDropdownOpen, setIsJobTitleDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
@@ -134,7 +138,7 @@ export function ProfilePage() {
 
       <div className="p-4 space-y-6">
         {/* Persona Switcher */}
-        <section>
+        <section data-tour="profile-persona-switcher">
           <div className="flex items-center gap-2 mb-3 px-2">
             <User size={18} className="text-zinc-400" />
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Active Persona</h2>
@@ -290,7 +294,7 @@ export function ProfilePage() {
         </section>
 
         {/* Voice Selector */}
-        <section>
+        <section data-tour="profile-voice-selection">
           <div className="flex items-center gap-2 mb-3 px-2">
             <Volume2 size={18} className="text-zinc-400" />
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Voice</h2>
@@ -354,6 +358,40 @@ export function ProfilePage() {
                 </label>
               );
             })}
+          </div>
+        </section>
+
+        {/* Replay Tour */}
+        <section data-tour="profile-tour-replay">
+          <div className="flex items-center gap-2 mb-3 px-2">
+            <HelpCircle size={18} className="text-zinc-400" />
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Replay Tour</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { id: "chat" as const, label: "Chat", icon: <MessageCircle size={20} />, path: "/" },
+              { id: "learn" as const, label: "Learn", icon: <BookOpen size={20} />, path: "/learn" },
+              { id: "bookmarks" as const, label: "Bookmarks", icon: <Bookmark size={20} />, path: "/bookmarks" },
+              { id: "profile" as const, label: "Profile", icon: <User size={20} />, path: "/profile" },
+            ]).map((tour) => (
+              <button
+                key={tour.id}
+                onClick={() => {
+                  if (tour.id === "profile") {
+                    startTour("profile");
+                  } else {
+                    navigate(tour.path);
+                    setTimeout(() => startTour(tour.id), 300);
+                  }
+                }}
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm hover:border-indigo-300 hover:bg-indigo-50 transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                  {tour.icon}
+                </div>
+                <span className="text-sm font-semibold text-zinc-700">{tour.label}</span>
+              </button>
+            ))}
           </div>
         </section>
 
