@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
   ChevronRight,
@@ -16,6 +16,8 @@ import {
   MicOff,
   Trophy,
   Trash2,
+  Pencil,
+  MoreVertical,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
@@ -241,8 +243,8 @@ export function LearnPage() {
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* Fixed header zone — never shifts when tabs switch */}
-            <div className="flex-shrink-0 px-4 pt-4">
+            {/* Scrollable page */}
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
               <div className="flex items-start justify-between mb-6 mt-2">
                 <div>
                   <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
@@ -251,26 +253,26 @@ export function LearnPage() {
                 <LanguageFilter />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
-                    <Trophy size={20} className="text-green-500" />
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1.5">
+                    <Trophy size={16} className="text-green-500" />
                   </div>
-                  <span className="text-2xl font-bold text-zinc-800">{totalLessonsDone}</span>
-                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
+                  <span className="text-xl font-bold text-zinc-800">{totalLessonsDone}</span>
+                  <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
                 </div>
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
-                    <Star size={20} className="text-purple-500" />
+                <div className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mb-1.5">
+                    <Star size={16} className="text-purple-500" />
                   </div>
-                  <span className="text-2xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
-                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Dialect Fluency</span>
+                  <span className="text-xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
+                  <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Dialect Fluency</span>
                 </div>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
-                <p className="text-sm font-bold relative z-10">Daily Review</p>
+                <p className="text-sm font-bold relative z-10">Word of the Day</p>
                 <button
                   onClick={() => setDailyCard(getDailyVocab())}
                   className="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
@@ -280,7 +282,7 @@ export function LearnPage() {
               </div>
 
               {/* Tab switcher */}
-              <div className="flex bg-zinc-100 rounded-2xl p-1 mb-4">
+              <div className="flex bg-zinc-100 rounded-2xl p-1 mb-4 sticky top-0 z-10">
                 <button
                   onClick={() => setMainTab("standard")}
                   className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
@@ -302,10 +304,6 @@ export function LearnPage() {
                   Custom Conversation
                 </button>
               </div>
-            </div>
-
-            {/* Scrollable tab content only */}
-            <div className="flex-1 overflow-y-auto px-4 pb-24">
               {mainTab === "standard" && (
                 <div className="space-y-3">
                   {LESSON_CATEGORIES.filter((cat) => {
@@ -347,6 +345,9 @@ export function LearnPage() {
                           lesson={cl}
                           onClick={() => handleSelectConversationLesson(cl)}
                           onDelete={() => deleteConversationLesson(cl.id)}
+                          onEditTitle={(newTitle) => {
+                            updateConversationLesson({ ...cl, title: newTitle });
+                          }}
                         />
                       ))}
                     </div>
@@ -428,7 +429,7 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 pt-6 pb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-0.5">Daily Review</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-0.5">Word of the Day</p>
               <h3 className="text-lg font-bold text-white">Today's Phrase</h3>
             </div>
             <button
@@ -541,7 +542,23 @@ function LessonCard({
 
 // ─── ConversationLessonCard ───────────────────────────────────────────────────
 
-function ConversationLessonCard({ lesson, onClick, onDelete }: { lesson: ConversationLesson; onClick: () => void; onDelete: () => void }) {
+function ConversationLessonCard({ lesson, onClick, onDelete, onEditTitle }: { lesson: ConversationLesson; onClick: () => void; onDelete: () => void; onEditTitle: (title: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(lesson.title);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
   const statusLabel = lesson.examCompleted
     ? "Passed"
     : lesson.examAttempts > 0
@@ -553,16 +570,38 @@ function ConversationLessonCard({ lesson, onClick, onDelete }: { lesson: Convers
     ? "bg-orange-100 text-orange-700"
     : "bg-zinc-100 text-zinc-500";
 
+  const commitEdit = () => {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== lesson.title) {
+      onEditTitle(trimmed);
+    } else {
+      setDraft(lesson.title);
+    }
+    setEditing(false);
+  };
+
   return (
     <div
-      onClick={onClick}
+      onClick={editing || menuOpen ? undefined : onClick}
       className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-indigo-100 hover:shadow-md"
     >
       <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
         <MessageCircle size={20} className="text-indigo-500" />
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
+        {editing ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") { setDraft(lesson.title); setEditing(false); } }}
+            onClick={(e) => e.stopPropagation()}
+            className="font-semibold text-sm text-zinc-800 w-full border-b border-indigo-300 outline-none bg-transparent pb-0.5"
+          />
+        ) : (
+          <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
+        )}
         <p className="text-xs text-zinc-500 mb-1.5">{lesson.vocabulary.length} phrases</p>
         <div className="flex items-center gap-2">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
@@ -571,13 +610,33 @@ function ConversationLessonCard({ lesson, onClick, onDelete }: { lesson: Convers
           )}
         </div>
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-        aria-label="Delete lesson"
-      >
-        <Trash2 size={16} />
-      </button>
+      <div className="relative flex-shrink-0" ref={menuRef}>
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+          className="px-2 py-1 rounded-lg flex items-center text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+          aria-label="More options"
+        >
+          ...More
+        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-9 z-20 bg-white rounded-xl shadow-lg border border-zinc-100 py-1 min-w-[120px]">
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setEditing(true); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+            >
+              <Pencil size={14} />
+              Edit title
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
       <ChevronRight size={20} className="text-zinc-300 flex-shrink-0" />
     </div>
   );
@@ -893,7 +952,7 @@ function FlashcardExercise({
               >
                 <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">English</span>
                 <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
-                <span className="text-xs text-zinc-400 mt-4">Tap to flip · Swipe to navigate</span>
+                <span className="text-xs text-zinc-400 mt-4">Tap for translation · Swipe to navigate</span>
               </div>
 
               {/* ── Back face ── */}
@@ -1755,8 +1814,12 @@ function PhraseBreakdownExercise({
 // ─── ConvFlashcardExercise ────────────────────────────────────────────────────
 
 function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
+  const { phrases, addPhrase, toggleBookmark } = useAppContext();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [swipeDir, setSwipeDir] = useState<"right" | "left" | null>(null);
+  const dragOccurred = React.useRef(false);
+  const x = useMotionValue(0);
   const current = vocab[index];
   const isLast = index === vocab.length - 1;
 
@@ -1769,45 +1832,142 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
     );
   }
 
+  const phraseId = `lesson-${current.cantonese}`;
+  const savedPhrase = phrases.find((p) => p.id === phraseId);
+  const isBookmarked = savedPhrase?.isBookmarked ?? false;
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!savedPhrase) {
+      addPhrase({
+        id: phraseId,
+        original: current.english,
+        dialect: current.cantonese,
+        pronunciation: current.pronunciation,
+        isBookmarked: true,
+        context: "Conversation Lesson",
+      });
+    } else {
+      toggleBookmark(phraseId);
+    }
+  };
+
+  const goToCard = async (nextIndex: number, dir: "left" | "right") => {
+    setSwipeDir(null);
+    const exitX = dir === "left" ? -420 : 420;
+    const enterX = dir === "left" ? 420 : -420;
+    await animate(x, exitX, { duration: 0.18, ease: [0.32, 0.72, 0, 1] });
+    if (nextIndex >= vocab.length) { onComplete(); return; }
+    x.set(enterX);
+    setIndex(nextIndex);
+    setFlipped(false);
+    animate(x, 0, { duration: 0.22, ease: [0.32, 0.72, 0, 1] });
+  };
+
+  const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (info.offset.x < -80 || info.velocity.x < -500) {
+      dragOccurred.current = true;
+      goToCard(index + 1, "left");
+    } else if ((info.offset.x > 80 || info.velocity.x > 500) && index > 0) {
+      dragOccurred.current = true;
+      goToCard(index - 1, "right");
+    } else {
+      animate(x, 0, { type: "spring", stiffness: 400, damping: 40 });
+    }
+    setTimeout(() => { dragOccurred.current = false; }, 0);
+  };
+
   return (
     <div className="flex flex-col items-center p-6 gap-6">
       <div className="text-sm text-zinc-400 font-medium">{index + 1} / {vocab.length}</div>
-      <div className="w-full max-w-sm">
-        <div onClick={() => setFlipped((f) => !f)} className="cursor-pointer select-none" style={{ perspective: 1000 }}>
+
+      <div className="w-full max-w-sm relative select-none">
+        {/* Swipe indicators */}
+        <div className={`absolute inset-y-0 left-0 flex items-center pl-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "right" && index > 0 ? "opacity-100" : "opacity-0"}`}>
+          <div className="bg-zinc-100 text-zinc-500 rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
+        </div>
+        <div className={`absolute inset-y-0 right-0 flex items-center pr-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "left" ? "opacity-100" : "opacity-0"}`}>
+          <div className="bg-indigo-100 text-indigo-600 rounded-xl px-2.5 py-1 text-xs font-bold">{isLast ? "Finish" : "Next"} →</div>
+        </div>
+
+        <div style={{ perspective: 1000 }}>
           <motion.div
-            animate={{ rotateY: flipped ? 180 : 0 }}
-            transition={{ duration: 0.4 }}
-            style={{ transformStyle: "preserve-3d", position: "relative", height: 220 }}
+            style={{ x }}
+            drag="x"
+            dragConstraints={false}
+            whileDrag={{ scale: 1.02 }}
+            onDragStart={() => { dragOccurred.current = false; }}
+            onDrag={(_, info) => {
+              if (Math.abs(info.offset.x) > 8) dragOccurred.current = true;
+              if (info.offset.x > 40) setSwipeDir("right");
+              else if (info.offset.x < -40) setSwipeDir("left");
+              else setSwipeDir(null);
+            }}
+            onDragEnd={handleDragEnd}
+            onClick={() => { if (!dragOccurred.current) setFlipped((f) => !f); }}
+            className="cursor-grab active:cursor-grabbing"
           >
-            <div className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6" style={{ backfaceVisibility: "hidden" }}>
-              <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">English</span>
-              <span className="text-2xl font-bold text-zinc-800 text-center">{current.english}</span>
-              <span className="text-xs text-zinc-400 mt-4">Tap to reveal</span>
-            </div>
-            <div className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col items-center justify-center p-6 gap-3" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-              <div className="flex items-center gap-2">
-                <span className="text-3xl font-bold text-white text-center leading-snug">{current.cantonese}</span>
-                <PlayButton text={current.cantonese} />
+            <motion.div
+              animate={{ rotateY: flipped ? 180 : 0 }}
+              transition={{ duration: 0.4 }}
+              style={{ transformStyle: "preserve-3d", position: "relative", height: 220 }}
+            >
+              {/* Front face */}
+              <div
+                className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6"
+                style={{ backfaceVisibility: "hidden" }}
+              >
+                <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">English</span>
+                <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
+                <span className="text-xs text-zinc-400 mt-4">Tap for translation · Swipe to navigate</span>
               </div>
-              {current.pronunciation && (
-                <span className="text-base text-indigo-200 font-mono text-center">{current.pronunciation}</span>
-              )}
-            </div>
+
+              {/* Back face */}
+              <div
+                className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col p-5 overflow-hidden"
+                style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+              >
+                <button
+                  onClick={handleBookmark}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition-colors z-10"
+                >
+                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-indigo-200"} />
+                </button>
+
+                <div className="flex flex-col items-center justify-center flex-1">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-4xl font-bold text-white text-center">{current.cantonese}</span>
+                    <PlayButton text={current.cantonese} />
+                  </div>
+                  {current.pronunciation && (
+                    <span className="text-base text-indigo-200 font-mono">{current.pronunciation}</span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
+
       <div className="flex gap-3 w-full max-w-sm">
         {index > 0 && (
-          <button onClick={() => { setIndex((i) => i - 1); setFlipped(false); }} className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all">Back</button>
+          <button
+            onClick={() => goToCard(index - 1, "right")}
+            className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+          >
+            Back
+          </button>
         )}
         <button
-          onClick={() => { if (isLast) { onComplete(); } else { setIndex((i) => i + 1); setFlipped(false); } }}
-          disabled={!flipped}
-          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${flipped ? "bg-indigo-500 text-white hover:bg-indigo-600" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}`}
+          onClick={() => goToCard(index + 1, "left")}
+          className="flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 bg-indigo-500 text-white hover:bg-indigo-600"
         >
           {isLast ? "Finish" : "Next"}
         </button>
       </div>
+
       <div className="flex gap-1.5">
         {vocab.map((_, i) => (
           <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
@@ -1839,18 +1999,33 @@ function ExamView({
 
   const { startRecording, stopRecording } = useAudioRecorder();
   const current = vocab[index];
+  const recordingStartRef = useRef<number | null>(null);
+  const recordingTriggerRef = useRef<"tap" | "hold" | null>(null);
+  const HOLD_THRESHOLD_MS = 300;
 
-  const handleStartRecording = async () => {
+  const startListening = async () => {
     try {
       await startRecording();
+      recordingStartRef.current = Date.now();
       setIsRecording(true);
     } catch {
       toast.error("Microphone access denied.");
     }
   };
 
-  const handleStopRecording = async () => {
+  const stopListening = async () => {
+    recordingTriggerRef.current = null;
     setIsRecording(false);
+
+    const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 0;
+    recordingStartRef.current = null;
+
+    if (elapsed < 1000) {
+      stopRecording().catch(() => {});
+      toast.error("Recording too short — please record for at least 1 second.");
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const blob = await stopRecording();
@@ -1863,6 +2038,30 @@ function ExamView({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleMicPointerDown = async () => {
+    if (isRecording && recordingTriggerRef.current === "tap") {
+      stopListening();
+      return;
+    }
+    await startListening();
+  };
+
+  const handleMicPointerUp = () => {
+    if (!isRecording) return;
+    const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 999;
+    if (elapsed < HOLD_THRESHOLD_MS) {
+      recordingTriggerRef.current = "tap";
+    } else {
+      recordingTriggerRef.current = null;
+      stopListening();
+    }
+  };
+
+  const handleMicPointerLeave = () => {
+    if (!isRecording || recordingTriggerRef.current === "tap") return;
+    stopListening();
   };
 
   const handleRetry = () => { setItemScore(null); setTranscribed(null); };
@@ -1947,26 +2146,25 @@ function ExamView({
                 <Loader2 size={20} className="animate-spin" />
                 <span className="text-sm">Analysing your speech…</span>
               </div>
-            ) : isRecording ? (
-              <>
-                <button
-                  onClick={handleStopRecording}
-                  className="relative flex items-center justify-center w-24 h-24 rounded-full bg-red-500 text-white shadow-xl shadow-red-200 transition-transform active:scale-95"
-                >
-                  <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
-                  <MicOff size={36} className="relative z-10" />
-                </button>
-                <p className="text-sm text-zinc-500">Recording… tap to stop</p>
-              </>
             ) : (
               <>
                 <button
-                  onClick={handleStartRecording}
-                  className="flex items-center justify-center w-24 h-24 rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-200 transition-transform active:scale-95 hover:scale-105"
+                  onPointerDown={handleMicPointerDown}
+                  onPointerUp={handleMicPointerUp}
+                  onPointerLeave={handleMicPointerLeave}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-indigo-600 shadow-indigo-200 hover:scale-105"}`}
                 >
-                  <Mic size={36} />
+                  {isRecording && (
+                    <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
+                  )}
+                  {isRecording
+                    ? <MicOff size={36} className="relative z-10" />
+                    : <Mic size={36} className="relative z-10" />}
                 </button>
-                <p className="text-sm text-zinc-500">Tap to record your answer</p>
+                <p className="text-sm text-zinc-500">
+                  {isRecording ? "Recording… tap to stop" : "Tap or hold to record"}
+                </p>
               </>
             )}
           </div>

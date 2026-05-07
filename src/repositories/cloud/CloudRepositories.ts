@@ -1,10 +1,11 @@
-import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson } from "../../types";
+import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson, Tag } from "../../types";
 import type {
   IPhraseRepository,
   IConversationRepository,
   IUserRepository,
   ILessonRepository,
   IConversationLessonRepository,
+  ITagRepository,
 } from "../interfaces";
 
 const NOT_CONFIGURED =
@@ -63,6 +64,18 @@ export class CloudConversationLessonRepository implements IConversationLessonRep
     throw new Error(NOT_CONFIGURED);
   }
   async update(_lesson: ConversationLesson): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
+  async delete(_id: string): Promise<void> {
+    throw new Error(NOT_CONFIGURED);
+  }
+}
+
+export class CloudTagRepository implements ITagRepository {
+  async getAll(): Promise<Tag[]> {
+    throw new Error(NOT_CONFIGURED);
+  }
+  async create(_tag: Tag): Promise<void> {
     throw new Error(NOT_CONFIGURED);
   }
   async delete(_id: string): Promise<void> {

@@ -1,14 +1,7 @@
 import React, { useState, useRef, useEffect } from "react"; // useRef kept for dropdownRef
-import { User, Globe, Sliders, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2, Type, Pencil } from "lucide-react";
-import { useAppContext, Tone } from "../context/AppContext";
-import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType, type FontSize } from "../../types";
-
-const FONT_SIZES: { key: FontSize; label: string; previewPx: number }[] = [
-  { key: "small",  label: "Small",  previewPx: 14 },
-  { key: "normal", label: "Normal", previewPx: 16 },
-  { key: "large",  label: "Large",  previewPx: 18 },
-  { key: "xl",     label: "XL",     previewPx: 20 },
-];
+import { User, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2, Pencil } from "lucide-react";
+import { useAppContext } from "../context/AppContext";
+import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
 
@@ -16,14 +9,11 @@ const PREVIEW_TEXT = "你好，好高興認識你！";
 
 export function ProfilePage() {
   const {
-    dialect, setDialect, tone, setTone,
     setIsSignedIn,
     userProfile, updateUserProfile,
     activePersona,
-    fontSize, setFontSize,
   } = useAppContext();
 
-  const [isDialectDropdownOpen, setIsDialectDropdownOpen] = useState(false);
   const [isJobTitleDropdownOpen, setIsJobTitleDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
   const [isEditingName, setIsEditingName] = useState(false);
@@ -65,21 +55,10 @@ export function ProfilePage() {
     setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const jobTitleDropdownRef = useRef<HTMLDivElement>(null);
-
-  const dialects = [
-    { label: "Cantonese", available: true },
-    { label: "Hokkien",   available: false },
-    { label: "Teochew",   available: false },
-    { label: "Hakka",     available: false },
-  ];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDialectDropdownOpen(false);
-      }
       if (jobTitleDropdownRef.current && !jobTitleDropdownRef.current.contains(event.target as Node)) {
         setIsJobTitleDropdownOpen(false);
       }
@@ -87,12 +66,6 @@ export function ProfilePage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const tones: { value: Tone; label: string; desc: string }[] = [
-    { value: "formal", label: "Formal & Polite", desc: "For work or speaking with elders" },
-    { value: "casual", label: "Casual & Friendly", desc: "For daily conversations with peers" },
-    { value: "slang", label: "Street & Slang", desc: "Sound like a true local" },
-  ];
 
   const workProfile = userProfile?.personaProfiles?.work;
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
@@ -287,145 +260,31 @@ export function ProfilePage() {
           </div>
         </section>
 
-        {/* Settings: Target Dialect */}
-        <section>
-          <div className="flex items-center gap-2 mb-3 px-2">
-            <Globe size={18} className="text-zinc-400" />
-            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Target Dialect</h2>
-          </div>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDialectDropdownOpen(!isDialectDropdownOpen)}
-              className="w-full bg-white rounded-2xl shadow-sm border border-zinc-100 p-4 flex items-center justify-between hover:bg-zinc-50 transition-colors"
-            >
-              <span className="text-zinc-800 font-medium">{dialect}</span>
-              <ChevronDown
-                size={20}
-                className={`text-zinc-400 transition-transform ${isDialectDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {isDialectDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-zinc-200 overflow-hidden z-20">
-                {dialects.map((d) => (
-                  <button
-                    key={d.label}
-                    disabled={!d.available}
-                    onClick={() => {
-                      if (!d.available) return;
-                      setDialect(d.label);
-                      setIsDialectDropdownOpen(false);
-                    }}
-                    className={`w-full p-4 flex items-center justify-between transition-colors ${
-                      !d.available
-                        ? "cursor-not-allowed"
-                        : dialect === d.label
-                          ? "bg-indigo-50 hover:bg-indigo-50"
-                          : "hover:bg-indigo-50"
-                    }`}
-                  >
-                    <div className="text-left">
-                      <span className={`font-medium ${!d.available ? "text-zinc-300" : dialect === d.label ? "text-indigo-600" : "text-zinc-800"}`}>
-                        {d.label}
-                      </span>
-                      {!d.available && <p className="text-[11px] text-zinc-300 leading-tight">Coming soon</p>}
-                    </div>
-                    {dialect === d.label && d.available && <Check size={18} className="text-indigo-600" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Settings: Manual Tone Override */}
+        {/* Suggested Replies Toggle */}
         <section>
           <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
-            {/* Toggle header */}
-            <div className="flex items-center justify-between p-4 border-b border-zinc-100">
+            <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-2">
-                <Sliders size={18} className="text-zinc-400" />
+                <Sparkles size={18} className="text-zinc-400" />
                 <div>
-                  <p className="text-sm font-semibold text-zinc-800">Manual Tone Override</p>
+                  <p className="text-sm font-semibold text-zinc-800">Suggested Replies</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    {userProfile?.toneOverrideEnabled !== false ? "Using your selected tone" : "Auto — AI decides the tone"}
+                    {userProfile?.suggestedRepliesEnabled !== false ? "Showing reply suggestions in chat" : "Suggestions hidden"}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => updateUserProfile({ toneOverrideEnabled: userProfile?.toneOverrideEnabled === false })}
+                onClick={() => updateUserProfile({ suggestedRepliesEnabled: userProfile?.suggestedRepliesEnabled === false })}
                 className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                  userProfile?.toneOverrideEnabled !== false ? "bg-indigo-600" : "bg-zinc-300"
+                  userProfile?.suggestedRepliesEnabled !== false ? "bg-indigo-600" : "bg-zinc-300"
                 }`}
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                    userProfile?.toneOverrideEnabled !== false ? "translate-x-5" : "translate-x-0"
+                    userProfile?.suggestedRepliesEnabled !== false ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
-            </div>
-
-            {/* Tone options — only interactive when override is on */}
-            <div className={`divide-y divide-zinc-100 transition-opacity duration-200 ${
-              userProfile?.toneOverrideEnabled !== false ? "opacity-100" : "opacity-40 pointer-events-none"
-            }`}>
-              {tones.map((t) => (
-                <label key={t.value} className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors">
-                  <div className="flex-1">
-                    <h3 className={`font-medium ${tone === t.value ? "text-indigo-600" : "text-zinc-800"}`}>
-                      {t.label}
-                    </h3>
-                    <p className="text-xs text-zinc-500 mt-0.5">{t.desc}</p>
-                  </div>
-                  <div className="relative flex items-center justify-center w-6 h-6 ml-4">
-                    <input
-                      type="radio"
-                      name="tone"
-                      value={t.value}
-                      checked={tone === t.value}
-                      onChange={() => setTone(t.value)}
-                      className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-indigo-600 transition-colors cursor-pointer"
-                    />
-                    {tone === t.value && (
-                      <div className="absolute w-2.5 h-2.5 bg-indigo-600 rounded-full pointer-events-none" />
-                    )}
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Text Size */}
-        <section>
-          <div className="flex items-center gap-2 mb-3 px-2">
-            <Type size={18} className="text-zinc-400" />
-            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Text Size</h2>
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-4">
-            <div className="grid grid-cols-4 gap-2">
-              {FONT_SIZES.map(({ key, label, previewPx }) => (
-                <button
-                  key={key}
-                  onClick={() => setFontSize(key)}
-                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
-                    fontSize === key
-                      ? "border-indigo-400 bg-indigo-50"
-                      : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
-                  }`}
-                >
-                  <span
-                    className={`font-bold leading-none ${fontSize === key ? "text-indigo-600" : "text-zinc-600"}`}
-                    style={{ fontSize: previewPx }}
-                  >
-                    A
-                  </span>
-                  <span className={`text-[11px] font-medium ${fontSize === key ? "text-indigo-500" : "text-zinc-400"}`}>
-                    {label}
-                  </span>
-                </button>
-              ))}
             </div>
           </div>
         </section>
@@ -464,11 +323,7 @@ export function ProfilePage() {
                       <h3 className={`font-medium ${selected ? "text-indigo-600" : "text-zinc-800"}`}>
                         {voice.name}
                       </h3>
-                      <span className="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-full shrink-0">
-                        {voice.style}
-                      </span>
                     </div>
-                    <p className="text-xs text-zinc-500 mt-0.5">{voice.desc}</p>
                   </div>
                   <button
                     onClick={(e) => handlePreview(e, voice.id)}

@@ -1,10 +1,11 @@
-import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson } from "../../types";
+import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson, Tag } from "../../types";
 import type {
   IPhraseRepository,
   IConversationRepository,
   IUserRepository,
   ILessonRepository,
   IConversationLessonRepository,
+  ITagRepository,
 } from "../interfaces";
 import { db } from "./db";
 
@@ -108,5 +109,36 @@ export class LocalConversationLessonRepository implements IConversationLessonRep
 
   async delete(id: string): Promise<void> {
     await db.conversationLessons.delete(id);
+  }
+}
+
+const DEFAULT_TAGS: Tag[] = [
+  { id: "p-greetings", name: "Greetings", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "p-food", name: "Food & Dining", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "p-transport", name: "Transport", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "p-shopping", name: "Shopping", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "p-weather", name: "Weather", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "s-daily", name: "Daily Life", type: "session", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "s-travel", name: "Travel", type: "session", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "s-work", name: "Work", type: "session", createdAt: "2024-01-01T00:00:00.000Z" },
+  { id: "s-social", name: "Social", type: "session", createdAt: "2024-01-01T00:00:00.000Z" },
+];
+
+export class LocalTagRepository implements ITagRepository {
+  async getAll(): Promise<Tag[]> {
+    const tags = await db.tags.toArray();
+    if (tags.length === 0) {
+      await db.tags.bulkPut(DEFAULT_TAGS);
+      return DEFAULT_TAGS;
+    }
+    return tags;
+  }
+
+  async create(tag: Tag): Promise<void> {
+    await db.tags.put(tag);
+  }
+
+  async delete(id: string): Promise<void> {
+    await db.tags.delete(id);
   }
 }

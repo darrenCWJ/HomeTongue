@@ -1,12 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { repositories } from "../../repositories";
 import { db } from "../../repositories/local/db";
-import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress, ConversationLesson, PersonaType, FontSize } from "../../types";
-import { FONT_SIZE_PX } from "../../types";
+import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress, ConversationLesson, PersonaType, Tag, TagType } from "../../types";
 import { updatePersona } from "../../services/personaService";
 
-export type { Tone, Phrase, Message, Session, ConversationLesson, PersonaType, FontSize };
-export { FONT_SIZE_PX };
+export type { Tone, Phrase, Message, Session, ConversationLesson, PersonaType, Tag, TagType };
 
 const DEFAULT_PHRASES: Phrase[] = [
   {
@@ -44,7 +42,14 @@ interface AppContextType {
   isSignedIn: boolean;
   setIsSignedIn: (val: boolean) => void;
   sessions: Session[];
-  saveSession: (messages: Message[], title: string) => void;
+  tags: Tag[];
+  phraseTags: Tag[];
+  sessionTags: Tag[];
+  createTag: (name: string, type: TagType) => Tag;
+  deleteTag: (id: string) => void;
+  setPhraseTags: (phraseId: string, tagIds: string[]) => void;
+  setSessionTags: (sessionId: string, tagIds: string[]) => void;
+  saveSession: (messages: Message[], title: string, tags?: string[]) => void;
   renameSession: (id: string, title: string) => void;
   deleteSession: (id: string) => void;
   discardChat: (messages: Message[]) => void;
@@ -61,8 +66,6 @@ interface AppContextType {
   updatePhrase: (phrase: Phrase) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
   removeMessage: (id: string) => void;
-  fontSize: FontSize;
-  setFontSize: (size: FontSize) => void;
 }
 
 
@@ -83,15 +86,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const activePersona: PersonaType = userProfile?.activePersona ?? "personal";
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
   const tone: Tone = activePersonaProfile?.tone ?? userProfile?.preferredTone ?? "casual";
-  const fontSize: FontSize = userProfile?.fontSize ?? "normal";
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--font-size", FONT_SIZE_PX[fontSize]);
-  }, [fontSize]);
+    document.documentElement.style.setProperty("--font-size", "18px");
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -101,13 +104,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       repositories.lessons.getAllProgress(),
       repositories.conversationLessons.getAll(),
       db.draftMessages.get("draft"),
-    ]).then(([p, s, u, lp, cl, draft]) => {
+      repositories.tags.getAll(),
+    ]).then(([p, s, u, lp, cl, draft, t]) => {
       setPhrases(p);
       setSessions(s);
       setUserProfile(u);
       setLessonProgress(lp);
       setConversationLessons(cl);
       if (draft && draft.messages.length > 0) setMessages(draft.messages);
+      setTags(t);
     });
   }, []);
 
@@ -176,13 +181,67 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const saveSession = (msgs: Message[], title: string) => {
+  const phraseTags = tags.filter((t) => t.type === "phrase");
+  const sessionTags = tags.filter((t) => t.type === "session");
+
+  const createTag = (name: string, type: TagType): Tag => {
+    const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase() && t.type === type);
+    if (existing) return existing;
+    const tag: Tag = { id: Date.now().toString(), name, type, createdAt: new Date().toISOString() };
+    setTags((prev) => [...prev, tag]);
+    repositories.tags.create(tag);
+    return tag;
+  };
+
+  const deleteTag = (id: string) => {
+    setTags((prev) => prev.filter((t) => t.id !== id));
+    repositories.tags.delete(id);
+    setPhrases((prev) => {
+      const updated = prev.map((p) =>
+        p.tags?.includes(id) ? { ...p, tags: p.tags.filter((t) => t !== id) } : p
+      );
+      repositories.phrases.saveAll(updated);
+      return updated;
+    });
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (!s.tags?.includes(id)) return s;
+        const updated = { ...s, tags: s.tags.filter((t) => t !== id) };
+        repositories.conversations.updateSession(updated);
+        return updated;
+      })
+    );
+  };
+
+  const setPhraseTags = (phraseId: string, tagIds: string[]) => {
+    setPhrases((prev) => {
+      const updated = prev.map((p) =>
+        p.id === phraseId ? { ...p, tags: tagIds, isBookmarked: tagIds.length > 0 || p.isBookmarked } : p
+      );
+      repositories.phrases.saveAll(updated);
+      return updated;
+    });
+  };
+
+  const setSessionTags = (sessionId: string, tagIds: string[]) => {
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id !== sessionId) return s;
+        const updated = { ...s, tags: tagIds };
+        repositories.conversations.updateSession(updated);
+        return updated;
+      })
+    );
+  };
+
+  const saveSession = (msgs: Message[], title: string, sessionTags?: string[]) => {
     const newSession: Session = {
       id: Date.now().toString(),
       title,
       date: new Date().toLocaleDateString(),
       messages: msgs,
       persona: activePersona,
+      tags: sessionTags,
     };
     setSessions((prev) => [newSession, ...prev]);
     repositories.conversations.addSession(newSession);
@@ -292,11 +351,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const setFontSize = (size: FontSize) => {
-    document.documentElement.style.setProperty("--font-size", FONT_SIZE_PX[size]);
-    updateUserProfile({ fontSize: size });
-  };
-
   const updateLessonProgress = (progress: LessonProgress) => {
     setLessonProgress((prev) => ({ ...prev, [progress.lessonId]: progress }));
     repositories.lessons.updateProgress(progress);
@@ -305,7 +359,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addPhrase = (phrase: Phrase) => {
     setPhrases((prev) => {
       if (prev.find((p) => p.id === phrase.id)) return prev;
-      const updated = [...prev, { ...phrase, isBookmarked: false }];
+      const updated = [...prev, phrase];
       repositories.phrases.saveAll(updated);
       return updated;
     });
@@ -378,8 +432,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updatePhrase,
         updateMessage,
         removeMessage,
-        fontSize,
-        setFontSize,
+        tags,
+        phraseTags,
+        sessionTags,
+        createTag,
+        deleteTag,
+        setPhraseTags,
+        setSessionTags,
       }}
     >
       {children}

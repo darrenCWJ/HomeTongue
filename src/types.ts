@@ -14,15 +14,6 @@ export const DIALECTS: DialectOption[] = [
   { value: "Teochew",   label: "Teochew",   character: "潮", available: false },
 ];
 
-export type FontSize = "small" | "normal" | "large" | "xl";
-
-export const FONT_SIZE_PX: Record<FontSize, string> = {
-  small: "14px",
-  normal: "16px",
-  large: "18px",
-  xl: "20px",
-};
-
 export type PersonaType = "personal" | "work";
 
 export const WORK_JOB_TITLES = [
@@ -45,6 +36,15 @@ export interface PersonaProfile {
   jobTitle?: WorkJobTitle;
 }
 
+export type TagType = "phrase" | "session";
+
+export interface Tag {
+  id: string;
+  name: string;
+  type: TagType;
+  createdAt: string;
+}
+
 export interface Phrase {
   id: string;
   original: string;
@@ -52,6 +52,9 @@ export interface Phrase {
   pronunciation: string;
   isBookmarked: boolean;
   context: string;
+  audioDataUrl?: string;
+  audioDataUrls?: string[];
+  tags?: string[];
 }
 
 export interface Message {
@@ -66,6 +69,7 @@ export interface Message {
   englishTranslation?: string;
   audioDataUrl?: string;
   audioDataUrls?: string[];
+  rating?: "up" | "down";
 }
 
 export interface Session {
@@ -74,6 +78,7 @@ export interface Session {
   date: string;
   messages: Message[];
   persona?: PersonaType;
+  tags?: string[];
 }
 
 export interface ConversationLesson {
@@ -105,7 +110,7 @@ export interface UserProfile {
   personaProfiles?: Partial<Record<PersonaType, PersonaProfile>>;
   preferredVoiceId?: string;
   customVoiceId?: string;
-  fontSize?: FontSize;
+  suggestedRepliesEnabled?: boolean;
 }
 
 export interface WordChunk {
