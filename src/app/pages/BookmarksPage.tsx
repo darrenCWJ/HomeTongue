@@ -12,7 +12,7 @@ import { useTour } from "../components/tour/TourProvider";
 
 
 export function BookmarksPage() {
-  const { phrases, toggleBookmark, addPhrase, sessions, userProfile, renameSession, deleteSession, conversationLessons, saveConversationLesson, phraseTags, sessionTags, createTag, deleteTag, setPhraseTags, setSessionTags } = useAppContext();
+  const { phrases, toggleBookmark, addPhrase, sessions, userProfile, renameSession, deleteSession, deleteSessionMessage, conversationLessons, saveConversationLesson, phraseTags, sessionTags, createTag, deleteTag, setPhraseTags, setSessionTags } = useAppContext();
   const { isActive: isTourActive, activeTour, currentStep } = useTour();
   const isTourMode = isTourActive && activeTour === "bookmarks";
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
@@ -39,7 +39,9 @@ export function BookmarksPage() {
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [pendingTagDeletions, setPendingTagDeletions] = useState<Set<string>>(new Set());
+  const [pendingMsgDeletions, setPendingMsgDeletions] = useState<Set<string>>(new Set());
   const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const msgDeleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const handleDeleteTag = useCallback((tagId: string) => {
     setPendingTagDeletions((prev) => new Set([...prev, tagId]));
@@ -1029,6 +1031,7 @@ export function BookmarksPage() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {viewingSession.messages
+                .filter((m) => !pendingMsgDeletions.has(m.id))
                 .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.cantoneseText)
                 .map((msg, i) => {
                   const isBot = msg.sender === "bot";
@@ -1041,62 +1044,101 @@ export function BookmarksPage() {
                   const isBookmarked = phrases.find((p) => p.id === msg.id)?.isBookmarked ?? false;
 
                   return (
-                    <div key={i} className={`flex items-end gap-2 ${isBot ? "justify-start" : "justify-end"}`}>
-                      {isBot && (
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-600 flex-shrink-0 mb-1">
-                          粵
-                        </div>
-                      )}
-                      <div
-                        className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-indigo-500 text-white"}`}
-                        onPointerDown={(e) => {
-                          const dialectText = isBot ? (msg.text ?? "") : (msg.cantoneseText ?? "");
-                          const originalText = isBot ? (msg.englishTranslation ?? "") : (msg.text ?? "");
-                          handleBubblePointerDown(e, dialectText, originalText);
-                        }}
-                        onPointerUp={cancelBubbleLongPress}
-                        onPointerMove={handleBubblePointerMove}
-                        onPointerLeave={cancelBubbleLongPress}
-                        onContextMenu={(e) => e.preventDefault()}
-                      >
-                        <button
-                          onClick={() => handleSessionBookmark(msg)}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className={`absolute top-2 right-2 transition-colors ${
-                            isBookmarked
-                              ? (isBot ? "text-zinc-600" : "text-white")
-                              : (isBot ? "text-zinc-300 hover:text-zinc-500" : "text-indigo-300 hover:text-white")
-                          }`}
-                        >
-                          <Bookmark size={14} className={isBookmarked ? "fill-current" : ""} />
-                        </button>
-                        <p className={`text-sm font-semibold leading-snug pr-6 ${isBot ? "text-zinc-800" : "text-white"}`}>
-                          {displayText}
-                        </p>
-                        {subText && (
-                          <p className={`text-xs mt-1 ${isBot ? "text-indigo-500" : "text-indigo-200"}`}>
-                            {subText}
-                          </p>
-                        )}
-                        {(hasAudioForMsg || fallback) && (
-                          <button
-                            onClick={() => playMessage(audioKey, msg.audioDataUrl, msg.audioDataUrls, fallback)}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            disabled={!!playingId}
-                            className={`mt-2 flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-40
-                              ${isBot ? "text-zinc-400 hover:text-indigo-500" : "text-indigo-200 hover:text-white"}
-                            `}
-                          >
-                            <Volume2 size={12} className={isPlaying ? "animate-pulse" : ""} />
-                            {isPlaying ? "Playing…" : hasAudioForMsg ? "Play recording" : "Play TTS"}
-                          </button>
-                        )}
+                    <div key={msg.id ?? i} className="relative overflow-hidden rounded-2xl">
+                      {/* Delete background revealed on swipe */}
+                      <div className={`absolute inset-y-0 flex items-center bg-red-500 rounded-2xl w-full ${isBot ? "left-0 pl-4 justify-start" : "right-0 pr-4 justify-end"}`}>
+                        <Trash2 size={18} className="text-white" />
                       </div>
-                      {!isBot && (
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600 flex-shrink-0 mb-1">
-                          EN
+
+                      <motion.div
+                        drag="x"
+                        dragDirectionLock
+                        dragConstraints={isBot ? { left: 0, right: 120 } : { left: -120, right: 0 }}
+                        dragElastic={0.1}
+                        onDragEnd={(_e, info) => {
+                          const shouldDelete = isBot ? info.offset.x > 80 : info.offset.x < -80;
+                          if (shouldDelete) {
+                            setPendingMsgDeletions((prev) => new Set([...prev, msg.id]));
+                            const timer = setTimeout(() => {
+                              deleteSessionMessage(viewingSession.id, msg.id);
+                              setViewingSession((prev) =>
+                                prev ? { ...prev, messages: prev.messages.filter((m) => m.id !== msg.id) } : null
+                              );
+                              setPendingMsgDeletions((prev) => { const next = new Set(prev); next.delete(msg.id); return next; });
+                              msgDeleteTimers.current.delete(msg.id);
+                            }, 4000);
+                            msgDeleteTimers.current.set(msg.id, timer);
+                            toast("Message deleted", {
+                              duration: 4000,
+                              action: {
+                                label: "Undo",
+                                onClick: () => {
+                                  clearTimeout(msgDeleteTimers.current.get(msg.id));
+                                  msgDeleteTimers.current.delete(msg.id);
+                                  setPendingMsgDeletions((prev) => { const next = new Set(prev); next.delete(msg.id); return next; });
+                                },
+                              },
+                            });
+                          }
+                        }}
+                        className={`relative flex items-end gap-2 bg-zinc-50 ${isBot ? "justify-start" : "justify-end"}`}
+                      >
+                        {isBot && (
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-600 flex-shrink-0 mb-1">
+                            粵
+                          </div>
+                        )}
+                        <div
+                          className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-indigo-500 text-white"}`}
+                          onPointerDown={(e) => {
+                            const dialectText = isBot ? (msg.text ?? "") : (msg.cantoneseText ?? "");
+                            const originalText = isBot ? (msg.englishTranslation ?? "") : (msg.text ?? "");
+                            handleBubblePointerDown(e, dialectText, originalText);
+                          }}
+                          onPointerUp={cancelBubbleLongPress}
+                          onPointerMove={handleBubblePointerMove}
+                          onPointerLeave={cancelBubbleLongPress}
+                          onContextMenu={(e) => e.preventDefault()}
+                        >
+                          <button
+                            onClick={() => handleSessionBookmark(msg)}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`absolute top-2 right-2 transition-colors ${
+                              isBookmarked
+                                ? (isBot ? "text-zinc-600" : "text-white")
+                                : (isBot ? "text-zinc-300 hover:text-zinc-500" : "text-indigo-300 hover:text-white")
+                            }`}
+                          >
+                            <Bookmark size={14} className={isBookmarked ? "fill-current" : ""} />
+                          </button>
+                          <p className={`text-sm font-semibold leading-snug pr-6 ${isBot ? "text-zinc-800" : "text-white"}`}>
+                            {displayText}
+                          </p>
+                          {subText && (
+                            <p className={`text-xs mt-1 ${isBot ? "text-indigo-500" : "text-indigo-200"}`}>
+                              {subText}
+                            </p>
+                          )}
+                          {(hasAudioForMsg || fallback) && (
+                            <button
+                              onClick={() => playMessage(audioKey, msg.audioDataUrl, msg.audioDataUrls, fallback)}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              disabled={!!playingId}
+                              className={`mt-2 flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-40
+                                ${isBot ? "text-zinc-400 hover:text-indigo-500" : "text-indigo-200 hover:text-white"}
+                              `}
+                            >
+                              <Volume2 size={12} className={isPlaying ? "animate-pulse" : ""} />
+                              {isPlaying ? "Playing…" : hasAudioForMsg ? "Play recording" : "Play TTS"}
+                            </button>
+                          )}
                         </div>
-                      )}
+                        {!isBot && (
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600 flex-shrink-0 mb-1">
+                            EN
+                          </div>
+                        )}
+                      </motion.div>
                     </div>
                   );
                 })}

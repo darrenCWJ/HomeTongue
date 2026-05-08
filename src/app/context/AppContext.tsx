@@ -52,6 +52,7 @@ interface AppContextType {
   saveSession: (messages: Message[], title: string, tags?: string[]) => void;
   renameSession: (id: string, title: string) => void;
   deleteSession: (id: string) => void;
+  deleteSessionMessage: (sessionId: string, messageId: string) => void;
   discardChat: (messages: Message[]) => void;
   conversationLessons: ConversationLesson[];
   saveConversationLesson: (lesson: ConversationLesson) => void;
@@ -271,6 +272,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     repositories.conversations.deleteSession(id);
   };
 
+  const deleteSessionMessage = (sessionId: string, messageId: string) => {
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id !== sessionId) return s;
+        const updated = { ...s, messages: s.messages.filter((m) => m.id !== messageId) };
+        repositories.conversations.updateSession(updated);
+        return updated;
+      })
+    );
+  };
+
   const discardChat = (msgs: Message[]) => {
     updatePersonaInBackground(msgs, userProfile, activePersona);
     setMessages([]);
@@ -418,6 +430,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         saveSession,
         renameSession,
         deleteSession,
+        deleteSessionMessage,
         discardChat,
         conversationLessons,
         saveConversationLesson,
