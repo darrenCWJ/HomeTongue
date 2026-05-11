@@ -302,7 +302,7 @@ export function BookmarksPage() {
               onClick={() => setSelectedTagFilters(new Set())}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                 selectedTagFilters.size === 0
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-brand-blue text-white"
                   : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
               }`}
             >
@@ -318,15 +318,15 @@ export function BookmarksPage() {
                 })}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
                   selectedTagFilters.has(tag.id)
-                    ? "bg-indigo-600 text-white"
-                    : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                    ? "bg-brand-blue text-white"
+                    : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
                 }`}
               >
                 {tag.name}
                 {isEditingTags && (
                   <span
                     onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
-                    className="ml-0.5 rounded-full hover:bg-indigo-200 p-0.5"
+                    className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
                   >
                     <X size={10} />
                   </span>
@@ -358,7 +358,7 @@ export function BookmarksPage() {
                   }}
                   placeholder="Tag name"
                   autoFocus
-                  className="px-3 py-1.5 rounded-full text-xs border-2 border-indigo-300 focus:border-indigo-500 focus:outline-none w-24"
+                  className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
                 />
                 <button
                   onClick={() => {
@@ -368,7 +368,7 @@ export function BookmarksPage() {
                       setIsCreatingTag(false);
                     }
                   }}
-                  className="p-1.5 rounded-full bg-indigo-600 text-white"
+                  className="p-1.5 rounded-full bg-brand-blue text-white"
                 >
                   <Check size={12} />
                 </button>
@@ -376,7 +376,7 @@ export function BookmarksPage() {
             ) : (
               <button
                 onClick={() => setIsCreatingTag(true)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 transition-all flex items-center gap-1"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
               >
                 <Plus size={12} />
                 New
@@ -386,8 +386,8 @@ export function BookmarksPage() {
               onClick={() => setIsEditingTags(!isEditingTags)}
               className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
                 isEditingTags
-                  ? "bg-indigo-600 text-white"
-                  : "text-zinc-400 hover:text-indigo-500 hover:bg-zinc-100"
+                  ? "bg-brand-blue text-white"
+                  : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
               }`}
             >
               {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}
@@ -407,7 +407,7 @@ export function BookmarksPage() {
               onClick={() => { setSessionPersonaFilters(new Set()); setSessionTagFilters(new Set()); }}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                 sessionPersonaFilters.size === 0 && sessionTagFilters.size === 0
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-brand-blue text-white"
                   : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
               }`}
             >
@@ -426,7 +426,7 @@ export function BookmarksPage() {
                 })}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   sessionPersonaFilters.has(f.id)
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-brand-blue text-white"
                     : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
                 }`}
               >
@@ -444,15 +444,15 @@ export function BookmarksPage() {
                 })}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
                   sessionTagFilters.has(tag.id)
-                    ? "bg-indigo-600 text-white"
-                    : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                    ? "bg-brand-blue text-white"
+                    : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
                 }`}
               >
                 {tag.name}
                 {isEditingTags && (
                   <span
                     onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
-                    className="ml-0.5 rounded-full hover:bg-indigo-200 p-0.5"
+                    className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
                   >
                     <X size={10} />
                   </span>
@@ -484,7 +484,7 @@ export function BookmarksPage() {
                   }}
                   placeholder="Tag name"
                   autoFocus
-                  className="px-3 py-1.5 rounded-full text-xs border-2 border-indigo-300 focus:border-indigo-500 focus:outline-none w-24"
+                  className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
                 />
                 <button
                   onClick={() => {
@@ -494,7 +494,7 @@ export function BookmarksPage() {
                       setIsCreatingTag(false);
                     }
                   }}
-                  className="p-1.5 rounded-full bg-indigo-600 text-white"
+                  className="p-1.5 rounded-full bg-brand-blue text-white"
                 >
                   <Check size={12} />
                 </button>
@@ -502,7 +502,7 @@ export function BookmarksPage() {
             ) : (
               <button
                 onClick={() => setIsCreatingTag(true)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 transition-all flex items-center gap-1"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
               >
                 <Plus size={12} />
                 New
@@ -512,8 +512,8 @@ export function BookmarksPage() {
               onClick={() => setIsEditingTags(!isEditingTags)}
               className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
                 isEditingTags
-                  ? "bg-indigo-600 text-white"
-                  : "text-zinc-400 hover:text-indigo-500 hover:bg-zinc-100"
+                  ? "bg-brand-blue text-white"
+                  : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
               }`}
             >
               {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}
@@ -539,8 +539,8 @@ export function BookmarksPage() {
           ) : bookmarkedPhrases.length === 0 && isTourMode ? (
             <div data-tour="bookmarks-phrase-card" className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 relative">
               <div className="absolute top-4 right-4 flex items-center gap-1">
-                <button className="text-indigo-500 hover:text-indigo-600">
-                  <Bookmark size={20} className="fill-indigo-500" />
+                <button className="text-brand-blue hover:text-brand-blue">
+                  <Bookmark size={20} className="fill-brand-blue" />
                 </button>
               </div>
               <div className="pr-16">
@@ -562,24 +562,24 @@ export function BookmarksPage() {
                     onClick={() => setEditingTagsPhraseId(editingTagsPhraseId === phrase.id ? null : phrase.id)}
                     className={`p-1.5 rounded-full transition-colors ${
                       editingTagsPhraseId === phrase.id
-                        ? "bg-indigo-100 text-indigo-600"
-                        : "text-zinc-400 hover:text-indigo-500 hover:bg-zinc-100"
+                        ? "bg-brand-blue/15 text-brand-blue"
+                        : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
                     }`}
                   >
                     <TagIcon size={16} />
                   </button>
                   <button
                     onClick={() => toggleBookmark(phrase.id)}
-                    className="text-indigo-500 hover:text-indigo-600"
+                    className="text-brand-blue hover:text-brand-blue"
                   >
-                    <Bookmark size={20} className="fill-indigo-500" />
+                    <Bookmark size={20} className="fill-brand-blue" />
                   </button>
                 </div>
 
                 <div className="pr-16">
                   <div className="flex flex-wrap items-center gap-1.5 mb-2">
                     {phrase.context && (
-                      <span className="text-[10px] font-medium text-indigo-500 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-medium text-brand-blue uppercase tracking-wider bg-brand-blue/10 px-2 py-0.5 rounded-full">
                         {phrase.context}
                       </span>
                     )}
@@ -587,7 +587,7 @@ export function BookmarksPage() {
                       const tag = phraseTags.find((t) => t.id === tagId);
                       if (!tag) return null;
                       return (
-                        <span key={tagId} className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                        <span key={tagId} className="text-[10px] font-semibold text-brand-blue bg-brand-blue/10 px-2 py-0.5 rounded-full">
                           {tag.name}
                         </span>
                       );
@@ -601,7 +601,7 @@ export function BookmarksPage() {
                       disabled={playingId !== null}
                       className={`p-1.5 rounded-full transition-colors ${
                         playingId === phrase.id
-                          ? "bg-indigo-100 text-indigo-600"
+                          ? "bg-brand-blue/15 text-brand-blue"
                           : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
                       } disabled:cursor-not-allowed`}
                     >
@@ -635,8 +635,8 @@ export function BookmarksPage() {
                             }}
                             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                               isSelected
-                                ? "bg-indigo-600 text-white"
-                                : "bg-zinc-100 text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600"
+                                ? "bg-brand-blue text-white"
+                                : "bg-zinc-100 text-zinc-500 hover:bg-brand-blue/10 hover:text-brand-blue"
                             }`}
                           >
                             {tag.name}
@@ -681,7 +681,7 @@ export function BookmarksPage() {
                   </div>
                   <p className="text-xs text-zinc-400 flex items-center gap-1.5">
                     2025-05-08 · 4 messages
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-brand-blue/10 text-brand-blue rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
                   </p>
                   <p className="text-xs text-zinc-400 truncate mt-0.5 italic">你好，好高興認識你！</p>
                 </div>
@@ -689,7 +689,7 @@ export function BookmarksPage() {
                   <button className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-100">
                     More
                   </button>
-                  <button className="flex items-center gap-1.5 bg-indigo-50 rounded-full px-2.5 py-1.5 text-indigo-600 flex-shrink-0">
+                  <button className="flex items-center gap-1.5 bg-brand-blue/10 rounded-full px-2.5 py-1.5 text-brand-blue flex-shrink-0">
                     <ChevronDown size={14} className="rotate-[-90deg]" />
                     <span className="text-xs font-medium">View</span>
                   </button>
@@ -698,20 +698,20 @@ export function BookmarksPage() {
               {/* Expanded preview */}
               <div className="border-t border-zinc-100 p-3 space-y-2 bg-zinc-50">
                 <div className="flex items-end gap-2 justify-start">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-[9px] font-bold text-purple-600 flex-shrink-0 mb-1">
+                  <div className="w-6 h-6 rounded-full bg-brand-red/15 flex items-center justify-center text-[9px] font-bold text-brand-red flex-shrink-0 mb-1">
                     粵
                   </div>
                   <div className="max-w-[75%] rounded-2xl rounded-bl-sm bg-white border border-zinc-200 px-3 py-2">
                     <p className="text-sm font-semibold leading-snug text-zinc-800">你好，好高興認識你！</p>
-                    <p className="text-xs mt-0.5 text-indigo-500">Hello, nice to meet you!</p>
+                    <p className="text-xs mt-0.5 text-brand-blue">Hello, nice to meet you!</p>
                   </div>
                 </div>
                 <div className="flex items-end gap-2 justify-end">
-                  <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-indigo-500 text-white px-3 py-2">
+                  <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-brand-blue/100 text-white px-3 py-2">
                     <p className="text-sm font-semibold leading-snug text-white">Nice to meet you too!</p>
-                    <p className="text-xs mt-0.5 text-indigo-200">我都好高興認識你！</p>
+                    <p className="text-xs mt-0.5 text-brand-blue/60">我都好高興認識你！</p>
                   </div>
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-600 flex-shrink-0 mb-1">
+                  <div className="w-6 h-6 rounded-full bg-brand-blue/15 flex items-center justify-center text-[9px] font-bold text-brand-blue flex-shrink-0 mb-1">
                     EN
                   </div>
                 </div>
@@ -736,7 +736,7 @@ export function BookmarksPage() {
                               if (e.key === "Escape") setEditingSessionId(null);
                             }}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-base font-semibold text-zinc-800 border-b-2 border-indigo-400 outline-none bg-transparent w-36"
+                            className="text-base font-semibold text-zinc-800 border-b-2 border-brand-blue outline-none bg-transparent w-36"
                           />
                         ) : (
                           <p className="font-semibold text-zinc-800 text-base truncate">
@@ -744,7 +744,7 @@ export function BookmarksPage() {
                           </p>
                         )}
                         {hasAudio && (
-                          <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                          <span className="text-[10px] font-semibold bg-brand-blue/10 text-brand-blue px-1.5 py-0.5 rounded-full flex-shrink-0">
                             🔊 Audio saved
                           </span>
                         )}
@@ -753,7 +753,7 @@ export function BookmarksPage() {
                         {session.date} · {session.messages.length} messages
                         {session.persona === "work"
                           ? <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-semibold"><Briefcase size={9} /> Work</span>
-                          : <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
+                          : <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-brand-blue/10 text-brand-blue rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
                         }
                       </p>
                       {session.tags && session.tags.length > 0 && (
@@ -762,7 +762,7 @@ export function BookmarksPage() {
                             const tag = sessionTags.find((t) => t.id === tagId);
                             if (!tag) return null;
                             return (
-                              <span key={tagId} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-600">
+                              <span key={tagId} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-blue/10 text-brand-blue">
                                 {tag.name}
                               </span>
                             );
@@ -780,7 +780,7 @@ export function BookmarksPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => commitTitle(session.id)}
-                            className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                            className="p-2.5 rounded-lg bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15 transition-colors"
                           >
                             <Check size={14} />
                           </button>
@@ -814,7 +814,7 @@ export function BookmarksPage() {
                       )}
                       <button
                         onClick={() => setViewingSession(session)}
-                        className="flex items-center gap-1.5 bg-indigo-50 rounded-full px-2.5 py-1.5 text-indigo-600 flex-shrink-0"
+                        className="flex items-center gap-1.5 bg-brand-blue/10 rounded-full px-2.5 py-1.5 text-brand-blue flex-shrink-0"
                       >
                         <ChevronDown size={14} className="rotate-[-90deg]" />
                         <span className="text-xs font-medium">View</span>
@@ -841,8 +841,8 @@ export function BookmarksPage() {
                               }}
                               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                                 isSelected
-                                  ? "bg-indigo-600 text-white"
-                                  : "bg-zinc-100 text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600"
+                                  ? "bg-brand-blue text-white"
+                                  : "bg-zinc-100 text-zinc-500 hover:bg-brand-blue/10 hover:text-brand-blue"
                               }`}
                             >
                               {tag.name}
@@ -855,11 +855,11 @@ export function BookmarksPage() {
 
                   {/* Convert to lesson strip */}
                   {conversationLessons.some((l) => l.sessionId === session.id) ? (
-                    <div className="w-full flex items-center justify-center gap-2 py-2.5 border-t border-indigo-100 bg-indigo-50/50 text-indigo-400 text-xs font-medium">
+                    <div className="w-full flex items-center justify-center gap-2 py-2.5 border-t border-brand-blue/15 bg-brand-blue/10/50 text-brand-blue/60 text-xs font-medium">
                       <BookOpen size={13} /> Already a lesson
                     </div>
                   ) : pendingConvertSession?.id === session.id ? (
-                    <div className="border-t border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
+                    <div className="border-t border-brand-blue/15 bg-brand-blue/10/30 p-4 space-y-3">
                       <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Choose voice for lesson</p>
                       <div className="flex gap-2">
                         {(["recorded", "transcribed"] as const).map((src) => (
@@ -868,15 +868,15 @@ export function BookmarksPage() {
                             onClick={() => setAudioSourceType(src)}
                             className={`flex-1 flex items-center gap-2.5 px-3 py-3 rounded-2xl border-2 transition-all ${
                               audioSourceType === src
-                                ? "border-indigo-500 bg-white"
-                                : "border-zinc-200 bg-white hover:border-indigo-200"
+                                ? "border-brand-blue bg-white"
+                                : "border-zinc-200 bg-white hover:border-brand-blue/20"
                             }`}
                           >
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${audioSourceType === src ? "bg-indigo-500" : "bg-zinc-100"}`}>
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${audioSourceType === src ? "bg-brand-blue/100" : "bg-zinc-100"}`}>
                               <Mic size={15} className={audioSourceType === src ? "text-white" : "text-zinc-400"} />
                             </div>
                             <div className="text-left">
-                              <p className={`text-xs font-semibold leading-tight ${audioSourceType === src ? "text-indigo-700" : "text-zinc-700"}`}>
+                              <p className={`text-xs font-semibold leading-tight ${audioSourceType === src ? "text-brand-blue" : "text-zinc-700"}`}>
                                 {src === "recorded" ? "Recorded" : "Synthesised"}
                               </p>
                               <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">
@@ -895,7 +895,7 @@ export function BookmarksPage() {
                         </button>
                         <button
                           onClick={() => convertToLesson(session, audioSourceType)}
-                          className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+                          className="flex-1 py-2.5 rounded-xl bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue/90 transition-colors"
                         >
                           Convert
                         </button>
@@ -904,7 +904,7 @@ export function BookmarksPage() {
                   ) : (
                     <button
                       onClick={() => handleMakeLesson(session)}
-                      className="w-full flex items-center justify-center gap-2 py-3 border-t border-indigo-100 bg-indigo-50 text-indigo-600 text-sm font-semibold hover:bg-indigo-100 transition-colors active:scale-[0.99]"
+                      className="w-full flex items-center justify-center gap-2 py-3 border-t border-brand-blue/15 bg-brand-blue/10 text-brand-blue text-sm font-semibold hover:bg-brand-blue/15 transition-colors active:scale-[0.99]"
                     >
                       <BookOpen size={15} />
                       Convert to Lesson
@@ -924,22 +924,22 @@ export function BookmarksPage() {
                           return (
                             <div key={i} className={`flex items-end gap-2 ${isBot ? "justify-start" : "justify-end"}`}>
                               {isBot && (
-                                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-[9px] font-bold text-purple-600 flex-shrink-0 mb-1">
+                                <div className="w-6 h-6 rounded-full bg-brand-red/15 flex items-center justify-center text-[9px] font-bold text-brand-red flex-shrink-0 mb-1">
                                   粵
                                 </div>
                               )}
-                              <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-indigo-500 text-white"}`}>
+                              <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-brand-blue/100 text-white"}`}>
                                 <p className={`text-sm font-semibold leading-snug ${isBot ? "text-zinc-800" : "text-white"}`}>
                                   {displayText}
                                 </p>
                                 {subText && (
-                                  <p className={`text-xs mt-0.5 ${isBot ? "text-indigo-500" : "text-indigo-200"}`}>
+                                  <p className={`text-xs mt-0.5 ${isBot ? "text-brand-blue" : "text-brand-blue/60"}`}>
                                     {subText}
                                   </p>
                                 )}
                               </div>
                               {!isBot && (
-                                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-600 flex-shrink-0 mb-1">
+                                <div className="w-6 h-6 rounded-full bg-brand-blue/15 flex items-center justify-center text-[9px] font-bold text-brand-blue flex-shrink-0 mb-1">
                                   EN
                                 </div>
                               )}
@@ -981,12 +981,12 @@ export function BookmarksPage() {
               onChange={(e) => setPhraseSelectionText(e.target.value)}
               autoFocus
               rows={3}
-              className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-zinc-800 text-base resize-none mb-4"
+              className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800 text-base resize-none mb-4"
             />
             <button
               onClick={handleSaveSelectedPhrase}
               disabled={!phraseSelectionText.trim()}
-              className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors disabled:opacity-40 mb-3"
+              className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-semibold text-base hover:bg-brand-blue/90 transition-colors disabled:opacity-40 mb-3"
             >
               Save Phrase
             </button>
@@ -1084,12 +1084,12 @@ export function BookmarksPage() {
                         className={`relative flex items-end gap-2 bg-zinc-50 ${isBot ? "justify-start" : "justify-end"}`}
                       >
                         {isBot && (
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-600 flex-shrink-0 mb-1">
+                          <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center text-[10px] font-bold text-brand-red flex-shrink-0 mb-1">
                             粵
                           </div>
                         )}
                         <div
-                          className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-indigo-500 text-white"}`}
+                          className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-brand-blue/100 text-white"}`}
                           onPointerDown={(e) => {
                             const dialectText = isBot ? (msg.text ?? "") : (msg.cantoneseText ?? "");
                             const originalText = isBot ? (msg.englishTranslation ?? "") : (msg.text ?? "");
@@ -1106,7 +1106,7 @@ export function BookmarksPage() {
                             className={`absolute top-2 right-2 transition-colors ${
                               isBookmarked
                                 ? (isBot ? "text-zinc-600" : "text-white")
-                                : (isBot ? "text-zinc-300 hover:text-zinc-500" : "text-indigo-300 hover:text-white")
+                                : (isBot ? "text-zinc-300 hover:text-zinc-500" : "text-brand-blue/40 hover:text-white")
                             }`}
                           >
                             <Bookmark size={14} className={isBookmarked ? "fill-current" : ""} />
@@ -1115,7 +1115,7 @@ export function BookmarksPage() {
                             {displayText}
                           </p>
                           {subText && (
-                            <p className={`text-xs mt-1 ${isBot ? "text-indigo-500" : "text-indigo-200"}`}>
+                            <p className={`text-xs mt-1 ${isBot ? "text-brand-blue" : "text-brand-blue/60"}`}>
                               {subText}
                             </p>
                           )}
@@ -1125,7 +1125,7 @@ export function BookmarksPage() {
                               onPointerDown={(e) => e.stopPropagation()}
                               disabled={!!playingId}
                               className={`mt-2 flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-40
-                                ${isBot ? "text-zinc-400 hover:text-indigo-500" : "text-indigo-200 hover:text-white"}
+                                ${isBot ? "text-zinc-400 hover:text-brand-blue" : "text-brand-blue/60 hover:text-white"}
                               `}
                             >
                               <Volume2 size={12} className={isPlaying ? "animate-pulse" : ""} />
@@ -1134,7 +1134,7 @@ export function BookmarksPage() {
                           )}
                         </div>
                         {!isBot && (
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600 flex-shrink-0 mb-1">
+                          <div className="w-8 h-8 rounded-full bg-brand-blue/15 flex items-center justify-center text-[10px] font-bold text-brand-blue flex-shrink-0 mb-1">
                             EN
                           </div>
                         )}

@@ -25,7 +25,7 @@ export function LanguageFilter() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:border-indigo-300 hover:text-indigo-600 transition-colors shadow-sm"
+        className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:border-brand-blue/50 hover:text-brand-blue transition-colors shadow-sm"
       >
         <span className="text-xs font-bold">粵</span>
         Cantonese
@@ -41,7 +41,7 @@ export function LanguageFilter() {
               onClick={() => { if (lang.available) setOpen(false); }}
               className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors
                 ${lang.available
-                  ? "text-zinc-800 hover:bg-indigo-50 hover:text-indigo-600"
+                  ? "text-zinc-800 hover:bg-brand-blue/10 hover:text-brand-blue"
                   : "text-zinc-300 cursor-not-allowed"
                 }`}
             >
@@ -52,7 +52,7 @@ export function LanguageFilter() {
                   {!lang.available && <p className="text-[10px] text-zinc-300 leading-tight">Coming soon</p>}
                 </div>
               </div>
-              {lang.id === "cantonese" && <Check size={13} className="text-indigo-500 flex-shrink-0" />}
+              {lang.id === "cantonese" && <Check size={13} className="text-brand-blue flex-shrink-0" />}
             </button>
           ))}
         </div>

@@ -221,7 +221,7 @@ export function TourOverlay() {
                   )}
                   <button
                     onClick={nextStep}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-brand-blue rounded-lg hover:bg-brand-blue/90 transition-colors"
                   >
                     {currentStep === totalSteps - 1 ? "Done" : "Next"}
                   </button>

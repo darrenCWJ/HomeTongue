@@ -96,11 +96,11 @@ export function ProfilePage() {
     <div className="flex flex-col h-full bg-zinc-50 pb-20 overflow-y-auto">
       {/* Header Profile Area */}
       <div className="shrink-0 bg-white px-6 pt-10 pb-6 border-b border-zinc-200 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-indigo-100 to-white/0 opacity-50 pointer-events-none"></div>
-        <div className="w-24 h-24 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md relative z-10">
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-brand-blue/20 to-white/0 opacity-50 pointer-events-none"></div>
+        <div className="w-24 h-24 bg-gradient-to-tr from-brand-blue to-brand-red rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md relative z-10">
           <User size={40} className="text-white" />
           <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm border border-zinc-100">
-            <Sparkles size={16} className="text-yellow-500 fill-yellow-500" />
+            <Sparkles size={16} className="text-brand-yellow fill-brand-yellow" />
           </div>
         </div>
         <div className="flex items-center justify-center gap-2">
@@ -113,7 +113,7 @@ export function ProfilePage() {
               onBlur={handleNameBlur}
               onKeyDown={handleNameKeyDown}
               placeholder="Enter your name"
-              className="text-2xl font-bold text-center text-zinc-900 bg-transparent border-b-2 border-indigo-400 focus:outline-none w-48"
+              className="text-2xl font-bold text-center text-zinc-900 bg-transparent border-b-2 border-brand-blue focus:outline-none w-48"
             />
           ) : (
             <>
@@ -122,7 +122,7 @@ export function ProfilePage() {
               </h1>
               <button
                 onClick={handleEditNameClick}
-                className="text-zinc-400 hover:text-indigo-500 transition-colors"
+                className="text-zinc-400 hover:text-brand-blue transition-colors"
                 aria-label="Edit name"
               >
                 <Pencil size={16} />
@@ -130,7 +130,7 @@ export function ProfilePage() {
             </>
           )}
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold mt-2 border border-indigo-100 shadow-sm">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-blue/10 text-brand-blue rounded-full text-sm font-semibold mt-2 border border-brand-blue/15 shadow-sm">
           <Brain size={14} />
           <span>{personaSummary ? "AI Persona Active" : "Persona Building..."}</span>
         </div>
@@ -148,12 +148,12 @@ export function ProfilePage() {
               onClick={() => handleSelectPersona("personal")}
               className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                 activePersona === "personal"
-                  ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                  ? "bg-brand-blue/10 border-brand-blue shadow-sm"
                   : "bg-white border-zinc-100 hover:border-zinc-300"
               }`}
             >
-              <Home size={24} className={activePersona === "personal" ? "text-indigo-600" : "text-zinc-400"} />
-              <span className={`font-semibold text-sm ${activePersona === "personal" ? "text-indigo-700" : "text-zinc-600"}`}>
+              <Home size={24} className={activePersona === "personal" ? "text-brand-blue" : "text-zinc-400"} />
+              <span className={`font-semibold text-sm ${activePersona === "personal" ? "text-brand-blue" : "text-zinc-600"}`}>
                 Personal
               </span>
               <span className="text-xs text-zinc-400 text-center">Home & family conversations</span>
@@ -162,12 +162,12 @@ export function ProfilePage() {
               onClick={() => handleSelectPersona("work")}
               className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                 activePersona === "work"
-                  ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                  ? "bg-brand-blue/10 border-brand-blue shadow-sm"
                   : "bg-white border-zinc-100 hover:border-zinc-300"
               }`}
             >
-              <Briefcase size={24} className={activePersona === "work" ? "text-indigo-600" : "text-zinc-400"} />
-              <span className={`font-semibold text-sm ${activePersona === "work" ? "text-indigo-700" : "text-zinc-600"}`}>
+              <Briefcase size={24} className={activePersona === "work" ? "text-brand-blue" : "text-zinc-400"} />
+              <span className={`font-semibold text-sm ${activePersona === "work" ? "text-brand-blue" : "text-zinc-600"}`}>
                 Work
               </span>
               <span className="text-xs text-zinc-400 text-center">Professional context</span>
@@ -196,14 +196,14 @@ export function ProfilePage() {
                     <button
                       key={title}
                       onClick={() => handleSelectJobTitle(title)}
-                      className={`w-full p-4 flex items-center justify-between hover:bg-indigo-50 transition-colors ${
-                        workProfile?.jobTitle === title ? "bg-indigo-50" : ""
+                      className={`w-full p-4 flex items-center justify-between hover:bg-brand-blue/10 transition-colors ${
+                        workProfile?.jobTitle === title ? "bg-brand-blue/10" : ""
                       }`}
                     >
-                      <span className={`font-medium ${workProfile?.jobTitle === title ? "text-indigo-600" : "text-zinc-800"}`}>
+                      <span className={`font-medium ${workProfile?.jobTitle === title ? "text-brand-blue" : "text-zinc-800"}`}>
                         {title}
                       </span>
-                      {workProfile?.jobTitle === title && <Check size={18} className="text-indigo-600" />}
+                      {workProfile?.jobTitle === title && <Check size={18} className="text-brand-blue" />}
                     </button>
                   ))}
                 </div>
@@ -214,11 +214,11 @@ export function ProfilePage() {
 
         {/* AI Personality Summary */}
         <section>
-          <div className="bg-white rounded-3xl shadow-sm border border-indigo-100 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full -mr-10 -mt-10 blur-xl"></div>
+          <div className="bg-white rounded-3xl shadow-sm border border-brand-blue/15 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-blue/10 to-brand-red/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
             <div className="p-5 relative z-10">
               <div className="flex items-center gap-2 mb-1">
-                <Sparkles size={18} className="text-indigo-500" />
+                <Sparkles size={18} className="text-brand-blue" />
                 <h2 className="font-bold text-zinc-800">AI Vibe Analysis</h2>
               </div>
               <p className="text-xs text-zinc-400 mb-3">
@@ -241,7 +241,7 @@ export function ProfilePage() {
                         {characteristicPhrases!.map((phrase, i) => (
                           <span
                             key={i}
-                            className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-100"
+                            className="px-3 py-1 bg-brand-blue/10 text-brand-blue rounded-full text-xs font-medium border border-brand-blue/15"
                           >
                             "{phrase}"
                           </span>
@@ -280,7 +280,7 @@ export function ProfilePage() {
               <button
                 onClick={() => updateUserProfile({ suggestedRepliesEnabled: userProfile?.suggestedRepliesEnabled === false })}
                 className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                  userProfile?.suggestedRepliesEnabled !== false ? "bg-indigo-600" : "bg-zinc-300"
+                  userProfile?.suggestedRepliesEnabled !== false ? "bg-brand-blue" : "bg-zinc-300"
                 }`}
               >
                 <span
@@ -308,7 +308,7 @@ export function ProfilePage() {
                 onClick={() => setVoiceGenderTab(g)}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
                   voiceGenderTab === g
-                    ? "bg-white text-indigo-600 shadow-sm"
+                    ? "bg-white text-brand-blue shadow-sm"
                     : "text-zinc-500 hover:text-zinc-700"
                 }`}
               >
@@ -324,7 +324,7 @@ export function ProfilePage() {
                 <label key={voice.id} className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className={`font-medium ${selected ? "text-indigo-600" : "text-zinc-800"}`}>
+                      <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
                         {voice.name}
                       </h3>
                     </div>
@@ -333,12 +333,12 @@ export function ProfilePage() {
                     onClick={(e) => handlePreview(e, voice.id)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
                       previewingId === voice.id
-                        ? "bg-indigo-100"
-                        : "bg-zinc-100 hover:bg-indigo-100"
+                        ? "bg-brand-blue/15"
+                        : "bg-zinc-100 hover:bg-brand-blue/15"
                     }`}
                   >
                     {previewingId === voice.id
-                      ? <Loader2 size={14} className="text-indigo-500 animate-spin" />
+                      ? <Loader2 size={14} className="text-brand-blue animate-spin" />
                       : <Volume2 size={14} className="text-zinc-500" />
                     }
                   </button>
@@ -349,10 +349,10 @@ export function ProfilePage() {
                       value={voice.id}
                       checked={selected}
                       onChange={() => updateUserProfile({ preferredVoiceId: voice.id })}
-                      className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-indigo-600 transition-colors cursor-pointer"
+                      className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-brand-blue transition-colors cursor-pointer"
                     />
                     {selected && (
-                      <div className="absolute w-2.5 h-2.5 bg-indigo-600 rounded-full pointer-events-none" />
+                      <div className="absolute w-2.5 h-2.5 bg-brand-blue rounded-full pointer-events-none" />
                     )}
                   </div>
                 </label>
@@ -384,9 +384,9 @@ export function ProfilePage() {
                     setTimeout(() => startTour(tour.id), 300);
                   }
                 }}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm hover:border-indigo-300 hover:bg-indigo-50 transition-all"
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm hover:border-brand-blue/50 hover:bg-brand-blue/10 transition-all"
               >
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 rounded-xl bg-brand-blue/10 flex items-center justify-center text-brand-blue">
                   {tour.icon}
                 </div>
                 <span className="text-sm font-semibold text-zinc-700">{tour.label}</span>

@@ -115,10 +115,10 @@ function PlayButtonDark({ text, size = "md", audioDataUrl, disabled: externalDis
       onClick={handlePlay}
       onPointerDown={(e) => e.stopPropagation()}
       disabled={disabled}
-      className={`${sizeClasses} rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${disabled && externalDisabled ? "bg-zinc-100 text-zinc-300 cursor-not-allowed" : "bg-indigo-100 hover:bg-indigo-200 text-indigo-500"}`}
+      className={`${sizeClasses} rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${disabled && externalDisabled ? "bg-zinc-100 text-zinc-300 cursor-not-allowed" : "bg-brand-blue/15 hover:bg-brand-blue/20 text-brand-blue"}`}
     >
       {isPlaying
-        ? <Loader2 size={iconSize} className="animate-spin text-indigo-400" />
+        ? <Loader2 size={iconSize} className="animate-spin text-brand-blue/60" />
         : <Volume2 size={iconSize} />
       }
     </button>
@@ -262,22 +262,22 @@ export function LearnPage() {
                   <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Lessons Done</span>
                 </div>
                 <div data-tour="learn-dialect-fluency" className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mb-1.5">
-                    <Star size={16} className="text-purple-500" />
+                  <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center mb-1.5">
+                    <Star size={16} className="text-brand-red" />
                   </div>
                   <span className="text-xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
                   <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Dialect Fluency</span>
                 </div>
               </div>
 
-              <div data-tour="learn-word-of-day" className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3">
+              <div data-tour="learn-word-of-day" className="bg-gradient-to-br from-brand-blue to-brand-red rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
                 <p className="text-sm font-bold relative z-10">Word of the Day</p>
                 <button
                   onClick={() => setDailyCard(getDailyVocab())}
-                  className="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
+                  className="bg-white text-brand-blue rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
                 >
-                  <Play size={16} className="fill-indigo-600 ml-0.5" />
+                  <Play size={16} className="fill-brand-blue ml-0.5" />
                 </button>
               </div>
 
@@ -427,9 +427,9 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
           className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 pt-6 pb-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-brand-blue to-brand-red px-6 pt-6 pb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-0.5">Word of the Day</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-0.5">Word of the Day</p>
               <h3 className="text-lg font-bold text-white">Today's Phrase</h3>
             </div>
             <button
@@ -457,43 +457,43 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
                   className="absolute inset-0 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col items-center justify-center p-6"
                   style={{ backfaceVisibility: "hidden" }}
                 >
-                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">English</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-3">English</span>
                   <span className="text-2xl font-bold text-zinc-800 text-center">{card.english}</span>
                   <span className="text-xs text-zinc-400 mt-3">Tap to reveal</span>
                 </div>
                 {/* Back */}
                 <div
-                  className="absolute inset-0 bg-indigo-500 rounded-2xl flex flex-col items-center justify-center p-6"
+                  className="absolute inset-0 bg-brand-blue/100 rounded-2xl flex flex-col items-center justify-center p-6"
                   style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                 >
-                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Translation</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-2">Translation</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-3xl font-bold text-white">{card.cantonese}</span>
                     <PlayButton text={card.cantonese} />
                   </div>
-                  <span className="text-base text-indigo-200 font-mono">{card.pronunciation}</span>
+                  <span className="text-base text-brand-blue/60 font-mono">{card.pronunciation}</span>
                 </div>
               </motion.div>
             </div>
 
             {/* How to use it */}
-            <div className="bg-indigo-50 rounded-2xl p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-2">How to use it</p>
+            <div className="bg-brand-blue/10 rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-2">How to use it</p>
               {card.exampleSentence ? (
                 <>
                   <p className="text-base font-bold text-zinc-800 mb-1">{personalise(card.exampleSentence, userProfile?.name)}</p>
-                  <p className="text-xs text-zinc-500">Use <span className="font-semibold text-indigo-600">{card.cantonese}</span> ({card.pronunciation}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.</p>
+                  <p className="text-xs text-zinc-500">Use <span className="font-semibold text-brand-blue">{card.cantonese}</span> ({card.pronunciation}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.</p>
                 </>
               ) : (
                 <p className="text-sm text-zinc-600">
-                  Say <span className="font-bold text-indigo-600">{card.cantonese}</span> ({card.pronunciation}) to mean "<span className="italic">{card.english}</span>" in everyday conversation.
+                  Say <span className="font-bold text-brand-blue">{card.cantonese}</span> ({card.pronunciation}) to mean "<span className="italic">{card.english}</span>" in everyday conversation.
                 </p>
               )}
             </div>
 
             <button
               onClick={() => { setFlipped(false); onClose(); }}
-              className="mt-4 w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+              className="mt-4 w-full py-3 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
             >
               Got it!
             </button>
@@ -520,7 +520,7 @@ function LessonCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-indigo-100 hover:shadow-md"
+      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
       <div className="w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0">
         <BookOpen size={20} className="text-zinc-600" />
@@ -530,7 +530,7 @@ function LessonCard({
         <p className="text-xs text-zinc-500 mb-2">{subtitle}</p>
         <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
           <div
-            className="bg-indigo-500 h-full rounded-full transition-all duration-500"
+            className="bg-brand-blue/100 h-full rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -583,10 +583,10 @@ function ConversationLessonCard({ lesson, onClick, onDelete, onEditTitle }: { le
   return (
     <div
       onClick={editing || menuOpen ? undefined : onClick}
-      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-indigo-100 hover:shadow-md"
+      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
-      <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-        <MessageCircle size={20} className="text-indigo-500" />
+      <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
+        <MessageCircle size={20} className="text-brand-blue" />
       </div>
       <div className="flex-1 min-w-0">
         {editing ? (
@@ -597,7 +597,7 @@ function ConversationLessonCard({ lesson, onClick, onDelete, onEditTitle }: { le
             onBlur={commitEdit}
             onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") { setDraft(lesson.title); setEditing(false); } }}
             onClick={(e) => e.stopPropagation()}
-            className="font-semibold text-sm text-zinc-800 w-full border-b border-indigo-300 outline-none bg-transparent pb-0.5"
+            className="font-semibold text-sm text-zinc-800 w-full border-b border-brand-blue/50 outline-none bg-transparent pb-0.5"
           />
         ) : (
           <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
@@ -648,7 +648,7 @@ const EXERCISE_TYPE_META: Record<string, { label: string; color: string }> = {
   flashcard: { label: "Flashcards", color: "bg-blue-100 text-blue-600" },
   matching: { label: "Matching", color: "bg-green-100 text-green-600" },
   "multiple-choice": { label: "Quiz", color: "bg-orange-100 text-orange-600" },
-  "fill-blank": { label: "Fill in Blank", color: "bg-purple-100 text-purple-600" },
+  "fill-blank": { label: "Fill in Blank", color: "bg-brand-red/15 text-brand-red" },
   conversation: { label: "Conversation", color: "bg-pink-100 text-pink-600" },
 };
 
@@ -691,11 +691,11 @@ function RoadmapView({
             <h2 className="font-bold text-lg text-zinc-800 leading-tight">{title}</h2>
             <p className="text-xs text-zinc-400">{completedCount} of {levels.length} levels complete</p>
           </div>
-          <span className="text-sm font-bold text-indigo-600">{progressPct}%</span>
+          <span className="text-sm font-bold text-brand-blue">{progressPct}%</span>
         </div>
         <div className="mx-4 mb-3 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+            className="h-full bg-brand-blue/100 rounded-full transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -713,14 +713,14 @@ function RoadmapView({
               key={lvl.level}
               onClick={() => onSelectLevel(lvl)}
               className={`w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.98] hover:shadow-md
-                ${isCompleted ? "bg-white border-indigo-100 shadow-sm" : ""}
-                ${isCurrent ? "bg-white border-zinc-100 shadow-sm hover:border-indigo-100" : ""}
-                ${!isCompleted && !isCurrent ? "bg-white border-zinc-100 shadow-sm hover:border-indigo-100" : ""}
+                ${isCompleted ? "bg-white border-brand-blue/15 shadow-sm" : ""}
+                ${isCurrent ? "bg-white border-zinc-100 shadow-sm hover:border-brand-blue/15" : ""}
+                ${!isCompleted && !isCurrent ? "bg-white border-zinc-100 shadow-sm hover:border-brand-blue/15" : ""}
               `}
             >
               {/* Level badge */}
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
-                ${isCompleted ? "bg-indigo-500" : ""}
+                ${isCompleted ? "bg-brand-blue/100" : ""}
                 ${isCurrent ? "bg-orange-400" : ""}
                 ${!isCompleted && !isCurrent ? "bg-zinc-100" : ""}
               `}>
@@ -738,7 +738,7 @@ function RoadmapView({
                     {lvl.title}
                   </span>
                   {isCompleted && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">Done</span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-brand-blue/15 text-brand-blue">Done</span>
                   )}
                 </div>
                 <p className="text-xs text-zinc-400 mb-2 leading-snug">{lvl.description}</p>
@@ -781,14 +781,14 @@ function LevelView({ level, lessonId, onBack }: { level: LessonLevel; lessonId: 
         animate={{ opacity: 1, scale: 1 }}
         className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center"
       >
-        <div className="w-24 h-24 rounded-full bg-indigo-100 flex items-center justify-center mb-6">
-          <CheckCircle size={48} className="text-indigo-500" />
+        <div className="w-24 h-24 rounded-full bg-brand-blue/15 flex items-center justify-center mb-6">
+          <CheckCircle size={48} className="text-brand-blue" />
         </div>
         <h2 className="text-2xl font-extrabold text-zinc-800 mb-2">Level Complete!</h2>
         <p className="text-zinc-500 mb-8">{level.title} — well done!</p>
         <button
           onClick={onBack}
-          className="bg-indigo-500 text-white font-bold px-8 py-3 rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+          className="bg-brand-blue/100 text-white font-bold px-8 py-3 rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
         >
           Back to Roadmap
         </button>
@@ -920,7 +920,7 @@ function FlashcardExercise({
           <div className="bg-zinc-100 text-zinc-500 rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
         </div>
         <div className={`absolute inset-y-0 right-0 flex items-center pr-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "left" ? "opacity-100" : "opacity-0"}`}>
-          <div className="bg-indigo-100 text-indigo-600 rounded-xl px-2.5 py-1 text-xs font-bold">{isLast ? "Finish" : "Next"} →</div>
+          <div className="bg-brand-blue/15 text-brand-blue rounded-xl px-2.5 py-1 text-xs font-bold">{isLast ? "Finish" : "Next"} →</div>
         </div>
 
         <div style={{ perspective: 1000 }}>
@@ -950,14 +950,14 @@ function FlashcardExercise({
                 className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6"
                 style={{ backfaceVisibility: "hidden" }}
               >
-                <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">English</span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">English</span>
                 <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
                 <span className="text-xs text-zinc-400 mt-4">Tap for translation · Swipe to navigate</span>
               </div>
 
               {/* ── Back face ── */}
               <div
-                className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col p-5 overflow-hidden"
+                className="absolute inset-0 bg-brand-blue/100 rounded-3xl shadow-md flex flex-col p-5 overflow-hidden"
                 style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
               >
                 {/* Bookmark */}
@@ -966,24 +966,24 @@ function FlashcardExercise({
                   onPointerDown={(e) => e.stopPropagation()}
                   className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition-colors z-10"
                 >
-                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-indigo-200"} />
+                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-brand-blue/60"} />
                 </button>
 
                 {/* Main word section */}
                 <div className="flex flex-col items-center pt-1 pb-3">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-2">Cantonese</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-4xl font-bold text-white text-center">{current.cantonese}</span>
                     <PlayButton text={current.cantonese} />
                   </div>
-                  <span className="text-base text-indigo-200 font-mono">{current.pronunciation}</span>
+                  <span className="text-base text-brand-blue/60 font-mono">{current.pronunciation}</span>
                 </div>
 
                 {/* Example sentence section */}
                 {current.exampleSentence && (
-                  <div className="bg-indigo-600/50 rounded-2xl p-3.5 flex flex-col gap-2 flex-1">
+                  <div className="bg-brand-blue/50 rounded-2xl p-3.5 flex flex-col gap-2 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-indigo-200 uppercase tracking-widest">How to use</span>
+                      <span className="text-xs font-bold text-brand-blue/60 uppercase tracking-widest">How to use</span>
                       <PlayButton text={personalise(current.exampleSentence, userProfile?.name)} size="sm" />
                     </div>
                     <p className="text-sm font-semibold text-white leading-snug">
@@ -991,16 +991,16 @@ function FlashcardExercise({
                     </p>
                     {currentMeta === "loading" ? (
                       <div className="flex items-center gap-1.5">
-                        <Loader2 size={11} className="animate-spin text-indigo-300" />
-                        <span className="text-xs text-indigo-300">Loading…</span>
+                        <Loader2 size={11} className="animate-spin text-brand-blue/40" />
+                        <span className="text-xs text-brand-blue/40">Loading…</span>
                       </div>
                     ) : currentMeta ? (
                       <>
                         {currentMeta.pronunciation && (
-                          <p className="text-xs font-mono text-indigo-200 leading-snug">{currentMeta.pronunciation}</p>
+                          <p className="text-xs font-mono text-brand-blue/60 leading-snug">{currentMeta.pronunciation}</p>
                         )}
                         {currentMeta.translation && (
-                          <p className="text-xs text-indigo-100 italic">"{currentMeta.translation}"</p>
+                          <p className="text-xs text-brand-white italic">"{currentMeta.translation}"</p>
                         )}
                       </>
                     ) : null}
@@ -1023,7 +1023,7 @@ function FlashcardExercise({
         )}
         <button
           onClick={() => goToCard(index + 1, "left")}
-          className="flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 bg-indigo-500 text-white hover:bg-indigo-600"
+          className="flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 bg-brand-blue/100 text-white hover:bg-brand-blue"
         >
           {isLast ? "Finish" : "Next"}
         </button>
@@ -1033,7 +1033,7 @@ function FlashcardExercise({
         {items.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
           />
         ))}
       </div>
@@ -1125,9 +1125,9 @@ function MatchingExercise({
                 disabled={isMatched}
                 className={`p-3 rounded-xl text-sm font-semibold text-left border-2 transition-all
                   ${isMatched ? "bg-green-50 border-green-300 text-green-700 opacity-60" : ""}
-                  ${isSelected && !isMatched ? "bg-indigo-50 border-indigo-400 text-indigo-700" : ""}
+                  ${isSelected && !isMatched ? "bg-brand-blue/10 border-brand-blue text-brand-blue" : ""}
                   ${isWrong ? "bg-red-50 border-red-400 text-red-600" : ""}
-                  ${!isMatched && !isSelected && !isWrong ? "bg-white border-zinc-200 text-zinc-700 hover:border-indigo-300" : ""}
+                  ${!isMatched && !isSelected && !isWrong ? "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50" : ""}
                 `}
               >
                 {item.english}
@@ -1149,7 +1149,7 @@ function MatchingExercise({
                 className={`p-3 rounded-xl text-sm font-bold text-center border-2 transition-all
                   ${isMatched ? "bg-green-50 border-green-300 text-green-700 opacity-60" : ""}
                   ${isWrong ? "bg-red-50 border-red-400 text-red-600" : ""}
-                  ${!isMatched && !isWrong ? "bg-white border-zinc-200 text-zinc-700 hover:border-indigo-300" : ""}
+                  ${!isMatched && !isWrong ? "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50" : ""}
                 `}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -1212,7 +1212,7 @@ function MultipleChoiceExercise({
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-zinc-100 p-8 flex flex-col items-center justify-center min-h-[140px]">
-        <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">How do you say…</span>
+        <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">How do you say…</span>
         <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
       </div>
 
@@ -1220,7 +1220,7 @@ function MultipleChoiceExercise({
         {options.map((opt) => {
           const isSelected = selected === opt.cantonese;
           const correct = opt.cantonese === current.cantonese;
-          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-indigo-300";
+          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50";
           if (selected !== null) {
             if (correct) style = "bg-green-50 border-green-400 text-green-700";
             else if (isSelected) style = "bg-red-50 border-red-400 text-red-600";
@@ -1265,7 +1265,7 @@ function MultipleChoiceExercise({
           </div>
           <button
             onClick={handleNext}
-            className="mt-3 w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+            className="mt-3 w-full py-3 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
           >
             {index + 1 >= items.length ? "Finish" : "Next"}
           </button>
@@ -1276,7 +1276,7 @@ function MultipleChoiceExercise({
         {items.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
           />
         ))}
       </div>
@@ -1304,7 +1304,7 @@ function FillBlankExercise({
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-4">
         <p className="text-zinc-500">No fill-in-the-blank items available.</p>
-        <button onClick={onComplete} className="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold">
+        <button onClick={onComplete} className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold">
           Complete Level
         </button>
       </div>
@@ -1343,7 +1343,7 @@ function FillBlankExercise({
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-zinc-100 p-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">Fill in the blank</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">Fill in the blank</p>
         <p className="text-xl font-bold text-zinc-800 text-center leading-relaxed">{sentence}</p>
         <p className="text-xs text-zinc-400 text-center mt-2">{current.english}</p>
       </div>
@@ -1352,7 +1352,7 @@ function FillBlankExercise({
         {options.map((opt) => {
           const isSelected = selected === opt.cantonese;
           const correct = opt.cantonese === current.cantonese;
-          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-indigo-300";
+          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50";
           if (selected !== null) {
             if (correct) style = "bg-green-50 border-green-400 text-green-700";
             else if (isSelected) style = "bg-red-50 border-red-400 text-red-600";
@@ -1390,7 +1390,7 @@ function FillBlankExercise({
           </div>
           <button
             onClick={handleNext}
-            className="mt-3 w-full py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+            className="mt-3 w-full py-3 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
           >
             {index + 1 >= itemsWithSentences.length ? "Finish" : "Next"}
           </button>
@@ -1434,7 +1434,7 @@ function ConversationExercise({
   return (
     <div className="flex flex-col p-6 gap-4">
       <div className="flex items-center gap-2 mb-2">
-        <MessageCircle size={16} className="text-indigo-400" />
+        <MessageCircle size={16} className="text-brand-blue/60" />
         <p className="text-sm text-zinc-500">Step through the conversation</p>
         <span className="ml-auto text-xs text-zinc-400">{step + 1} / {turns.length}</span>
       </div>
@@ -1445,9 +1445,9 @@ function ConversationExercise({
         ))}
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-indigo-100 p-5">
+      <div className="bg-white rounded-3xl shadow-sm border border-brand-blue/15 p-5">
         <div className="flex items-center gap-2 mb-3">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${isUserTurn ? "bg-orange-400" : "bg-indigo-400"}`}>
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${isUserTurn ? "bg-orange-400" : "bg-brand-blue/60"}`}>
             {isUserTurn ? "Y" : "T"}
           </div>
           <span className="text-xs font-semibold text-zinc-500">
@@ -1459,15 +1459,15 @@ function ConversationExercise({
           <>
             <p className="text-sm text-zinc-600 mb-3">{current.english}</p>
             {showHint && current.hint && (
-              <p className="text-xs text-indigo-500 italic mb-3">Hint: {current.hint}</p>
+              <p className="text-xs text-brand-blue italic mb-3">Hint: {current.hint}</p>
             )}
             {revealed ? (
-              <div className="bg-indigo-50 rounded-2xl p-4">
+              <div className="bg-brand-blue/10 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-2xl font-bold text-indigo-700">{current.cantonese}</p>
+                  <p className="text-2xl font-bold text-brand-blue">{current.cantonese}</p>
                   <PlayButton text={current.cantonese} size="sm" />
                 </div>
-                <p className="text-sm font-mono text-indigo-400">{current.pronunciation}</p>
+                <p className="text-sm font-mono text-brand-blue/60">{current.pronunciation}</p>
               </div>
             ) : (
               <div className="flex gap-2">
@@ -1481,7 +1481,7 @@ function ConversationExercise({
                 )}
                 <button
                   onClick={() => setRevealed(true)}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-600 active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-xl bg-brand-blue/100 text-white text-sm font-bold hover:bg-brand-blue active:scale-95 transition-all"
                 >
                   Reveal
                 </button>
@@ -1504,7 +1504,7 @@ function ConversationExercise({
         onClick={handleNext}
         disabled={isUserTurn && !revealed}
         className={`w-full py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95
-          ${!isUserTurn || revealed ? "bg-indigo-500 text-white hover:bg-indigo-600" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}
+          ${!isUserTurn || revealed ? "bg-brand-blue/100 text-white hover:bg-brand-blue" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}
         `}
       >
         {isLast ? "Complete Conversation" : "Next"}
@@ -1515,7 +1515,7 @@ function ConversationExercise({
           <div
             key={i}
             className={`h-1.5 rounded-full transition-all
-              ${i === step ? "w-6 bg-indigo-500" : i < step ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}
+              ${i === step ? "w-6 bg-brand-blue/100" : i < step ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}
             `}
           />
         ))}
@@ -1580,7 +1580,7 @@ function ConversationLessonView({
           </div>
           <button
             onClick={() => savePhase("done")}
-            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors whitespace-nowrap"
+            className="text-xs font-semibold text-brand-blue hover:text-brand-blue transition-colors whitespace-nowrap"
           >
             Skip →
           </button>
@@ -1610,7 +1610,7 @@ function ConversationLessonView({
         {phase === "listen" && (
           <button
             onClick={() => savePhase("flashcard")}
-            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors whitespace-nowrap"
+            className="text-xs font-semibold text-brand-blue hover:text-brand-blue transition-colors whitespace-nowrap"
           >
             Skip →
           </button>
@@ -1628,19 +1628,19 @@ function ConversationLessonView({
 
         {phase === "done" && (
           <div className="flex flex-col items-center pt-8 pb-4 gap-4">
-            <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
-              <CheckCircle size={40} className="text-indigo-500" />
+            <div className="w-20 h-20 rounded-full bg-brand-blue/15 flex items-center justify-center mb-2">
+              <CheckCircle size={40} className="text-brand-blue" />
             </div>
             <h3 className="text-xl font-extrabold text-zinc-800">Ready for the Exam!</h3>
             <p className="text-sm text-zinc-500 text-center max-w-xs">
               You've completed all practice phases. Take the final exam to earn your score.
             </p>
             {lesson.examBestScore !== undefined && (
-              <p className="text-sm text-zinc-400">Your best score: <span className="font-bold text-indigo-600">{lesson.examBestScore}%</span></p>
+              <p className="text-sm text-zinc-400">Your best score: <span className="font-bold text-brand-blue">{lesson.examBestScore}%</span></p>
             )}
             <button
               onClick={onStartExam}
-              className="w-full max-w-xs py-4 bg-indigo-500 text-white font-extrabold rounded-2xl shadow-lg hover:bg-indigo-600 active:scale-95 transition-all text-lg mt-2"
+              className="w-full max-w-xs py-4 bg-brand-blue/100 text-white font-extrabold rounded-2xl shadow-lg hover:bg-brand-blue active:scale-95 transition-all text-lg mt-2"
             >
               Take Final Exam
             </button>
@@ -1723,21 +1723,21 @@ function PhraseBreakdownExercise({
           {vocab.map((_, i) => (
             <div
               key={i}
-              className={`h-1 rounded-full transition-all ${i === phraseIdx ? "w-5 bg-indigo-500" : i < phraseIdx ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`}
+              className={`h-1 rounded-full transition-all ${i === phraseIdx ? "w-5 bg-brand-blue/100" : i < phraseIdx ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
             />
           ))}
         </div>
       </div>
 
       {/* Full phrase — always visible */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+      <div className="bg-brand-blue/10 border border-brand-blue/15 rounded-2xl p-4">
         <p className="text-xs text-zinc-400 mb-1">{item.english}</p>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-bold text-indigo-700">{item.cantonese}</p>
+          <p className="text-2xl font-bold text-brand-blue">{item.cantonese}</p>
           <PlayButtonDark text={item.cantonese} size="sm" />
         </div>
         {item.pronunciation && (
-          <p className="text-sm font-mono text-indigo-400 mt-0.5">{item.pronunciation}</p>
+          <p className="text-sm font-mono text-brand-blue/60 mt-0.5">{item.pronunciation}</p>
         )}
       </div>
 
@@ -1745,7 +1745,7 @@ function PhraseBreakdownExercise({
       <div className="min-h-[220px] flex flex-col items-center justify-center gap-4">
         {isLoading ? (
           <div className="flex flex-col items-center gap-2">
-            <Loader2 size={28} className="animate-spin text-indigo-400" />
+            <Loader2 size={28} className="animate-spin text-brand-blue/60" />
             <p className="text-xs text-zinc-400">Breaking down the phrase…</p>
           </div>
         ) : chunk ? (
@@ -1766,7 +1766,7 @@ function PhraseBreakdownExercise({
                   <span className="text-5xl font-bold text-zinc-800">{chunk.characters}</span>
                   <PlayButtonDark text={chunk.characters} />
                 </div>
-                <span className="text-lg font-mono text-indigo-500">{chunk.pronunciation}</span>
+                <span className="text-lg font-mono text-brand-blue">{chunk.pronunciation}</span>
                 {chunk.meaning && (
                   <>
                     <div className="w-full h-px bg-zinc-100" />
@@ -1781,7 +1781,7 @@ function PhraseBreakdownExercise({
               {chunks.map((_, i) => (
                 <div
                   key={i}
-                  className={`h-1.5 rounded-full transition-all ${i === chunkIdx ? "w-6 bg-indigo-500" : i < chunkIdx ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`}
+                  className={`h-1.5 rounded-full transition-all ${i === chunkIdx ? "w-6 bg-brand-blue/100" : i < chunkIdx ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
                 />
               ))}
             </div>
@@ -1802,7 +1802,7 @@ function PhraseBreakdownExercise({
         <button
           onClick={goNext}
           disabled={isLoading || !chunk}
-          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${!isLoading && chunk ? "bg-indigo-500 text-white hover:bg-indigo-600" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}`}
+          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${!isLoading && chunk ? "bg-brand-blue/100 text-white hover:bg-brand-blue" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}`}
         >
           {isLastChunk && isLastPhrase ? "Finish" : isLastChunk ? "Next Phrase →" : "Next Word →"}
         </button>
@@ -1827,7 +1827,7 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-4">
         <p className="text-zinc-500 text-sm">No phrases available.</p>
-        <button onClick={onComplete} className="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold">Continue</button>
+        <button onClick={onComplete} className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold">Continue</button>
       </div>
     );
   }
@@ -1887,7 +1887,7 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
           <div className="bg-zinc-100 text-zinc-500 rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
         </div>
         <div className={`absolute inset-y-0 right-0 flex items-center pr-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "left" ? "opacity-100" : "opacity-0"}`}>
-          <div className="bg-indigo-100 text-indigo-600 rounded-xl px-2.5 py-1 text-xs font-bold">{isLast ? "Finish" : "Next"} →</div>
+          <div className="bg-brand-blue/15 text-brand-blue rounded-xl px-2.5 py-1 text-xs font-bold">{isLast ? "Finish" : "Next"} →</div>
         </div>
 
         <div style={{ perspective: 1000 }}>
@@ -1917,14 +1917,14 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
                 className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6"
                 style={{ backfaceVisibility: "hidden" }}
               >
-                <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">English</span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">English</span>
                 <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
                 <span className="text-xs text-zinc-400 mt-4">Tap for translation · Swipe to navigate</span>
               </div>
 
               {/* Back face */}
               <div
-                className="absolute inset-0 bg-indigo-500 rounded-3xl shadow-md flex flex-col p-5 overflow-hidden"
+                className="absolute inset-0 bg-brand-blue/100 rounded-3xl shadow-md flex flex-col p-5 overflow-hidden"
                 style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
               >
                 <button
@@ -1932,17 +1932,17 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
                   onPointerDown={(e) => e.stopPropagation()}
                   className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition-colors z-10"
                 >
-                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-indigo-200"} />
+                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-brand-blue/60"} />
                 </button>
 
                 <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-2">Cantonese</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-2">Cantonese</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-4xl font-bold text-white text-center">{current.cantonese}</span>
                     <PlayButton text={current.cantonese} />
                   </div>
                   {current.pronunciation && (
-                    <span className="text-base text-indigo-200 font-mono">{current.pronunciation}</span>
+                    <span className="text-base text-brand-blue/60 font-mono">{current.pronunciation}</span>
                   )}
                 </div>
               </div>
@@ -1962,7 +1962,7 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
         )}
         <button
           onClick={() => goToCard(index + 1, "left")}
-          className="flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 bg-indigo-500 text-white hover:bg-indigo-600"
+          className="flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 bg-brand-blue/100 text-white hover:bg-brand-blue"
         >
           {isLast ? "Finish" : "Next"}
         </button>
@@ -1970,7 +1970,7 @@ function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onCo
 
       <div className="flex gap-1.5">
         {vocab.map((_, i) => (
-          <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
+          <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`} />
         ))}
       </div>
     </div>
@@ -2100,7 +2100,7 @@ function ExamView({
         </p>
         <button
           onClick={() => onComplete(finalScore)}
-          className="w-full max-w-xs py-3.5 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all"
+          className="w-full max-w-xs py-3.5 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
         >
           Back to Lesson
         </button>
@@ -2131,7 +2131,7 @@ function ExamView({
           <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2">Recite this phrase</p>
           <p className="text-2xl font-bold text-zinc-800 mb-1">{current.cantonese}</p>
           {current.pronunciation && (
-            <p className="text-sm font-mono text-indigo-400 mb-3">{current.pronunciation}</p>
+            <p className="text-sm font-mono text-brand-blue/60 mb-3">{current.pronunciation}</p>
           )}
           <p className="text-sm text-zinc-500 italic">{current.english}</p>
           <div className="mt-4">
@@ -2153,7 +2153,7 @@ function ExamView({
                   onPointerUp={handleMicPointerUp}
                   onPointerLeave={handleMicPointerLeave}
                   onContextMenu={(e) => e.preventDefault()}
-                  className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-indigo-600 shadow-indigo-200 hover:scale-105"}`}
+                  className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-brand-blue shadow-brand-blue/20 hover:scale-105"}`}
                 >
                   {isRecording && (
                     <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
@@ -2200,7 +2200,7 @@ function ExamView({
               </button>
               <button
                 onClick={handleNext}
-                className="flex-1 py-3 bg-indigo-500 text-white font-bold rounded-2xl shadow hover:bg-indigo-600 active:scale-95 transition-all text-sm"
+                className="flex-1 py-3 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all text-sm"
               >
                 {index + 1 >= vocab.length ? "See Results" : "Next →"}
               </button>
@@ -2210,7 +2210,7 @@ function ExamView({
 
         <div className="flex gap-1.5 justify-center">
           {vocab.map((_, i) => (
-            <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-indigo-500" : i < index ? "w-2 bg-indigo-200" : "w-2 bg-zinc-200"}`} />
+            <div key={i} className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`} />
           ))}
         </div>
       </div>
@@ -2225,12 +2225,12 @@ function ChatBubble({ turn, dimmed }: { turn: ConversationTurn; dimmed?: boolean
       <div
         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
           isUser
-            ? "bg-indigo-500 text-white rounded-br-sm"
+            ? "bg-brand-blue/100 text-white rounded-br-sm"
             : "bg-white border border-zinc-100 text-zinc-800 rounded-bl-sm"
         }`}
       >
         <p className={`text-sm font-semibold ${isUser ? "text-white" : "text-zinc-800"}`}>{turn.cantonese}</p>
-        <p className={`text-xs mt-0.5 ${isUser ? "text-indigo-200" : "text-zinc-400"}`}>{turn.pronunciation}</p>
+        <p className={`text-xs mt-0.5 ${isUser ? "text-brand-blue/60" : "text-zinc-400"}`}>{turn.pronunciation}</p>
       </div>
     </div>
   );

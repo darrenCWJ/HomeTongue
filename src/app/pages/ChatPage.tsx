@@ -510,7 +510,7 @@ export function ChatPage() {
             <button
               data-tour="chat-persona-selector"
               onClick={() => setIsPersonaSheetOpen(true)}
-              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-brand-blue transition-colors"
             >
               {activePersona === "work" ? <Briefcase size={11} /> : <Home size={11} />}
               <span className="capitalize">{activePersona}</span>
@@ -520,7 +520,7 @@ export function ChatPage() {
             <button
               data-tour="chat-dialect-selector"
               onClick={() => setIsDialectSheetOpen(true)}
-              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-brand-blue transition-colors"
             >
               <Languages size={11} />
               <span>{dialect}</span>
@@ -541,7 +541,7 @@ export function ChatPage() {
           <button
             data-tour="chat-save-conversation"
             onClick={openSaveDialog}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium hover:bg-indigo-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue/10 text-brand-blue rounded-full text-xs font-medium hover:bg-brand-blue/15 transition-colors"
           >
             <Save size={14} />
             Save Conversation
@@ -559,7 +559,7 @@ export function ChatPage() {
       ) : showDemoBubble ? (
         <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
           <div className="flex items-end gap-2 justify-start">
-            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-purple-600">
+            <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-red">
               粵
             </div>
             <div className="flex flex-col max-w-[78%]">
@@ -574,7 +574,7 @@ export function ChatPage() {
                   <Bookmark size={14} />
                 </button>
                 <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">你好，好高興認識你！</p>
-                <p className="text-xs text-indigo-500 mt-1 font-medium">Hello, nice to meet you!</p>
+                <p className="text-xs text-brand-blue mt-1 font-medium">Hello, nice to meet you!</p>
                 <div className="mt-2 pt-2 border-t border-zinc-100">
                   <button
                     data-tour="chat-replay-button"
@@ -607,7 +607,7 @@ export function ChatPage() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-end gap-2 justify-start"
                 >
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-purple-600">
+                  <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-red">
                     粵
                   </div>
                   <div className="flex flex-col max-w-[78%]">
@@ -629,7 +629,7 @@ export function ChatPage() {
                         <Bookmark size={14} className={isBookmarked ? "fill-zinc-600 text-zinc-600" : ""} />
                       </button>
                       <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">{msg.text}</p>
-                      <p className="text-xs text-indigo-500 mt-1 font-medium">{msg.englishTranslation}</p>
+                      <p className="text-xs text-brand-blue mt-1 font-medium">{msg.englishTranslation}</p>
                       <div className="mt-2 pt-2 border-t border-zinc-100">
                         <button
                           {...(isFirstBotMsg ? { "data-tour": "chat-replay-button" } : {})}
@@ -674,7 +674,7 @@ export function ChatPage() {
                 >
                   <div className="flex flex-col items-end max-w-[78%]">
                     <div
-                      className="relative bg-indigo-600 text-white rounded-2xl rounded-br-sm shadow-sm px-4 py-3"
+                      className="relative bg-brand-blue text-white rounded-2xl rounded-br-sm shadow-sm px-4 py-3"
                       onPointerDown={(e) => handleBubblePointerDown(e, msg)}
                       onPointerUp={cancelBubbleLongPress}
                       onPointerMove={handleBubblePointerMove}
@@ -684,23 +684,23 @@ export function ChatPage() {
                       <button
                         onClick={() => toggleBookmark(msg.id)}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="absolute top-2 right-2 text-indigo-300 hover:text-white transition-colors"
+                        className="absolute top-2 right-2 text-brand-blue/40 hover:text-white transition-colors"
                       >
                         <Bookmark size={14} className={isBookmarked ? "fill-white text-white" : ""} />
                       </button>
                       <p className="text-sm font-medium leading-snug pr-5">{msg.text}</p>
                       {msg.cantoneseText && (
-                        <p className="text-indigo-200 text-base font-semibold mt-1">{msg.cantoneseText}</p>
+                        <p className="text-brand-blue/60 text-base font-semibold mt-1">{msg.cantoneseText}</p>
                       )}
                       {msg.pronunciation && (
-                        <p className="text-indigo-300 text-xs font-mono mt-0.5">{msg.pronunciation}</p>
+                        <p className="text-brand-blue/40 text-xs font-mono mt-0.5">{msg.pronunciation}</p>
                       )}
-                      <div className="mt-2 pt-2 border-t border-indigo-500">
+                      <div className="mt-2 pt-2 border-t border-brand-blue">
                         <button
                           onClick={() => msg.cantoneseText && replayPhrase(msg.id, msg.cantoneseText)}
                           onPointerDown={(e) => e.stopPropagation()}
                           disabled={!!playingId}
-                          className="flex items-center gap-1 text-xs text-indigo-200 hover:text-white disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs text-brand-blue/60 hover:text-white disabled:opacity-50"
                         >
                           {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
                           {isPlaying ? "Playing..." : "Replay"}
@@ -722,7 +722,7 @@ export function ChatPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-indigo-600">
+                  <div className="w-8 h-8 rounded-full bg-brand-blue/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-blue">
                     EN
                   </div>
                 </motion.div>
@@ -752,19 +752,19 @@ export function ChatPage() {
             >
               <div className={`rounded-2xl px-4 py-3 shadow-sm flex items-center gap-2 ${
                 stageIsUserSide
-                  ? "bg-indigo-600 rounded-br-sm"
+                  ? "bg-brand-blue rounded-br-sm"
                   : "bg-white border border-zinc-200 rounded-tl-sm"
               }`}>
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className={`w-2 h-2 rounded-full animate-bounce ${stageIsUserSide ? "bg-indigo-200" : "bg-indigo-400"}`}
+                      className={`w-2 h-2 rounded-full animate-bounce ${stageIsUserSide ? "bg-brand-blue/20" : "bg-brand-blue/60"}`}
                       style={{ animationDelay: `${i * 0.15}s` }}
                     />
                   ))}
                 </div>
-                <span className={`text-xs ${stageIsUserSide ? "text-indigo-200" : "text-zinc-500"}`}>{stageLabel}</span>
+                <span className={`text-xs ${stageIsUserSide ? "text-brand-blue/60" : "text-zinc-500"}`}>{stageLabel}</span>
               </div>
             </motion.div>
           )}
@@ -784,10 +784,10 @@ export function ChatPage() {
                     key={s.id}
                     onClick={() => handleReply(s.original)}
                     disabled={isBusy}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm font-medium text-zinc-700 hover:bg-indigo-100 hover:border-indigo-200 active:scale-[0.99] transition-all disabled:opacity-50 text-left"
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-brand-blue/10 border border-brand-blue/15 rounded-2xl text-sm font-medium text-zinc-700 hover:bg-brand-blue/15 hover:border-brand-blue/20 active:scale-[0.99] transition-all disabled:opacity-50 text-left"
                   >
                     <span>{s.original}</span>
-                    <ChevronRight size={16} className="text-indigo-400 flex-shrink-0" />
+                    <ChevronRight size={16} className="text-brand-blue/60 flex-shrink-0" />
                   </button>
                 ))}
               </motion.div>
@@ -811,10 +811,10 @@ export function ChatPage() {
             onPointerLeave={() => handleMicPointerLeave("cantonese")}
             onContextMenu={(e) => e.preventDefault()}
             disabled={isListening && listeningMode !== "cantonese"}
-            className={`relative flex items-center gap-2 px-5 py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "cantonese" ? "bg-red-700 shadow-red-300 scale-105" : "bg-red-500 shadow-red-200"}`}
+            className={`relative flex items-center gap-2 px-5 py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "cantonese" ? "bg-brand-red shadow-brand-red/30 scale-105" : "bg-brand-red shadow-brand-red/20"}`}
           >
             {listeningMode === "cantonese" && (
-              <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
+              <span className="absolute inset-0 rounded-full bg-brand-red/60 animate-ping opacity-75" />
             )}
             {listeningMode === "cantonese" && isTapMode
               ? <Square size={16} fill="currentColor" className="relative z-10" />
@@ -839,10 +839,10 @@ export function ChatPage() {
             onPointerLeave={() => handleMicPointerLeave("english")}
             onContextMenu={(e) => e.preventDefault()}
             disabled={isListening && listeningMode !== "english"}
-            className={`relative flex items-center gap-2 px-5 py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "english" ? "bg-red-500 shadow-red-200 scale-105" : "bg-blue-500 shadow-blue-200"}`}
+            className={`relative flex items-center gap-2 px-5 py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "english" ? "bg-brand-red shadow-brand-red/20 scale-105" : "bg-brand-blue shadow-brand-blue/20"}`}
           >
             {listeningMode === "english" && (
-              <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
+              <span className="absolute inset-0 rounded-full bg-brand-red/60 animate-ping opacity-75" />
             )}
             {listeningMode === "english" && isTapMode
               ? <Square size={16} fill="currentColor" className="relative z-10" />
@@ -879,12 +879,12 @@ export function ChatPage() {
                 }}
                 placeholder="e.g. Nice to meet you!"
                 autoFocus
-                className="w-full px-4 py-3 pr-12 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-zinc-800"
+                className="w-full px-4 py-3 pr-12 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800"
               />
               <button
                 onClick={handleSubmitTyped}
                 disabled={!typedReply.trim()}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand-blue text-white rounded-lg hover:bg-brand-blue/90 transition-colors disabled:opacity-50"
               >
                 <Send size={18} />
               </button>
@@ -922,7 +922,7 @@ export function ChatPage() {
               onKeyDown={(e) => { if (e.key === "Enter") confirmSave(); }}
               placeholder="e.g. Ordering at a restaurant"
               autoFocus
-              className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-zinc-800 mb-4"
+              className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800 mb-4"
             />
 
             {sessionTags.length > 0 && (
@@ -937,8 +937,8 @@ export function ChatPage() {
                         onClick={() => setSaveSessionTags((prev) => isSelected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                           isSelected
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white text-zinc-600 border-zinc-200 hover:border-indigo-200"
+                            ? "bg-brand-blue text-white border-brand-blue"
+                            : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
                         }`}
                       >
                         {tag.name}
@@ -952,7 +952,7 @@ export function ChatPage() {
             <button
               onClick={confirmSave}
               disabled={!saveTitle.trim() || isSaving}
-              className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors disabled:opacity-40"
+              className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-semibold text-base hover:bg-brand-blue/90 transition-colors disabled:opacity-40"
             >
               {isSaving ? "Processing…" : "Save"}
             </button>
@@ -997,14 +997,14 @@ export function ChatPage() {
                     onClick={() => updateUserProfile({ activePersona: p })}
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                       activePersona === p
-                        ? "bg-indigo-50 border-indigo-400 shadow-sm"
+                        ? "bg-brand-blue/10 border-brand-blue shadow-sm"
                         : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
                     }`}
                   >
                     {p === "work"
-                      ? <Briefcase size={24} className={activePersona === p ? "text-indigo-600" : "text-zinc-400"} />
-                      : <Home size={24} className={activePersona === p ? "text-indigo-600" : "text-zinc-400"} />}
-                    <span className={`font-semibold text-sm capitalize ${activePersona === p ? "text-indigo-700" : "text-zinc-600"}`}>
+                      ? <Briefcase size={24} className={activePersona === p ? "text-brand-blue" : "text-zinc-400"} />
+                      : <Home size={24} className={activePersona === p ? "text-brand-blue" : "text-zinc-400"} />}
+                    <span className={`font-semibold text-sm capitalize ${activePersona === p ? "text-brand-blue" : "text-zinc-600"}`}>
                       {p}
                     </span>
                   </button>
@@ -1036,7 +1036,7 @@ export function ChatPage() {
                           onClick={() => handleJobTitle(title)}
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                             isSelected
-                              ? "bg-indigo-600 text-white border-indigo-600"
+                              ? "bg-brand-blue text-white border-brand-blue"
                               : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300"
                           }`}
                         >
@@ -1089,7 +1089,7 @@ export function ChatPage() {
                     }}
                     className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl border-2 transition-all ${
                       dialect === d.value && d.available
-                        ? "bg-indigo-50 border-indigo-400"
+                        ? "bg-brand-blue/10 border-brand-blue"
                         : d.available
                         ? "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
                         : "bg-zinc-50 border-zinc-100 opacity-40 cursor-not-allowed"
@@ -1097,7 +1097,7 @@ export function ChatPage() {
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold ${
                       dialect === d.value && d.available
-                        ? "bg-indigo-500 text-white"
+                        ? "bg-brand-blue/100 text-white"
                         : d.available
                         ? "bg-zinc-200 text-zinc-600"
                         : "bg-zinc-200 text-zinc-400"
@@ -1106,7 +1106,7 @@ export function ChatPage() {
                     </div>
                     <div className="flex-1 text-left">
                       <p className={`text-sm font-semibold ${
-                        dialect === d.value && d.available ? "text-indigo-700" : d.available ? "text-zinc-700" : "text-zinc-400"
+                        dialect === d.value && d.available ? "text-brand-blue" : d.available ? "text-zinc-700" : "text-zinc-400"
                       }`}>
                         {d.label}
                       </p>
@@ -1115,7 +1115,7 @@ export function ChatPage() {
                       )}
                     </div>
                     {dialect === d.value && d.available && (
-                      <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-brand-blue/100 flex items-center justify-center flex-shrink-0">
                         <div className="w-2 h-2 rounded-full bg-white" />
                       </div>
                     )}
@@ -1146,7 +1146,7 @@ export function ChatPage() {
               onChange={(e) => setPhraseSelectionText(e.target.value)}
               autoFocus
               rows={3}
-              className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-zinc-800 text-base resize-none mb-4"
+              className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800 text-base resize-none mb-4"
             />
             {phraseTags.length > 0 && (
               <>
@@ -1160,8 +1160,8 @@ export function ChatPage() {
                         onClick={() => setPhraseTagSelection((prev) => isSelected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                           isSelected
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white text-zinc-600 border-zinc-200 hover:border-indigo-200"
+                            ? "bg-brand-blue text-white border-brand-blue"
+                            : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
                         }`}
                       >
                         {tag.name}
@@ -1174,7 +1174,7 @@ export function ChatPage() {
             <button
               onClick={handleSaveSelectedPhrase}
               disabled={!phraseSelectionText.trim()}
-              className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors disabled:opacity-40 mb-3"
+              className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-semibold text-base hover:bg-brand-blue/90 transition-colors disabled:opacity-40 mb-3"
             >
               Save Phrase
             </button>
@@ -1199,7 +1199,7 @@ export function ChatPage() {
             className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col items-center"
           >
             <div className="text-center mb-6 w-full">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 bg-indigo-100 text-indigo-700">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 bg-brand-blue/15 text-brand-blue">
                 Non-Dialect speaker
               </div>
               <h3 className="text-2xl font-bold text-zinc-800 mb-1">Did you say this?</h3>
@@ -1213,14 +1213,14 @@ export function ChatPage() {
                   onChange={(e) => setPendingEditText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); confirmEnglishReply(); } }}
                   autoFocus
-                  className="w-full bg-indigo-50 border-2 border-indigo-400 rounded-2xl px-5 py-4 text-lg font-semibold text-zinc-900 text-center focus:outline-none"
+                  className="w-full bg-brand-blue/10 border-2 border-brand-blue rounded-2xl px-5 py-4 text-lg font-semibold text-zinc-900 text-center focus:outline-none"
                 />
               ) : (
-                <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-4">
+                <div className="flex items-center gap-3 bg-brand-blue/10 border border-brand-blue/20 rounded-2xl px-5 py-4">
                   <p className="flex-1 text-lg font-semibold text-zinc-900 text-center">{pendingEditText}</p>
                   <button
                     onClick={() => setIsEditingPending(true)}
-                    className="flex-shrink-0 p-1.5 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 transition-colors"
+                    className="flex-shrink-0 p-1.5 rounded-lg text-brand-blue/60 hover:text-brand-blue hover:bg-brand-blue/15 transition-colors"
                   >
                     <Pencil size={16} />
                   </button>
@@ -1229,7 +1229,7 @@ export function ChatPage() {
             </div>
             <button
               onClick={confirmEnglishReply}
-              className="w-full max-w-md py-3.5 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-700 transition-colors"
+              className="w-full max-w-md py-3.5 bg-brand-blue text-white rounded-2xl font-semibold text-base hover:bg-brand-blue/90 transition-colors"
             >
               Send in Cantonese
             </button>

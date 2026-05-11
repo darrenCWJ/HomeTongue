@@ -25,7 +25,7 @@ export function Layout() {
   const needsOnboarding = accessCodePassed && isEmailAuthed && !userProfile?.name;
 
   return (
-    <div className="flex justify-center bg-zinc-100 min-h-screen">
+    <div className="flex justify-center bg-brand-white min-h-screen">
       <div className="w-full max-w-[448px] bg-white h-screen flex flex-col shadow-2xl relative overflow-hidden">
         {!accessCodePassed ? (
           <SignInPage />
@@ -49,7 +49,7 @@ function AuthenticatedLayout() {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto pb-16 bg-zinc-50 relative">
+      <div className="flex-1 overflow-y-auto pb-16 bg-brand-white relative">
         <Outlet />
       </div>
 
@@ -71,7 +71,7 @@ function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label
       to={to}
       className={({ isActive }) =>
         `flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
-          isActive ? "text-indigo-600" : "text-zinc-400 hover:text-zinc-600"
+          isActive ? "text-brand-blue" : "text-zinc-400 hover:text-zinc-600"
         }`
       }
     >

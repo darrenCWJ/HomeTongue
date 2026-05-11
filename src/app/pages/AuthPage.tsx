@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { Globe2, Sparkles, Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 
 interface AuthPageProps {
   onComplete: () => void;
@@ -24,9 +24,9 @@ export function AuthPage({ onComplete }: AuthPageProps) {
 
   return (
     <div className="flex flex-col h-full bg-white relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-64 bg-indigo-600 rounded-b-[2.5rem] overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-64 bg-brand-blue rounded-b-[2.5rem] overflow-hidden">
         <div className="absolute top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-purple-500 opacity-20 rounded-full blur-2xl" />
+        <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-brand-red opacity-20 rounded-full blur-2xl" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pt-16 pb-8 relative z-10 flex flex-col">
@@ -36,12 +36,9 @@ export function AuthPage({ onComplete }: AuthPageProps) {
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <div className="relative w-20 h-20 bg-white rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
-            <Globe2 size={40} className="text-indigo-600" />
-            <Sparkles size={20} className="text-yellow-400 absolute -top-2 -right-2" />
-          </div>
+          <img src="/logo.png" alt="HomeTongue" className="w-20 h-20 rounded-2xl mx-auto shadow-lg shadow-brand-blue/20 mb-6 object-cover" />
           <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">HomeTongue</h1>
-          <p className="text-indigo-100 text-sm font-medium">Master your dialect, naturally.</p>
+          <p className="text-brand-white text-sm font-medium">Master your dialect, naturally.</p>
         </motion.div>
 
         <motion.div
@@ -66,7 +63,7 @@ export function AuthPage({ onComplete }: AuthPageProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="hello@example.com"
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -82,7 +79,7 @@ export function AuthPage({ onComplete }: AuthPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -90,7 +87,7 @@ export function AuthPage({ onComplete }: AuthPageProps) {
             <button
               type="submit"
               disabled={isLoading || !email || !password}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:pointer-events-none mt-2 shadow-md shadow-indigo-200"
+              className="w-full bg-brand-blue hover:bg-brand-blue/90 active:bg-brand-blue/80 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:pointer-events-none mt-2 shadow-md shadow-brand-blue/20"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -107,7 +104,7 @@ export function AuthPage({ onComplete }: AuthPageProps) {
             {isLogin ? "Don't have an account?" : "Already have an account?"}
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="font-bold text-brand-blue hover:text-brand-blue/80 transition-colors"
             >
               {isLogin ? "Sign Up" : "Sign In"}
             </button>
