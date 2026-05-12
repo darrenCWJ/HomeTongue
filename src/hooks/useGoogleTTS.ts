@@ -59,7 +59,8 @@ export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {
 // Core synthesis — proxied through /api/tts to avoid CORS
 // ──────────────────────────────────────────────────────────
 async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob> {
-  const voiceName = GOOGLE_TTS_VOICES[voiceKey].name;
+  const voice = GOOGLE_TTS_VOICES[voiceKey] ?? GOOGLE_TTS_VOICES[DEFAULT_VOICE];
+  const voiceName = voice.name;
 
   let res: Response;
   try {
