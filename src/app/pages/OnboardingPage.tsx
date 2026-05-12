@@ -67,21 +67,19 @@ export function OnboardingPage() {
 
   if (step === "video") {
     return (
-      <div className="flex flex-col h-full bg-black relative overflow-hidden">
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          <video
-            ref={videoRef}
-            src="/intro.mp4"
-            className="w-full max-h-[75vh] rounded-2xl object-contain"
-            autoPlay
-            playsInline
-            onEnded={handleFinish}
-          />
-        </div>
-        <div className="px-6 pb-8 pt-4">
+      <div className="absolute inset-0 bg-black z-50">
+        <video
+          ref={videoRef}
+          src="/intro.mp4"
+          className="w-full h-full object-cover"
+          autoPlay
+          playsInline
+          onEnded={handleFinish}
+        />
+        <div className="absolute bottom-8 left-6 right-6">
           <button
             onClick={handleFinish}
-            className="w-full bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all border border-white/20"
+            className="w-full bg-white hover:bg-zinc-100 text-black font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-lg"
           >
             Skip
             <ArrowRight size={18} />
@@ -109,7 +107,7 @@ export function OnboardingPage() {
         >
           <img src="/logo.png" alt="HomeTongue" className="w-16 h-16 rounded-2xl mx-auto shadow-lg shadow-brand-blue/20 mb-4 object-cover" />
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Welcome to HomeTongue</h1>
-          <p className="text-brand-blue/60 text-sm mt-1">Let's set up your learning journey.</p>
+          <p className="text-white/80 text-sm mt-1">Let's set up your learning journey.</p>
         </motion.div>
 
         {/* Progress dots */}

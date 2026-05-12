@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Square, Bookmark, Volume2, Save, Keyboard, Send, RotateCcw, RefreshCw, Home, Briefcase, ChevronDown, ChevronRight, Languages, Pencil, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Mic, Square, Bookmark, Volume2, Keyboard, Send, RotateCcw, Home, Briefcase, ChevronDown, ChevronRight, Languages, Pencil, ThumbsUp, ThumbsDown } from "lucide-react";
 import { WORK_JOB_TITLES, DIALECTS, type WorkJobTitle, type PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import type { Phrase, Message } from "../../types";
@@ -361,22 +361,26 @@ export function ChatPage() {
     const wasEdited = dialectText !== originalDialect.trim();
     const phraseId = Date.now().toString();
 
-    if (!wasEdited) {
-      const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
-      addPhrase({ id: phraseId, original, dialect: dialectText, pronunciation: "", isBookmarked: true, context: "", audioDataUrl: urls[0], audioDataUrls: urls.length > 1 ? urls : undefined, tags: phraseTagSelection });
-      for (const url of urls) {
-        try { await playDataUrl(url); } catch { /* skip failed clip */ }
+    try {
+      if (!wasEdited) {
+        const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
+        addPhrase({ id: phraseId, original, dialect: dialectText, pronunciation: "", isBookmarked: true, context: "", audioDataUrl: urls[0], audioDataUrls: urls.length > 1 ? urls : undefined, tags: phraseTagSelection });
+        for (const url of urls) {
+          try { await playDataUrl(url); } catch { /* skip failed clip */ }
+        }
+      } else {
+        const { audioDataUrl, play } = await speakTextAndCapture(dialectText, userProfile?.preferredVoiceId);
+        addPhrase({ id: phraseId, original, dialect: dialectText, pronunciation: "", isBookmarked: true, context: "", audioDataUrl, tags: phraseTagSelection });
+        await play();
       }
-    } else {
-      const { audioDataUrl, play } = await speakTextAndCapture(dialectText, userProfile?.preferredVoiceId);
-      addPhrase({ id: phraseId, original, dialect: dialectText, pronunciation: "", isBookmarked: true, context: "", audioDataUrl, tags: phraseTagSelection });
-      await play();
+      toast.success("Phrase saved!");
+    } catch {
+      toast.error("Failed to save phrase.");
     }
 
     setPhraseSelectionMsg(null);
     setPhraseSelectionText("");
     setPhraseTagSelection([]);
-    toast.success("Phrase saved!");
   };
 
   // Reply flow: English speaker selects/types → translate → TTS → show
@@ -510,7 +514,8 @@ export function ChatPage() {
             <button
               data-tour="chat-persona-selector"
               onClick={() => setIsPersonaSheetOpen(true)}
-              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-brand-blue transition-colors"
+              disabled={messages.length > 0}
+              className={`flex items-center gap-1 text-xs transition-colors ${messages.length > 0 ? "text-zinc-300 cursor-not-allowed" : "text-zinc-500 hover:text-brand-blue"}`}
             >
               {activePersona === "work" ? <Briefcase size={11} /> : <Home size={11} />}
               <span className="capitalize">{activePersona}</span>
@@ -534,7 +539,6 @@ export function ChatPage() {
               onClick={handleNewChat}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-600 rounded-full text-xs font-medium hover:bg-zinc-200 transition-colors"
             >
-              <RefreshCw size={13} />
               New Chat
             </button>
           )}
@@ -543,7 +547,6 @@ export function ChatPage() {
             onClick={openSaveDialog}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue/10 text-brand-blue rounded-full text-xs font-medium hover:bg-brand-blue/15 transition-colors"
           >
-            <Save size={14} />
             Save Conversation
           </button>
         </div>
@@ -684,23 +687,23 @@ export function ChatPage() {
                       <button
                         onClick={() => toggleBookmark(msg.id)}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="absolute top-2 right-2 text-brand-blue/40 hover:text-white transition-colors"
+                        className="absolute top-2 right-2 text-white/40 hover:text-white transition-colors"
                       >
                         <Bookmark size={14} className={isBookmarked ? "fill-white text-white" : ""} />
                       </button>
                       <p className="text-sm font-medium leading-snug pr-5">{msg.text}</p>
                       {msg.cantoneseText && (
-                        <p className="text-brand-blue/60 text-base font-semibold mt-1">{msg.cantoneseText}</p>
+                        <p className="text-white/80 text-base font-semibold mt-1">{msg.cantoneseText}</p>
                       )}
                       {msg.pronunciation && (
-                        <p className="text-brand-blue/40 text-xs font-mono mt-0.5">{msg.pronunciation}</p>
+                        <p className="text-white/50 text-xs font-mono mt-0.5">{msg.pronunciation}</p>
                       )}
-                      <div className="mt-2 pt-2 border-t border-brand-blue">
+                      <div className="mt-2 pt-2 border-t border-white/20">
                         <button
                           onClick={() => msg.cantoneseText && replayPhrase(msg.id, msg.cantoneseText)}
                           onPointerDown={(e) => e.stopPropagation()}
                           disabled={!!playingId}
-                          className="flex items-center gap-1 text-xs text-brand-blue/60 hover:text-white disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs text-white/60 hover:text-white disabled:opacity-50"
                         >
                           {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
                           {isPlaying ? "Playing..." : "Replay"}
