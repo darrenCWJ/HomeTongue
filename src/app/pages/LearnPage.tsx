@@ -2199,8 +2199,19 @@ function ExamView({
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">You said</span>
-                  <span className={`font-bold ${itemScore >= 60 ? "text-green-700" : "text-orange-600"}`}>
-                    {transcribed || "—"}
+                  <span className="font-bold">
+                    {transcribed ? (
+                      (() => {
+                        const punct = /[，。！？、；：""''（）\s]/;
+                        const expectedChars = [...current.cantonese].filter(c => !punct.test(c));
+                        return [...transcribed].map((char, ci) => {
+                          if (punct.test(char)) return <span key={ci} className="text-zinc-700">{char}</span>;
+                          const cleanIdx = [...transcribed.slice(0, ci)].filter(c => !punct.test(c)).length;
+                          const isMatch = cleanIdx < expectedChars.length && char === expectedChars[cleanIdx];
+                          return <span key={ci} className={isMatch ? "text-green-600" : "text-orange-600"}>{char}</span>;
+                        });
+                      })()
+                    ) : "—"}
                   </span>
                 </div>
               </div>

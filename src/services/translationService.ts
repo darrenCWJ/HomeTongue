@@ -238,9 +238,11 @@ export async function generateWordBreakdown(
 export async function scoreCantoneseAccuracy(expected: string, actual: string): Promise<number> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
   if (!apiKey || apiKey === "your-openai-api-key-here") {
-    return simpleFallbackScore(expected, actual);
+    return 0;
   }
   const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
+  const charCount = [...expected.replace(/[，。！？、；：""''（）\s]/g, "")].length;
+  const perChar = charCount > 0 ? Math.round(100 / charCount) : 100;
   try {
     const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
       method: "POST",
@@ -252,13 +254,15 @@ export async function scoreCantoneseAccuracy(expected: string, actual: string): 
             role: "system",
             content: `You are a strict Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said, score their accuracy from 0 to 100 based ONLY on whether they said the correct words.
 
+The expected phrase has ${charCount} characters. Each character is worth ${perChar} points (total 100).
+
 Scoring rules:
 - Score based strictly on character-level and word-level accuracy. Do NOT give credit for similar meaning, intent, or context.
 - If the student said a completely different phrase (even if it's valid Cantonese), score 0–10.
 - Full marks (100) only if all characters match exactly.
-- Each missing or wrong character deducts points proportionally (e.g. if 5 characters expected and 2 are wrong, score ~60).
-- Heavily penalise Mandarin substitutions: e.g. 的 instead of 嘅, 不 instead of 唔, 是 instead of 係, 在 instead of 喺. Each costs 20–30 points.
-- Extra words that weren't in the expected phrase deduct 5–10 points each.
+- Each missing or wrong character deducts ${perChar} points.
+- Mandarin substitutions (e.g. 的 instead of 嘅, 不 instead of 唔, 是 instead of 係, 在 instead of 喺) each deduct ${perChar} points (same as a wrong character).
+- Extra words that weren't in the expected phrase deduct 5 points each.
 - Ignore punctuation differences.
 - Return ONLY a JSON object: {"score": 85}`,
           },
@@ -271,15 +275,13 @@ Scoring rules:
         max_tokens: 20,
       }),
     });
-    if (!res.ok) return simpleFallbackScore(expected, actual);
+    if (!res.ok) return 0;
     const data = await res.json();
     const raw = (data.choices[0]?.message?.content as string) ?? "{}";
     const parsed = JSON.parse(raw);
-    const gptScore = typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : simpleFallbackScore(expected, actual);
-    const charScore = simpleFallbackScore(expected, actual);
-    return Math.min(gptScore, charScore + 20);
+    return typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : 0;
   } catch {
-    return simpleFallbackScore(expected, actual);
+    return 0;
   }
 }
 
