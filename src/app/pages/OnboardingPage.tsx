@@ -67,21 +67,23 @@ export function OnboardingPage() {
 
   if (step === "video") {
     return (
-      <div className="absolute inset-0 bg-black z-50">
-        <video
-          ref={videoRef}
-          src="/intro.mp4"
-          className="w-full h-full object-cover"
-          autoPlay
-          playsInline
-          onEnded={handleFinish}
-        />
-        <div className="absolute bottom-8 left-6 right-6">
+      <div className="flex flex-col h-full bg-black relative overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <video
+            ref={videoRef}
+            src="/intro.mp4"
+            className="max-w-[92%] max-h-[68vh] rounded-2xl object-contain"
+            autoPlay
+            playsInline
+            onEnded={handleFinish}
+          />
+        </div>
+        <div className="px-6 pb-8 pt-4">
           <button
             onClick={handleFinish}
-            className="w-full bg-white hover:bg-zinc-100 text-black font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-lg"
+            className="w-full bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all border border-white/20"
           >
-            Skip
+            Get Started
             <ArrowRight size={18} />
           </button>
         </div>
@@ -305,33 +307,6 @@ export function OnboardingPage() {
                 </button>
               </div>
 
-              <AnimatePresence>
-                {selectedPersona === "work" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden mb-4"
-                  >
-                    <p className="text-xs text-zinc-500 font-medium mb-2 pt-1">What's your job? <span className="text-zinc-400">(optional)</span></p>
-                    <div className="flex flex-wrap gap-2">
-                      {WORK_JOB_TITLES.map((title) => (
-                        <button
-                          key={title}
-                          onClick={() => setSelectedJobTitle((prev) => prev === title ? null : title)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                            selectedJobTitle === title
-                              ? "bg-brand-blue text-white border-brand-blue"
-                              : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300"
-                          }`}
-                        >
-                          {title}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               <button
                 onClick={handlePersonaNext}

@@ -9,24 +9,7 @@ import type {
 } from "../interfaces";
 import { db } from "./db";
 
-const DEFAULT_PHRASES: Phrase[] = [
-  {
-    id: "1",
-    original: "Hello, how are you?",
-    dialect: "你好嗎？",
-    pronunciation: "nei5 hou2 maa1?",
-    isBookmarked: true,
-    context: "General greeting",
-  },
-  {
-    id: "2",
-    original: "I don't understand.",
-    dialect: "我唔明。",
-    pronunciation: "ngo5 m4 ming4.",
-    isBookmarked: false,
-    context: "When confused",
-  },
-];
+const DEFAULT_PHRASES: Phrase[] = [];
 
 export class LocalPhraseRepository implements IPhraseRepository {
   async getAll(): Promise<Phrase[]> {

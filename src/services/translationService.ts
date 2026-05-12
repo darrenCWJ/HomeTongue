@@ -133,8 +133,12 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
   if (!apiKey || apiKey === "your-openai-api-key-here") {
     throw new Error("VITE_OPENAI_API_KEY not configured");
   }
+  const ext = blob.type.includes("mp4") || blob.type.includes("m4a") ? "m4a"
+    : blob.type.includes("ogg") ? "ogg"
+    : blob.type.includes("wav") ? "wav"
+    : "webm";
   const formData = new FormData();
-  formData.append("file", blob, "recording.webm");
+  formData.append("file", blob, `recording.${ext}`);
   formData.append("model", "whisper-1");
   if (language) formData.append("language", language);
   if (prompt) formData.append("prompt", prompt);
@@ -246,12 +250,15 @@ export async function scoreCantoneseAccuracy(expected: string, actual: string): 
         messages: [
           {
             role: "system",
-            content: `You are a Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said, score their accuracy from 0 to 100.
+            content: `You are a strict Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said, score their accuracy from 0 to 100 based ONLY on whether they said the correct words.
 
 Scoring rules:
-- Full marks (100) only if all Cantonese-specific particles and words are correct (e.g. 啲, 囉, 嘅, 喺, 唔, 係, 咁, 咋, 囉, 㗎, 囉).
-- Heavily penalise Mandarin substitutions: e.g. saying 點 instead of 啲, 的 instead of 嘅, 不 instead of 唔, 是 instead of 係, 在 instead of 喺. Each such substitution costs 20–30 points.
-- Penalise missing or extra words proportionally.
+- Score based strictly on character-level and word-level accuracy. Do NOT give credit for similar meaning, intent, or context.
+- If the student said a completely different phrase (even if it's valid Cantonese), score 0–10.
+- Full marks (100) only if all characters match exactly.
+- Each missing or wrong character deducts points proportionally (e.g. if 5 characters expected and 2 are wrong, score ~60).
+- Heavily penalise Mandarin substitutions: e.g. 的 instead of 嘅, 不 instead of 唔, 是 instead of 係, 在 instead of 喺. Each costs 20–30 points.
+- Extra words that weren't in the expected phrase deduct 5–10 points each.
 - Ignore punctuation differences.
 - Return ONLY a JSON object: {"score": 85}`,
           },
@@ -268,7 +275,9 @@ Scoring rules:
     const data = await res.json();
     const raw = (data.choices[0]?.message?.content as string) ?? "{}";
     const parsed = JSON.parse(raw);
-    return typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : simpleFallbackScore(expected, actual);
+    const gptScore = typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : simpleFallbackScore(expected, actual);
+    const charScore = simpleFallbackScore(expected, actual);
+    return Math.min(gptScore, charScore + 20);
   } catch {
     return simpleFallbackScore(expected, actual);
   }

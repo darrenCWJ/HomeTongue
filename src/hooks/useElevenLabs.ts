@@ -87,7 +87,11 @@ export function useAudioRecorder() {
 
   const startRecording = async (): Promise<void> => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mediaRecorder = new MediaRecorder(stream);
+    const preferredTypes = ["audio/webm", "audio/mp4", "audio/ogg", "audio/wav"];
+    const mimeType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t));
+    const mediaRecorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
     mediaRecorderRef.current = mediaRecorder;
     chunksRef.current = [];
 

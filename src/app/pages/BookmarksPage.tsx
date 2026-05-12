@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase, Mic, Plus, Tag as TagIcon, StickyNote, ArrowLeft } from "lucide-react";
+import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase, Mic, Plus, Tag as TagIcon, StickyNote, ArrowLeft, MoreHorizontal } from "lucide-react";
 import type { PersonaType, Session } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import { playDataUrl } from "../../hooks/useElevenLabs";
@@ -294,104 +294,105 @@ export function BookmarksPage() {
         {/* Tag filter chips — phrases tab only */}
         {activeTab === "phrases" && (() => {
           const visiblePhraseTags = phraseTags.filter((t) => !pendingTagDeletions.has(t.id));
-          const displayedPhraseTags = tagsExpanded ? visiblePhraseTags : visiblePhraseTags.slice(0, 3);
           const hasMorePhraseTags = visiblePhraseTags.length > 3;
           return (
-          <div data-tour="bookmarks-tag-filter" className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedTagFilters(new Set())}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                selectedTagFilters.size === 0
-                  ? "bg-brand-blue text-white"
-                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-              }`}
-            >
-              All
-            </button>
-            {displayedPhraseTags.map((tag) => (
+          <div data-tour="bookmarks-tag-filter">
+            <div className={`flex flex-wrap gap-2 ${!tagsExpanded && hasMorePhraseTags ? "max-h-[2.125rem] overflow-hidden" : ""}`}>
               <button
-                key={tag.id}
-                onClick={() => !isEditingTags && setSelectedTagFilters((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id);
-                  return next;
-                })}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
-                  selectedTagFilters.has(tag.id)
+                onClick={() => setSelectedTagFilters(new Set())}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  selectedTagFilters.size === 0
                     ? "bg-brand-blue text-white"
-                    : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
+                    : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
                 }`}
               >
-                {tag.name}
-                {isEditingTags && (
-                  <span
-                    onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
-                    className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
-                  >
-                    <X size={10} />
-                  </span>
-                )}
+                All
               </button>
-            ))}
+              {visiblePhraseTags.map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => !isEditingTags && setSelectedTagFilters((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id);
+                    return next;
+                  })}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
+                    selectedTagFilters.has(tag.id)
+                      ? "bg-brand-blue text-white"
+                      : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
+                  }`}
+                >
+                  {tag.name}
+                  {isEditingTags && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
+                      className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
+                    >
+                      <X size={10} />
+                    </span>
+                  )}
+                </button>
+              ))}
+              {isCreatingTag ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagName.trim()) {
+                        createTag(newTagName.trim(), "phrase");
+                        setNewTagName("");
+                        setIsCreatingTag(false);
+                      }
+                      if (e.key === "Escape") { setIsCreatingTag(false); setNewTagName(""); }
+                    }}
+                    placeholder="Tag name"
+                    autoFocus
+                    className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
+                  />
+                  <button
+                    onClick={() => {
+                      if (newTagName.trim()) {
+                        createTag(newTagName.trim(), "phrase");
+                        setNewTagName("");
+                        setIsCreatingTag(false);
+                      }
+                    }}
+                    className="p-1.5 rounded-full bg-brand-blue text-white"
+                  >
+                    <Check size={12} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingTag(true)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
+                >
+                  <Plus size={12} />
+                  New
+                </button>
+              )}
+              <button
+                onClick={() => setIsEditingTags(!isEditingTags)}
+                className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
+                  isEditingTags
+                    ? "bg-brand-blue text-white"
+                    : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
+                }`}
+              >
+                {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}
+              </button>
+            </div>
             {hasMorePhraseTags && (
               <button
                 onClick={() => setTagsExpanded(!tagsExpanded)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors flex items-center gap-1"
+                className="w-full flex items-center justify-center gap-1 text-xs font-medium text-brand-blue hover:text-brand-blue/80 transition-colors mt-2"
               >
+                {tagsExpanded ? "Show less labels" : "Show more labels"}
                 <ChevronDown size={12} className={`transition-transform duration-200 ${tagsExpanded ? "rotate-180" : ""}`} />
-                {tagsExpanded ? "Less" : `+${visiblePhraseTags.length - 3}`}
               </button>
             )}
-            {isCreatingTag ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={newTagName}
-                  onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newTagName.trim()) {
-                      createTag(newTagName.trim(), "phrase");
-                      setNewTagName("");
-                      setIsCreatingTag(false);
-                    }
-                    if (e.key === "Escape") { setIsCreatingTag(false); setNewTagName(""); }
-                  }}
-                  placeholder="Tag name"
-                  autoFocus
-                  className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
-                />
-                <button
-                  onClick={() => {
-                    if (newTagName.trim()) {
-                      createTag(newTagName.trim(), "phrase");
-                      setNewTagName("");
-                      setIsCreatingTag(false);
-                    }
-                  }}
-                  className="p-1.5 rounded-full bg-brand-blue text-white"
-                >
-                  <Check size={12} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsCreatingTag(true)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
-              >
-                <Plus size={12} />
-                New
-              </button>
-            )}
-            <button
-              onClick={() => setIsEditingTags(!isEditingTags)}
-              className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
-                isEditingTags
-                  ? "bg-brand-blue text-white"
-                  : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
-              }`}
-            >
-              {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}
-            </button>
           </div>
           );
         })()}
@@ -399,125 +400,126 @@ export function BookmarksPage() {
         {/* Persona + tag filter chips — sessions tab only */}
         {activeTab === "sessions" && (() => {
           const visibleSessionTags = sessionTags.filter((t) => !pendingTagDeletions.has(t.id));
-          const displayedSessionTags = tagsExpanded ? visibleSessionTags : visibleSessionTags.slice(0, 3);
           const hasMoreSessionTags = visibleSessionTags.length > 3;
           return (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => { setSessionPersonaFilters(new Set()); setSessionTagFilters(new Set()); }}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                sessionPersonaFilters.size === 0 && sessionTagFilters.size === 0
-                  ? "bg-brand-blue text-white"
-                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-              }`}
-            >
-              All
-            </button>
-            {([
-              { id: "personal" as PersonaType, label: "Personal", icon: <Home size={11} /> },
-              { id: "work" as PersonaType, label: "Work", icon: <Briefcase size={11} /> },
-            ]).map((f) => (
+          <div>
+            <div className={`flex flex-wrap gap-2 ${!tagsExpanded && hasMoreSessionTags ? "max-h-[2.125rem] overflow-hidden" : ""}`}>
               <button
-                key={f.id}
-                onClick={() => setSessionPersonaFilters((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
-                  return next;
-                })}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  sessionPersonaFilters.has(f.id)
+                onClick={() => { setSessionPersonaFilters(new Set()); setSessionTagFilters(new Set()); }}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  sessionPersonaFilters.size === 0 && sessionTagFilters.size === 0
                     ? "bg-brand-blue text-white"
                     : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
                 }`}
               >
-                {f.icon}
-                {f.label}
+                All
               </button>
-            ))}
-            {displayedSessionTags.map((tag) => (
+              {([
+                { id: "personal" as PersonaType, label: "Personal", icon: <Home size={11} /> },
+                { id: "work" as PersonaType, label: "Work", icon: <Briefcase size={11} /> },
+              ]).map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setSessionPersonaFilters((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
+                    return next;
+                  })}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    sessionPersonaFilters.has(f.id)
+                      ? "bg-brand-blue text-white"
+                      : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                  }`}
+                >
+                  {f.icon}
+                  {f.label}
+                </button>
+              ))}
+              {visibleSessionTags.map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => !isEditingTags && setSessionTagFilters((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id);
+                    return next;
+                  })}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
+                    sessionTagFilters.has(tag.id)
+                      ? "bg-brand-blue text-white"
+                      : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
+                  }`}
+                >
+                  {tag.name}
+                  {isEditingTags && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
+                      className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
+                    >
+                      <X size={10} />
+                    </span>
+                  )}
+                </button>
+              ))}
+              {isCreatingTag ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagName.trim()) {
+                        createTag(newTagName.trim(), "session");
+                        setNewTagName("");
+                        setIsCreatingTag(false);
+                      }
+                      if (e.key === "Escape") { setIsCreatingTag(false); setNewTagName(""); }
+                    }}
+                    placeholder="Tag name"
+                    autoFocus
+                    className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
+                  />
+                  <button
+                    onClick={() => {
+                      if (newTagName.trim()) {
+                        createTag(newTagName.trim(), "session");
+                        setNewTagName("");
+                        setIsCreatingTag(false);
+                      }
+                    }}
+                    className="p-1.5 rounded-full bg-brand-blue text-white"
+                  >
+                    <Check size={12} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingTag(true)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
+                >
+                  <Plus size={12} />
+                  New
+                </button>
+              )}
               <button
-                key={tag.id}
-                onClick={() => !isEditingTags && setSessionTagFilters((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id);
-                  return next;
-                })}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
-                  sessionTagFilters.has(tag.id)
+                onClick={() => setIsEditingTags(!isEditingTags)}
+                className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
+                  isEditingTags
                     ? "bg-brand-blue text-white"
-                    : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
+                    : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
                 }`}
               >
-                {tag.name}
-                {isEditingTags && (
-                  <span
-                    onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag.id); }}
-                    className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
-                  >
-                    <X size={10} />
-                  </span>
-                )}
+                {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}
               </button>
-            ))}
+            </div>
             {hasMoreSessionTags && (
               <button
                 onClick={() => setTagsExpanded(!tagsExpanded)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors flex items-center gap-1"
+                className="w-full flex items-center justify-center gap-1 text-xs font-medium text-brand-blue hover:text-brand-blue/80 transition-colors mt-2"
               >
+                {tagsExpanded ? "Show less labels" : "Show more labels"}
                 <ChevronDown size={12} className={`transition-transform duration-200 ${tagsExpanded ? "rotate-180" : ""}`} />
-                {tagsExpanded ? "Less" : `+${visibleSessionTags.length - 3}`}
               </button>
             )}
-            {isCreatingTag ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={newTagName}
-                  onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newTagName.trim()) {
-                      createTag(newTagName.trim(), "session");
-                      setNewTagName("");
-                      setIsCreatingTag(false);
-                    }
-                    if (e.key === "Escape") { setIsCreatingTag(false); setNewTagName(""); }
-                  }}
-                  placeholder="Tag name"
-                  autoFocus
-                  className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
-                />
-                <button
-                  onClick={() => {
-                    if (newTagName.trim()) {
-                      createTag(newTagName.trim(), "session");
-                      setNewTagName("");
-                      setIsCreatingTag(false);
-                    }
-                  }}
-                  className="p-1.5 rounded-full bg-brand-blue text-white"
-                >
-                  <Check size={12} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsCreatingTag(true)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
-              >
-                <Plus size={12} />
-                New
-              </button>
-            )}
-            <button
-              onClick={() => setIsEditingTags(!isEditingTags)}
-              className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
-                isEditingTags
-                  ? "bg-brand-blue text-white"
-                  : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
-              }`}
-            >
-              {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}
-            </button>
           </div>
           );
         })()}
@@ -673,22 +675,22 @@ export function BookmarksPage() {
               </p>
             </div>
             ) : filteredSessions.length === 0 && isTourMode ? (
-            <div data-tour="bookmarks-session-card" className="bg-white rounded-2xl shadow-sm border border-zinc-100">
+            <div data-tour="bookmarks-session-card" className="relative bg-white rounded-2xl shadow-sm border border-zinc-100">
+              <button className="absolute top-2 right-2 p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                <MoreHorizontal size={16} />
+              </button>
               <div className="p-5 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-zinc-800 text-base truncate">Morning Greeting</p>
                   </div>
                   <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-                    2025-05-08 · 4 messages
+                    2025-05-08
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-brand-blue/10 text-brand-blue rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
                   </p>
                   <p className="text-xs text-zinc-400 truncate mt-0.5 italic">你好，好高興認識你！</p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-100">
-                    More
-                  </button>
                   <button className="flex items-center gap-1.5 bg-brand-blue/10 rounded-full px-2.5 py-1.5 text-brand-blue flex-shrink-0">
                     <ChevronDown size={14} className="rotate-[-90deg]" />
                     <span className="text-xs font-medium">View</span>
@@ -709,7 +711,7 @@ export function BookmarksPage() {
                 <div className="flex items-end gap-2 justify-end">
                   <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-brand-blue/100 text-white px-3 py-2">
                     <p className="text-sm font-semibold leading-snug text-white">Nice to meet you too!</p>
-                    <p className="text-xs mt-0.5 text-brand-blue/60">我都好高興認識你！</p>
+                    <p className="text-xs mt-0.5 text-white/70">我都好高興認識你！</p>
                   </div>
                   <div className="w-6 h-6 rounded-full bg-brand-blue/15 flex items-center justify-center text-[9px] font-bold text-brand-blue flex-shrink-0 mb-1">
                     EN
@@ -721,7 +723,7 @@ export function BookmarksPage() {
             filteredSessions.map((session, sessionIdx) => {
               const hasAudio = session.messages.some((m) => m.audioDataUrl);
               return (
-                <div key={session.id} {...(sessionIdx === 0 ? { "data-tour": "bookmarks-session-card" } : {})} className="bg-white rounded-2xl shadow-sm border border-zinc-100">
+                <div key={session.id} {...(sessionIdx === 0 ? { "data-tour": "bookmarks-session-card" } : {})} className="relative bg-white rounded-2xl shadow-sm border border-zinc-100">
                   {/* Session header */}
                   <div className="p-5 flex items-center gap-3">
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}>
@@ -736,6 +738,7 @@ export function BookmarksPage() {
                               if (e.key === "Escape") setEditingSessionId(null);
                             }}
                             onClick={(e) => e.stopPropagation()}
+                            maxLength={20}
                             className="text-base font-semibold text-zinc-800 border-b-2 border-brand-blue outline-none bg-transparent w-36"
                           />
                         ) : (
@@ -743,14 +746,9 @@ export function BookmarksPage() {
                             {session.title ?? "Conversation"}
                           </p>
                         )}
-                        {hasAudio && (
-                          <span className="text-[10px] font-semibold bg-brand-blue/10 text-brand-blue px-1.5 py-0.5 rounded-full flex-shrink-0">
-                            🔊 Audio saved
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-                        {session.date} · {session.messages.length} messages
+                        {session.date}
                         {session.persona === "work"
                           ? <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-semibold"><Briefcase size={9} /> Work</span>
                           : <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-brand-blue/10 text-brand-blue rounded-full text-[10px] font-semibold"><Home size={9} /> Personal</span>
@@ -803,13 +801,9 @@ export function BookmarksPage() {
                               setOpenMenuSessionId(session.id);
                             }
                           }}
-                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            openMenuSessionId === session.id
-                              ? "bg-zinc-200 text-zinc-700"
-                              : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                          }`}
+                          className="absolute top-2 right-2 p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
                         >
-                          More
+                          <MoreHorizontal size={16} />
                         </button>
                       )}
                       <button
@@ -933,7 +927,7 @@ export function BookmarksPage() {
                                   {displayText}
                                 </p>
                                 {subText && (
-                                  <p className={`text-xs mt-0.5 ${isBot ? "text-brand-blue" : "text-brand-blue/60"}`}>
+                                  <p className={`text-xs mt-0.5 ${isBot ? "text-brand-blue" : "text-white/70"}`}>
                                     {subText}
                                   </p>
                                 )}
@@ -1106,7 +1100,7 @@ export function BookmarksPage() {
                             className={`absolute top-2 right-2 transition-colors ${
                               isBookmarked
                                 ? (isBot ? "text-zinc-600" : "text-white")
-                                : (isBot ? "text-zinc-300 hover:text-zinc-500" : "text-brand-blue/40 hover:text-white")
+                                : (isBot ? "text-zinc-300 hover:text-zinc-500" : "text-white/40 hover:text-white")
                             }`}
                           >
                             <Bookmark size={14} className={isBookmarked ? "fill-current" : ""} />
@@ -1115,7 +1109,7 @@ export function BookmarksPage() {
                             {displayText}
                           </p>
                           {subText && (
-                            <p className={`text-xs mt-1 ${isBot ? "text-brand-blue" : "text-brand-blue/60"}`}>
+                            <p className={`text-xs mt-1 ${isBot ? "text-brand-blue" : "text-white/70"}`}>
                               {subText}
                             </p>
                           )}
@@ -1125,7 +1119,7 @@ export function BookmarksPage() {
                               onPointerDown={(e) => e.stopPropagation()}
                               disabled={!!playingId}
                               className={`mt-2 flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-40
-                                ${isBot ? "text-zinc-400 hover:text-brand-blue" : "text-brand-blue/60 hover:text-white"}
+                                ${isBot ? "text-zinc-400 hover:text-brand-blue" : "text-white/60 hover:text-white"}
                               `}
                             >
                               <Volume2 size={12} className={isPlaying ? "animate-pulse" : ""} />

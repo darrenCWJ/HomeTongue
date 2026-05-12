@@ -17,7 +17,7 @@ import {
   Trophy,
   Trash2,
   Pencil,
-  MoreVertical,
+  MoreHorizontal,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
@@ -416,7 +416,7 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center pb-6 px-4"
+        className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <motion.div
@@ -429,7 +429,7 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
           {/* Header */}
           <div className="bg-gradient-to-r from-brand-blue to-brand-red px-6 pt-6 pb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-0.5">Word of the Day</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-0.5">Word of the Day</p>
               <h3 className="text-lg font-bold text-white">Today's Phrase</h3>
             </div>
             <button
@@ -466,12 +466,12 @@ function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => v
                   className="absolute inset-0 bg-brand-blue/100 rounded-2xl flex flex-col items-center justify-center p-6"
                   style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                 >
-                  <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-2">Translation</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-2">Translation</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-3xl font-bold text-white">{card.cantonese}</span>
                     <PlayButton text={card.cantonese} />
                   </div>
-                  <span className="text-base text-brand-blue/60 font-mono">{card.pronunciation}</span>
+                  <span className="text-base text-white/70 font-mono">{card.pronunciation}</span>
                 </div>
               </motion.div>
             </div>
@@ -583,43 +583,18 @@ function ConversationLessonCard({ lesson, onClick, onDelete, onEditTitle }: { le
   return (
     <div
       onClick={editing || menuOpen ? undefined : onClick}
-      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
+      className="relative bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
-      <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
-        <MessageCircle size={20} className="text-brand-blue" />
-      </div>
-      <div className="flex-1 min-w-0">
-        {editing ? (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") { setDraft(lesson.title); setEditing(false); } }}
-            onClick={(e) => e.stopPropagation()}
-            className="font-semibold text-sm text-zinc-800 w-full border-b border-brand-blue/50 outline-none bg-transparent pb-0.5"
-          />
-        ) : (
-          <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
-        )}
-        <p className="text-xs text-zinc-500 mb-1.5">{lesson.vocabulary.length} phrases</p>
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
-          {lesson.examBestScore !== undefined && (
-            <span className="text-xs text-zinc-400">Best: {lesson.examBestScore}%</span>
-          )}
-        </div>
-      </div>
-      <div className="relative flex-shrink-0" ref={menuRef}>
+      <div className="absolute top-2 right-2" ref={menuRef}>
         <button
           onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
-          className="px-2 py-1 rounded-lg flex items-center text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+          className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
           aria-label="More options"
         >
-          ...More
+          <MoreHorizontal size={16} />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-9 z-20 bg-white rounded-xl shadow-lg border border-zinc-100 py-1 min-w-[120px]">
+          <div className="absolute right-0 top-8 z-20 bg-white rounded-xl shadow-lg border border-zinc-100 py-1 min-w-[120px]">
             <button
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setEditing(true); }}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
@@ -636,6 +611,45 @@ function ConversationLessonCard({ lesson, onClick, onDelete, onEditTitle }: { le
             </button>
           </div>
         )}
+      </div>
+      <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
+        <MessageCircle size={20} className="text-brand-blue" />
+      </div>
+      <div className="flex-1 min-w-0 pr-6">
+        {editing ? (
+          <div className="flex items-center gap-1.5">
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") { setDraft(lesson.title); setEditing(false); } }}
+              onClick={(e) => e.stopPropagation()}
+              maxLength={20}
+              className="font-semibold text-sm text-zinc-800 flex-1 min-w-0 border-b border-brand-blue/50 outline-none bg-transparent pb-0.5"
+            />
+            <button
+              onClick={(e) => { e.stopPropagation(); commitEdit(); }}
+              className="p-1 rounded-full bg-brand-blue text-white flex-shrink-0"
+            >
+              <Check size={12} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setDraft(lesson.title); setEditing(false); }}
+              className="p-1 rounded-full bg-zinc-100 text-zinc-500 flex-shrink-0"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ) : (
+          <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
+        )}
+        <p className="text-xs text-zinc-500 mb-1.5">{lesson.vocabulary.length} phrases</p>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
+          {lesson.examBestScore !== undefined && (
+            <span className="text-xs text-zinc-400">Best: {lesson.examBestScore}%</span>
+          )}
+        </div>
       </div>
       <ChevronRight size={20} className="text-zinc-300 flex-shrink-0" />
     </div>
@@ -966,24 +980,24 @@ function FlashcardExercise({
                   onPointerDown={(e) => e.stopPropagation()}
                   className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/20 transition-colors z-10"
                 >
-                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-brand-blue/60"} />
+                  <Bookmark size={16} className={isBookmarked ? "fill-white text-white" : "text-white/40"} />
                 </button>
 
                 {/* Main word section */}
                 <div className="flex flex-col items-center pt-1 pb-3">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-2">Cantonese</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-2">Cantonese</span>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-4xl font-bold text-white text-center">{current.cantonese}</span>
                     <PlayButton text={current.cantonese} />
                   </div>
-                  <span className="text-base text-brand-blue/60 font-mono">{current.pronunciation}</span>
+                  <span className="text-base text-white/70 font-mono">{current.pronunciation}</span>
                 </div>
 
                 {/* Example sentence section */}
                 {current.exampleSentence && (
                   <div className="bg-brand-blue/50 rounded-2xl p-3.5 flex flex-col gap-2 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-brand-blue/60 uppercase tracking-widest">How to use</span>
+                      <span className="text-xs font-bold text-white/60 uppercase tracking-widest">How to use</span>
                       <PlayButton text={personalise(current.exampleSentence, userProfile?.name)} size="sm" />
                     </div>
                     <p className="text-sm font-semibold text-white leading-snug">
@@ -991,13 +1005,13 @@ function FlashcardExercise({
                     </p>
                     {currentMeta === "loading" ? (
                       <div className="flex items-center gap-1.5">
-                        <Loader2 size={11} className="animate-spin text-brand-blue/40" />
-                        <span className="text-xs text-brand-blue/40">Loading…</span>
+                        <Loader2 size={11} className="animate-spin text-white/40" />
+                        <span className="text-xs text-white/40">Loading…</span>
                       </div>
                     ) : currentMeta ? (
                       <>
                         {currentMeta.pronunciation && (
-                          <p className="text-xs font-mono text-brand-blue/60 leading-snug">{currentMeta.pronunciation}</p>
+                          <p className="text-xs font-mono text-white/70 leading-snug">{currentMeta.pronunciation}</p>
                         )}
                         {currentMeta.translation && (
                           <p className="text-xs text-brand-white italic">"{currentMeta.translation}"</p>

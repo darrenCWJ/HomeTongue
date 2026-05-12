@@ -174,42 +174,6 @@ export function ProfilePage() {
             </button>
           </div>
 
-          {/* Job title picker — shown only when Work is active */}
-          {activePersona === "work" && (
-            <div className="mt-3 relative" ref={jobTitleDropdownRef}>
-              <button
-                onClick={() => setIsJobTitleDropdownOpen(!isJobTitleDropdownOpen)}
-                className="w-full bg-white rounded-2xl shadow-sm border border-zinc-100 p-4 flex items-center justify-between hover:bg-zinc-50 transition-colors"
-              >
-                <span className="text-zinc-800 font-medium">
-                  {workProfile?.jobTitle ?? "Select your job title"}
-                </span>
-                <ChevronDown
-                  size={20}
-                  className={`text-zinc-400 transition-transform ${isJobTitleDropdownOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {isJobTitleDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-zinc-200 overflow-hidden z-20">
-                  {WORK_JOB_TITLES.map((title) => (
-                    <button
-                      key={title}
-                      onClick={() => handleSelectJobTitle(title)}
-                      className={`w-full p-4 flex items-center justify-between hover:bg-brand-blue/10 transition-colors ${
-                        workProfile?.jobTitle === title ? "bg-brand-blue/10" : ""
-                      }`}
-                    >
-                      <span className={`font-medium ${workProfile?.jobTitle === title ? "text-brand-blue" : "text-zinc-800"}`}>
-                        {title}
-                      </span>
-                      {workProfile?.jobTitle === title && <Check size={18} className="text-brand-blue" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </section>
 
         {/* AI Personality Summary */}

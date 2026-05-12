@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Square, Bookmark, Volume2, Keyboard, Send, RotateCcw, Home, Briefcase, ChevronDown, ChevronRight, Languages, Pencil, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Mic, Square, Bookmark, Volume2, Keyboard, Send, RotateCcw, Home, Briefcase, ChevronDown, ChevronRight, Languages, Pencil, ThumbsUp, ThumbsDown, Plus, Check } from "lucide-react";
 import { WORK_JOB_TITLES, DIALECTS, type WorkJobTitle, type PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import type { Phrase, Message } from "../../types";
@@ -32,6 +32,7 @@ export function ChatPage() {
     setDialect,
     phraseTags,
     sessionTags,
+    createTag,
     setPhraseTags,
   } = useAppContext();
   const { isActive: isTourActive, activeTour } = useTour();
@@ -51,6 +52,10 @@ export function ChatPage() {
   const [phraseSelectionMsg, setPhraseSelectionMsg] = useState<Message | null>(null);
   const [phraseSelectionText, setPhraseSelectionText] = useState("");
   const [phraseTagSelection, setPhraseTagSelection] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [isCreatingPhraseTag, setIsCreatingPhraseTag] = useState(false);
+  const [isCreatingSessionTag, setIsCreatingSessionTag] = useState(false);
+  const [newSessionTagInput, setNewSessionTagInput] = useState("");
   const [saveSessionTags, setSaveSessionTags] = useState<string[]>([]);
   const isListening = listeningMode !== null;
   const [stage, setStage] = useState<"transcribing" | "translating" | null>(null);
@@ -74,7 +79,7 @@ export function ChatPage() {
   const suggestionGenRef = useRef(0);
   const recordingStartRef = useRef<number | null>(null);
   const recordingTriggerRef = useRef<"tap" | "hold" | null>(null);
-  const HOLD_THRESHOLD_MS = 300;
+  const recordingModeRef = useRef<"cantonese" | "english" | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const LONG_PRESS_MS = 500;
@@ -89,18 +94,20 @@ export function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, stage]);
 
-  const handleMicPointerDown = async (startFn: () => Promise<void>) => {
-    if (isListening && recordingTriggerRef.current === "tap") {
+  const handleMicPointerDown = async (startFn: () => Promise<void>, mode: "cantonese" | "english") => {
+    if (isListening || recordingModeRef.current) {
       stopListening();
       return;
     }
+    recordingStartRef.current = Date.now();
+    recordingModeRef.current = mode;
     await startFn();
   };
 
   const handleMicPointerUp = (mode: "cantonese" | "english") => {
-    if (listeningMode !== mode) return;
+    if (recordingModeRef.current !== mode) return;
     const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 999;
-    if (elapsed < HOLD_THRESHOLD_MS) {
+    if (elapsed < 1000) {
       recordingTriggerRef.current = "tap";
       setIsTapMode(true);
     } else {
@@ -110,7 +117,7 @@ export function ChatPage() {
   };
 
   const handleMicPointerLeave = (mode: "cantonese" | "english") => {
-    if (listeningMode !== mode || recordingTriggerRef.current === "tap") return;
+    if (recordingModeRef.current !== mode || recordingTriggerRef.current === "tap") return;
     stopListening();
   };
 
@@ -136,7 +143,7 @@ export function ChatPage() {
           const promise: Promise<PrefetchResult> = translate({ text: chip.original, preferredTone: tone }).then(
             async (result) => {
               const variant = result[tone];
-              const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
+              const { audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId);
               const phrase: Phrase = {
                 id: chip.id,
                 original: chip.original,
@@ -170,9 +177,9 @@ export function ChatPage() {
   const startListeningCantonese = async () => {
     try {
       await startRecording();
-      recordingStartRef.current = Date.now();
       setListeningMode("cantonese");
     } catch {
+      recordingStartRef.current = null;
       toast.error("Microphone access denied. Please allow microphone permissions.");
     }
   };
@@ -181,18 +188,25 @@ export function ChatPage() {
     try {
       setLatestSuggestions([]);
       await startRecording();
-      recordingStartRef.current = Date.now();
       setListeningMode("english");
     } catch {
+      recordingStartRef.current = null;
       toast.error("Microphone access denied. Please allow microphone permissions.");
     }
   };
 
   const stopListening = async () => {
-    const mode = listeningMode;
+    const mode = listeningMode || recordingModeRef.current;
     recordingTriggerRef.current = null;
+    recordingModeRef.current = null;
     setIsTapMode(false);
     setListeningMode(null);
+
+    if (!mode) {
+      stopRecording().catch(() => {});
+      recordingStartRef.current = null;
+      return;
+    }
 
     const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 0;
     recordingStartRef.current = null;
@@ -249,7 +263,7 @@ export function ChatPage() {
         // Kick off translation + TTS immediately while user reviews the transcript
         const resultPromise = translate({ text: englishText, preferredTone: tone }).then(async (result) => {
           const variant = result[tone];
-          const { audioDataUrl, play } = await speakTextAndCapture(variant.text);
+          const { audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId);
           const phrase: Phrase = {
             id: Date.now().toString(),
             original: englishText,
@@ -288,7 +302,7 @@ export function ChatPage() {
       if (finalText !== originalText) {
         const result = await translate({ text: finalText, preferredTone: tone });
         const variant = result[tone];
-        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text));
+        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId));
         phrase = { id: Date.now().toString(), original: finalText, dialect: variant.text, pronunciation: variant.pronunciation, isBookmarked: false, context: result.context };
       } else {
         ({ phrase, audioDataUrl, play } = await resultPromise);
@@ -302,6 +316,7 @@ export function ChatPage() {
         pronunciation: phrase.pronunciation,
         audioDataUrl,
       });
+      setStage(null);
       setPlayingId(phrase.id);
       try {
         await play();
@@ -401,7 +416,7 @@ export function ChatPage() {
       } else {
         const result = await translate({ text: englishText, preferredTone: tone });
         const variant = result[tone];
-        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text));
+        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId));
         phrase = {
           id: Date.now().toString(),
           original: englishText,
@@ -420,6 +435,7 @@ export function ChatPage() {
         pronunciation: phrase.pronunciation,
         audioDataUrl,
       });
+      setStage(null);
       setPlayingId(phrase.id);
       try {
         await play();
@@ -762,12 +778,12 @@ export function ChatPage() {
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className={`w-2 h-2 rounded-full animate-bounce ${stageIsUserSide ? "bg-brand-blue/20" : "bg-brand-blue/60"}`}
+                      className={`w-2 h-2 rounded-full animate-bounce ${stageIsUserSide ? "bg-white/60" : "bg-brand-blue/60"}`}
                       style={{ animationDelay: `${i * 0.15}s` }}
                     />
                   ))}
                 </div>
-                <span className={`text-xs ${stageIsUserSide ? "text-brand-blue/60" : "text-zinc-500"}`}>{stageLabel}</span>
+                <span className={`text-xs ${stageIsUserSide ? "text-white/80" : "text-zinc-500"}`}>{stageLabel}</span>
               </div>
             </motion.div>
           )}
@@ -809,12 +825,12 @@ export function ChatPage() {
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-3 items-center select-none">
           <button
             data-tour="chat-dialect-mic"
-            onPointerDown={() => handleMicPointerDown(startListeningCantonese)}
+            onPointerDown={() => handleMicPointerDown(startListeningCantonese, "cantonese")}
             onPointerUp={() => handleMicPointerUp("cantonese")}
             onPointerLeave={() => handleMicPointerLeave("cantonese")}
             onContextMenu={(e) => e.preventDefault()}
             disabled={isListening && listeningMode !== "cantonese"}
-            className={`relative flex items-center gap-2 px-5 py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "cantonese" ? "bg-brand-red shadow-brand-red/30 scale-105" : "bg-brand-red shadow-brand-red/20"}`}
+            className={`relative flex items-center justify-center gap-2 w-[7.5rem] py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "cantonese" ? "bg-brand-red shadow-brand-red/30 scale-105" : "bg-brand-red shadow-brand-red/20"}`}
           >
             {listeningMode === "cantonese" && (
               <span className="absolute inset-0 rounded-full bg-brand-red/60 animate-ping opacity-75" />
@@ -837,12 +853,12 @@ export function ChatPage() {
 
           <button
             data-tour="chat-english-mic"
-            onPointerDown={() => handleMicPointerDown(startListeningEnglish)}
+            onPointerDown={() => handleMicPointerDown(startListeningEnglish, "english")}
             onPointerUp={() => handleMicPointerUp("english")}
             onPointerLeave={() => handleMicPointerLeave("english")}
             onContextMenu={(e) => e.preventDefault()}
             disabled={isListening && listeningMode !== "english"}
-            className={`relative flex items-center gap-2 px-5 py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "english" ? "bg-brand-red shadow-brand-red/20 scale-105" : "bg-brand-blue shadow-brand-blue/20"}`}
+            className={`relative flex items-center justify-center gap-2 w-[7.5rem] py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "english" ? "bg-brand-red shadow-brand-red/20 scale-105" : "bg-brand-blue shadow-brand-blue/20"}`}
           >
             {listeningMode === "english" && (
               <span className="absolute inset-0 rounded-full bg-brand-red/60 animate-ping opacity-75" />
@@ -928,29 +944,69 @@ export function ChatPage() {
               className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800 mb-4"
             />
 
-            {sessionTags.length > 0 && (
-              <>
-                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Tags</label>
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {sessionTags.map((tag) => {
-                    const isSelected = saveSessionTags.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        onClick={() => setSaveSessionTags((prev) => isSelected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                          isSelected
-                            ? "bg-brand-blue text-white border-brand-blue"
-                            : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
-                        }`}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
+            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Tags</label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {sessionTags.map((tag) => {
+                const isSelected = saveSessionTags.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => setSaveSessionTags((prev) => isSelected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      isSelected
+                        ? "bg-brand-blue text-white border-brand-blue"
+                        : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {isCreatingSessionTag ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={newSessionTagInput}
+                    onChange={(e) => setNewSessionTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newSessionTagInput.trim()) {
+                        const tag = createTag(newSessionTagInput.trim(), "session");
+                        setSaveSessionTags((prev) => [...prev, tag.id]);
+                        setNewSessionTagInput("");
+                        setIsCreatingSessionTag(false);
+                      }
+                      if (e.key === "Escape") { setIsCreatingSessionTag(false); setNewSessionTagInput(""); }
+                    }}
+                    placeholder="Tag name"
+                    autoFocus
+                    className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
+                  />
+                  <button
+                    onClick={() => {
+                      if (newSessionTagInput.trim()) {
+                        const tag = createTag(newSessionTagInput.trim(), "session");
+                        setSaveSessionTags((prev) => [...prev, tag.id]);
+                        setNewSessionTagInput("");
+                        setIsCreatingSessionTag(false);
+                      }
+                    }}
+                    className="p-1.5 rounded-full bg-brand-blue text-white"
+                  >
+                    <Check size={12} />
+                  </button>
                 </div>
-              </>
-            )}
+              ) : (
+                <button
+                  onClick={() => setIsCreatingSessionTag(true)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
+                >
+                  <Plus size={12} />
+                  New
+                </button>
+              )}
+            </div>
 
             <button
               onClick={confirmSave}
@@ -1151,29 +1207,69 @@ export function ChatPage() {
               rows={3}
               className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800 text-base resize-none mb-4"
             />
-            {phraseTags.length > 0 && (
-              <>
-                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Tags</label>
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {phraseTags.map((tag) => {
-                    const isSelected = phraseTagSelection.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        onClick={() => setPhraseTagSelection((prev) => isSelected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                          isSelected
-                            ? "bg-brand-blue text-white border-brand-blue"
-                            : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
-                        }`}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
+            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Tags</label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {phraseTags.map((tag) => {
+                const isSelected = phraseTagSelection.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => setPhraseTagSelection((prev) => isSelected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      isSelected
+                        ? "bg-brand-blue text-white border-brand-blue"
+                        : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {isCreatingPhraseTag ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagInput.trim()) {
+                        const tag = createTag(newTagInput.trim(), "phrase");
+                        setPhraseTagSelection((prev) => [...prev, tag.id]);
+                        setNewTagInput("");
+                        setIsCreatingPhraseTag(false);
+                      }
+                      if (e.key === "Escape") { setIsCreatingPhraseTag(false); setNewTagInput(""); }
+                    }}
+                    placeholder="Tag name"
+                    autoFocus
+                    className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
+                  />
+                  <button
+                    onClick={() => {
+                      if (newTagInput.trim()) {
+                        const tag = createTag(newTagInput.trim(), "phrase");
+                        setPhraseTagSelection((prev) => [...prev, tag.id]);
+                        setNewTagInput("");
+                        setIsCreatingPhraseTag(false);
+                      }
+                    }}
+                    className="p-1.5 rounded-full bg-brand-blue text-white"
+                  >
+                    <Check size={12} />
+                  </button>
                 </div>
-              </>
-            )}
+              ) : (
+                <button
+                  onClick={() => setIsCreatingPhraseTag(true)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
+                >
+                  <Plus size={12} />
+                  New
+                </button>
+              )}
+            </div>
             <button
               onClick={handleSaveSelectedPhrase}
               disabled={!phraseSelectionText.trim()}
@@ -1182,7 +1278,7 @@ export function ChatPage() {
               Save Phrase
             </button>
             <button
-              onClick={() => { setPhraseSelectionMsg(null); setPhraseSelectionText(""); setPhraseTagSelection([]); }}
+              onClick={() => { setPhraseSelectionMsg(null); setPhraseSelectionText(""); setPhraseTagSelection([]); setNewTagInput(""); setIsCreatingPhraseTag(false); }}
               className="text-zinc-400 font-medium text-sm hover:text-zinc-600 text-center"
             >
               Cancel
