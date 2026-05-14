@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from "react"; // useRef kept for dropdownRef
-import { User, Sparkles, Brain, ChevronDown, Check, Home, Briefcase, Volume2, Loader2, Pencil, HelpCircle, MessageCircle, BookOpen, Bookmark } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { User, Sparkles, Brain, Home, Briefcase, Volume2, Loader2, Pencil, HelpCircle, MessageCircle, BookOpen, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAppContext } from "../context/AppContext";
-import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
+import { type PersonaType } from "../../types";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
 import { useTour } from "../components/tour/TourProvider";
@@ -18,7 +18,6 @@ export function ProfilePage() {
   const { startTour } = useTour();
   const navigate = useNavigate();
 
-  const [isJobTitleDropdownOpen, setIsJobTitleDropdownOpen] = useState(false);
   const [nameInput, setNameInput] = useState(userProfile?.name ?? "");
   const [isEditingName, setIsEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -59,18 +58,6 @@ export function ProfilePage() {
     setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
-  const jobTitleDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (jobTitleDropdownRef.current && !jobTitleDropdownRef.current.contains(event.target as Node)) {
-        setIsJobTitleDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const workProfile = userProfile?.personaProfiles?.work;
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
   const personaSummary = activePersonaProfile?.personaSummary
@@ -82,15 +69,6 @@ export function ProfilePage() {
     updateUserProfile({ activePersona: p });
   };
 
-  const handleSelectJobTitle = (title: WorkJobTitle) => {
-    updateUserProfile({
-      personaProfiles: {
-        ...userProfile?.personaProfiles,
-        work: { ...workProfile, tone: workProfile?.tone ?? "formal", jobTitle: title },
-      },
-    });
-    setIsJobTitleDropdownOpen(false);
-  };
 
   return (
     <div className="flex flex-col h-full bg-zinc-50 pb-20 overflow-y-auto">
@@ -186,9 +164,7 @@ export function ProfilePage() {
                 <h2 className="font-bold text-zinc-800">AI Vibe Analysis</h2>
               </div>
               <p className="text-xs text-zinc-400 mb-3">
-                {activePersona === "personal"
-                  ? "Personal persona"
-                  : `Work persona${workProfile?.jobTitle ? ` · ${workProfile.jobTitle}` : ""}`}
+                {activePersona === "personal" ? "Personal persona" : "Work persona"}
               </p>
 
               {personaSummary ? (

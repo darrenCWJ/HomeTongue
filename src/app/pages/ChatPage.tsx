@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, Square, Bookmark, Volume2, Keyboard, Send, RotateCcw, Home, Briefcase, ChevronDown, ChevronRight, Languages, Pencil, ThumbsUp, ThumbsDown, Plus, Check } from "lucide-react";
-import { WORK_JOB_TITLES, DIALECTS, type WorkJobTitle, type PersonaType } from "../../types";
+import { DIALECTS, type PersonaType } from "../../types";
 import { useAppContext } from "../context/AppContext";
 import type { Phrase, Message } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
@@ -1070,42 +1070,6 @@ export function ChatPage() {
                 ))}
               </div>
 
-              {activePersona === "work" && (
-                <div>
-                  <p className="text-xs text-zinc-500 font-medium mb-2">Job title</p>
-                  <div className="flex flex-wrap gap-2">
-                    {WORK_JOB_TITLES.map((title) => {
-                      const current = userProfile?.personaProfiles?.work?.jobTitle;
-                      const isSelected = current === title;
-                      const handleJobTitle = (t: WorkJobTitle) => {
-                        updateUserProfile({
-                          personaProfiles: {
-                            ...userProfile?.personaProfiles,
-                            work: {
-                              tone: userProfile?.personaProfiles?.work?.tone ?? "formal",
-                              ...userProfile?.personaProfiles?.work,
-                              jobTitle: isSelected ? undefined : t,
-                            },
-                          },
-                        });
-                      };
-                      return (
-                        <button
-                          key={title}
-                          onClick={() => handleJobTitle(title)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                            isSelected
-                              ? "bg-brand-blue text-white border-brand-blue"
-                              : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300"
-                          }`}
-                        >
-                          {title}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </motion.div>
           </>
         )}
