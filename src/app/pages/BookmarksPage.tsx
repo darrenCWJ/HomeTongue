@@ -80,7 +80,8 @@ export function BookmarksPage() {
   const searchLower = searchQuery.toLowerCase().trim();
   const bookmarkedPhrases = allBookmarked
     .filter((p) => selectedTagFilters.size === 0 || p.tags?.some((t) => selectedTagFilters.has(t)))
-    .filter((p) => !searchLower || p.original.toLowerCase().includes(searchLower));
+    .filter((p) => !searchLower || p.original.toLowerCase().includes(searchLower))
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -655,7 +656,8 @@ export function BookmarksPage() {
           (() => {
             let filteredSessions = sessions
               .filter((s) => sessionPersonaFilters.size === 0 || sessionPersonaFilters.has((s.persona ?? "personal") as PersonaType))
-              .filter((s) => sessionTagFilters.size === 0 || s.tags?.some((t) => sessionTagFilters.has(t)));
+              .filter((s) => sessionTagFilters.size === 0 || s.tags?.some((t) => sessionTagFilters.has(t)))
+              .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
             if (searchLower) {
               filteredSessions = filteredSessions.filter((s) =>
                 s.messages.some((m) =>

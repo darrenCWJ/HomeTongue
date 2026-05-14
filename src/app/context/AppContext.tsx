@@ -371,7 +371,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addPhrase = (phrase: Phrase) => {
     setPhrases((prev) => {
       if (prev.find((p) => p.id === phrase.id)) return prev;
-      const updated = [...prev, phrase];
+      const withTimestamp = { ...phrase, createdAt: phrase.createdAt ?? new Date().toISOString() };
+      const updated = [...prev, withTimestamp];
       repositories.phrases.saveAll(updated);
       return updated;
     });

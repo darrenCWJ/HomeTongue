@@ -55,6 +55,7 @@ export interface Phrase {
   audioDataUrl?: string;
   audioDataUrls?: string[];
   tags?: string[];
+  createdAt?: string;
 }
 
 export interface Message {
