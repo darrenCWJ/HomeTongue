@@ -86,8 +86,9 @@ export function BookmarksPage() {
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const [pendingConvertSession, setPendingConvertSession] = useState<Session | null>(null);
+  const [deleteConfirmSessionId, setDeleteConfirmSessionId] = useState<string | null>(null);
   const [audioSourceType, setAudioSourceType] = useState<"recorded" | "transcribed">("recorded");
   const [phraseSelectionData, setPhraseSelectionData] = useState<{ dialect: string; original: string } | null>(null);
   const [phraseSelectionText, setPhraseSelectionText] = useState("");
@@ -142,16 +143,6 @@ export function BookmarksPage() {
     toast.success("Added to Learn!");
   };
 
-  const handleDeleteClick = (id: string) => {
-    if (confirmDeleteId === id) {
-      deleteSession(id);
-      if (expandedSessionId === id) setExpandedSessionId(null);
-      setConfirmDeleteId(null);
-      toast.success("Conversation deleted.");
-    } else {
-      setConfirmDeleteId(id);
-    }
-  };
 
   const handleSessionBookmark = (msg: { id: string; sender: string; text?: string; cantoneseText?: string; englishTranslation?: string; audioDataUrl?: string; audioDataUrls?: string[] }) => {
     const existing = phrases.find((p) => p.id === msg.id);
@@ -1174,7 +1165,11 @@ export function BookmarksPage() {
             </button>
             <div className="my-1 border-t border-zinc-100" />
             <button
-              onClick={() => { handleDeleteClick(openMenuSessionId); setOpenMenuSessionId(null); setMenuPosition(null); }}
+              onClick={() => {
+                setDeleteConfirmSessionId(openMenuSessionId);
+                setOpenMenuSessionId(null);
+                setMenuPosition(null);
+              }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 size={14} className="text-red-400" />
@@ -1183,6 +1178,53 @@ export function BookmarksPage() {
           </div>
         </>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AnimatePresence>
+        {deleteConfirmSessionId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-[60] flex items-center justify-center bg-black/50 p-6"
+            onClick={() => setDeleteConfirmSessionId(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-zinc-800 mb-1">Delete conversation?</h3>
+              <p className="text-sm text-zinc-500 mb-5">
+                This will permanently delete this conversation. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmSessionId(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteSession(deleteConfirmSessionId);
+                    if (expandedSessionId === deleteConfirmSessionId) setExpandedSessionId(null);
+                    setDeleteConfirmSessionId(null);
+                    toast.success("Conversation deleted.");
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
