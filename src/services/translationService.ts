@@ -235,68 +235,51 @@ export async function generateWordBreakdown(
   }
 }
 
-export async function scoreCantoneseAccuracy(expected: string, actual: string): Promise<number> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
-  if (!apiKey || apiKey === "your-openai-api-key-here") {
-    return simpleFallbackScore(expected, actual);
-  }
-  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
-  const charCount = [...expected.replace(/[，。！？、；：""''（）\s]/g, "")].length;
-  try {
-    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: `You are a fair Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said (transcribed by speech recognition), score their accuracy from 0 to 100.
+const MANDARIN_TO_CANTONESE: Record<string, string> = {
+  "的": "嘅", "不": "唔", "是": "係", "在": "喺", "了": "咗",
+  "他": "佢", "她": "佢", "它": "佢", "这": "呢", "那": "嗰",
+  "没": "冇", "和": "同", "哪": "邊", "吗": "咩", "呢": "呢",
+  "们": "哋", "着": "住", "过": "過", "给": "畀", "让": "畀",
+  "很": "好", "什": "咩", "么": "嘢", "里": "度", "裡": "度",
+  "这个": "呢個", "那个": "嗰個", "什么": "咩",
+};
 
-The expected phrase has ${charCount} characters.
+const PARTICLE_GROUPS = [
+  ["啦", "喇", "嘞", "啊"],
+  ["喎", "噃"],
+  ["咩", "嘛", "嗎"],
+  ["㗎", "架", "嘎", "嫁"],
+  ["囉", "咯", "囖"],
+  ["呀", "吖", "啊"],
+  ["喺", "系", "係"],
+];
 
-Scoring rules:
-- Award 100 if the student said exactly the expected phrase.
-- Award 80–95 if the student said the same phrase with minor differences (extra/missing particles like 啦/喇/嘞/呀/吖, slight word order variation, or Mandarin↔Cantonese equivalent characters).
-- Mandarin↔Cantonese substitutions should be treated LENIENTLY (only -2 points each). Common pairs: 的↔嘅, 不↔唔, 是↔係, 在↔喺, 了↔咗, 他/她↔佢, 这↔呢/呢個, 那↔嗰, 没↔冇, 和↔同, 什么↔咩/乜, 哪↔邊. These often come from speech recognition errors, not student mistakes.
-- Sentence-final particles (啦/喇/嘞, 喎/噃, 咩/嘛, 㗎/架/嘎, 囉/咯) are interchangeable — no deduction.
-- Award 50–79 if the student said most of the key content words but missed some or added extras.
-- Award 20–49 if the student captured the general topic but missed significant portions.
-- Award 0–19 only if the student said something completely unrelated to the expected phrase.
-- Ignore punctuation differences entirely.
-- Be generous — this is a language learner using speech recognition which may introduce transcription errors.
-- Return ONLY a JSON object: {"score": 75}`,
-          },
-          {
-            role: "user",
-            content: `Expected: ${expected}\nStudent said: ${actual}`,
-          },
-        ],
-        temperature: 0,
-        max_tokens: 20,
-      }),
-    });
-    if (!res.ok) return simpleFallbackScore(expected, actual);
-    const data = await res.json();
-    const raw = (data.choices[0]?.message?.content as string) ?? "{}";
-    const parsed = JSON.parse(raw);
-    return typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : simpleFallbackScore(expected, actual);
-  } catch {
-    return simpleFallbackScore(expected, actual);
+function normalizeChar(ch: string): string {
+  const mapped = MANDARIN_TO_CANTONESE[ch];
+  if (mapped) return mapped;
+  for (const group of PARTICLE_GROUPS) {
+    if (group.includes(ch)) return group[0];
   }
+  return ch;
 }
 
-function simpleFallbackScore(expected: string, actual: string): number {
+export function scoreCantoneseAccuracy(expected: string, actual: string): number {
   const CHINESE = /[一-鿿㐀-䶿]/g;
-  const expectedChars = expected.match(CHINESE) ?? [];
+  const expectedChars = (expected.match(CHINESE) ?? []).map(normalizeChar);
   if (expectedChars.length === 0) return 0;
-  const pool = (actual.match(CHINESE) ?? []).slice();
-  let correct = 0;
+  const actualChars = (actual.match(CHINESE) ?? []).map(normalizeChar);
+  if (actualChars.length === 0) return 0;
+
+  const pool = [...actualChars];
+  let matched = 0;
   for (const ch of expectedChars) {
     const i = pool.indexOf(ch);
-    if (i !== -1) { correct++; pool.splice(i, 1); }
+    if (i !== -1) {
+      matched++;
+      pool.splice(i, 1);
+    }
   }
-  return Math.round((correct / expectedChars.length) * 100);
+  return Math.round((matched / expectedChars.length) * 100);
 }
 
 export async function getExampleMeta(cantonese: string): Promise<{ translation: string; pronunciation: string }> {
