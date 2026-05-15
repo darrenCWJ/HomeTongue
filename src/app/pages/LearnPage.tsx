@@ -2043,7 +2043,15 @@ function ExamView({
     setIsProcessing(true);
     try {
       const blob = await stopRecording();
+      if (blob.size === 0) {
+        toast.error("No audio captured — please try again.");
+        return;
+      }
       const result = await transcribeCantonese(blob);
+      if (!result || result.trim().length === 0) {
+        toast.error("Could not detect speech — please speak louder or closer to the mic.");
+        return;
+      }
       const score = await scoreCantoneseAccuracy(current.cantonese, result);
       setTranscribed(result);
       setItemScore(score);
