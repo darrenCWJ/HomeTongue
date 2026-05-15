@@ -1,5 +1,6 @@
 import type { Tone, TranslationResult, WordChunk, Message, VocabItem } from "../types";
 import { extractVocabFromMessages } from "../utils/vocab";
+import { blobToWav } from "../hooks/useElevenLabs";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 
@@ -133,12 +134,9 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
   if (!apiKey || apiKey === "your-openai-api-key-here") {
     throw new Error("VITE_OPENAI_API_KEY not configured");
   }
-  const ext = blob.type.includes("mp4") || blob.type.includes("m4a") ? "m4a"
-    : blob.type.includes("ogg") ? "ogg"
-    : blob.type.includes("wav") ? "wav"
-    : "webm";
+  const wavBlob = await blobToWav(blob);
   const formData = new FormData();
-  formData.append("file", blob, `recording.${ext}`);
+  formData.append("file", wavBlob, "recording.wav");
   formData.append("model", "whisper-1");
   if (language) formData.append("language", language);
   if (prompt) formData.append("prompt", prompt);
