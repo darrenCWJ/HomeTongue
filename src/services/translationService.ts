@@ -139,7 +139,7 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
     : "webm";
   const formData = new FormData();
   formData.append("file", blob, `recording.${ext}`);
-  formData.append("model", "whisper-1");
+  formData.append("model", "gpt-4o-mini-transcribe");
   if (language) formData.append("language", language);
   if (prompt) formData.append("prompt", prompt);
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
@@ -147,13 +147,13 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
     headers: { Authorization: `Bearer ${apiKey}` },
     body: formData,
   });
-  if (!res.ok) throw new Error(`Whisper failed (${res.status}): ${await res.text()}`);
+  if (!res.ok) throw new Error(`Transcription failed (${res.status}): ${await res.text()}`);
   const data = await res.json();
   return (data.text as string).trim();
 }
 
 export function transcribeCantonese(blob: Blob): Promise<string> {
-  return transcribeAudio(blob, "zh", "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。");
+  return transcribeAudio(blob, "yue", "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。");
 }
 
 export function transcribeEnglish(blob: Blob): Promise<string> {
