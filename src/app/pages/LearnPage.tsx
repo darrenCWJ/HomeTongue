@@ -2055,8 +2055,9 @@ function ExamView({
       const score = await scoreCantoneseAccuracy(current.cantonese, result);
       setTranscribed(result);
       setItemScore(score);
-    } catch {
-      toast.error("Could not process recording. Try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Recording failed: ${msg}`);
     } finally {
       setIsProcessing(false);
     }

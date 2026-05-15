@@ -101,7 +101,7 @@ export function useAudioRecorder() {
       }
     };
 
-    mediaRecorder.start(250);
+    mediaRecorder.start();
   };
 
   const stopRecording = (): Promise<Blob> => {
