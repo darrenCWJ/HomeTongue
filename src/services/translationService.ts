@@ -153,7 +153,7 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
 }
 
 export function transcribeCantonese(blob: Blob): Promise<string> {
-  return transcribeAudio(blob, "zh", "廣東話口語，繁體中文。你好呀，唔該晒，係咁㗎，我喺度，好靚呀，咁樣囉。");
+  return transcribeAudio(blob, "yue", "廣東話口語，繁體中文。你好呀，唔該晒，係咁㗎，我喺度，好靚呀，咁樣囉，佢哋去咗邊，冇問題，嗰個係咩嚟㗎，我唔知點解，好耐冇見。");
 }
 
 export function transcribeEnglish(blob: Blob): Promise<string> {
@@ -238,11 +238,10 @@ export async function generateWordBreakdown(
 export async function scoreCantoneseAccuracy(expected: string, actual: string): Promise<number> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
   if (!apiKey || apiKey === "your-openai-api-key-here") {
-    return 0;
+    return simpleFallbackScore(expected, actual);
   }
   const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
   const charCount = [...expected.replace(/[，。！？、；：""''（）\s]/g, "")].length;
-  const perChar = charCount > 0 ? Math.round(100 / charCount) : 100;
   try {
     const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
       method: "POST",
@@ -252,19 +251,21 @@ export async function scoreCantoneseAccuracy(expected: string, actual: string): 
         messages: [
           {
             role: "system",
-            content: `You are a strict Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said, score their accuracy from 0 to 100 based ONLY on whether they said the correct words.
+            content: `You are a fair Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said (transcribed by speech recognition), score their accuracy from 0 to 100.
 
-The expected phrase has ${charCount} characters. Each character is worth ${perChar} points (total 100).
+The expected phrase has ${charCount} characters.
 
 Scoring rules:
-- Score based strictly on character-level and word-level accuracy. Do NOT give credit for similar meaning, intent, or context.
-- If the student said a completely different phrase (even if it's valid Cantonese), score 0–10.
-- Full marks (100) only if all characters match exactly.
-- Each missing or wrong character deducts ${perChar} points.
-- Mandarin substitutions (e.g. 的 instead of 嘅, 不 instead of 唔, 是 instead of 係, 在 instead of 喺) each deduct ${perChar} points (same as a wrong character).
-- Extra words that weren't in the expected phrase deduct 5 points each.
-- Ignore punctuation differences.
-- Return ONLY a JSON object: {"score": 85}`,
+- Award 100 if the student said exactly the expected phrase.
+- Award 80–95 if the student said the same phrase with minor differences (extra/missing particles like 啦/喇/嘞/呀/吖, slight word order variation, or Mandarin↔Cantonese equivalent characters).
+- Mandarin↔Cantonese substitutions should be treated LENIENTLY (only -2 points each). Common pairs: 的↔嘅, 不↔唔, 是↔係, 在↔喺, 了↔咗, 他/她↔佢, 这↔呢/呢個, 那↔嗰, 没↔冇, 和↔同, 什么↔咩/乜, 哪↔邊. These often come from speech recognition errors, not student mistakes.
+- Sentence-final particles (啦/喇/嘞, 喎/噃, 咩/嘛, 㗎/架/嘎, 囉/咯) are interchangeable — no deduction.
+- Award 50–79 if the student said most of the key content words but missed some or added extras.
+- Award 20–49 if the student captured the general topic but missed significant portions.
+- Award 0–19 only if the student said something completely unrelated to the expected phrase.
+- Ignore punctuation differences entirely.
+- Be generous — this is a language learner using speech recognition which may introduce transcription errors.
+- Return ONLY a JSON object: {"score": 75}`,
           },
           {
             role: "user",
@@ -275,13 +276,13 @@ Scoring rules:
         max_tokens: 20,
       }),
     });
-    if (!res.ok) return 0;
+    if (!res.ok) return simpleFallbackScore(expected, actual);
     const data = await res.json();
     const raw = (data.choices[0]?.message?.content as string) ?? "{}";
     const parsed = JSON.parse(raw);
-    return typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : 0;
+    return typeof parsed.score === "number" ? Math.min(100, Math.max(0, Math.round(parsed.score))) : simpleFallbackScore(expected, actual);
   } catch {
-    return 0;
+    return simpleFallbackScore(expected, actual);
   }
 }
 
