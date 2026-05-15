@@ -153,7 +153,7 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
 }
 
 export function transcribeCantonese(blob: Blob): Promise<string> {
-  return transcribeAudio(blob, "yue", "廣東話口語，繁體中文。你好呀，唔該晒，係咁㗎，我喺度，好靚呀，咁樣囉，佢哋去咗邊，冇問題，嗰個係咩嚟㗎，我唔知點解，好耐冇見。");
+  return transcribeAudio(blob, "zh", "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。");
 }
 
 export function transcribeEnglish(blob: Blob): Promise<string> {
