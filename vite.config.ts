@@ -102,7 +102,7 @@ function figmaAssetResolver() {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    base: './',
+    base: '/',
     plugins: [
       figmaAssetResolver(),
       ttsDevMiddleware(env.VITE_GOOGLE_API_JSON),
