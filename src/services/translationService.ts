@@ -158,6 +158,29 @@ export function transcribeEnglish(blob: Blob): Promise<string> {
   return transcribeAudio(blob, "en");
 }
 
+const CANTONESE_PROMPT = "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。";
+
+export async function transcribeWithModel(blob: Blob, model: string, language: string): Promise<string> {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+  if (!apiKey || apiKey === "your-openai-api-key-here") {
+    throw new Error("VITE_OPENAI_API_KEY not configured");
+  }
+  const wavBlob = await blobToWav(blob);
+  const formData = new FormData();
+  formData.append("file", wavBlob, "recording.wav");
+  formData.append("model", model);
+  if (language) formData.append("language", language);
+  if (language === "zh") formData.append("prompt", CANTONESE_PROMPT);
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Transcription failed (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  return (data.text as string).trim();
+}
+
 export async function translateCantoneseToEnglish(text: string): Promise<string> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
   if (!apiKey || apiKey === "your-openai-api-key-here") return `[${text}]`;

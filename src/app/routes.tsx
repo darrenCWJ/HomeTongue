@@ -5,6 +5,7 @@ import { ChatPage } from "./pages/ChatPage";
 import { LearnPage } from "./pages/LearnPage";
 import { BookmarksPage } from "./pages/BookmarksPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { ExamTestPage } from "./pages/ExamTestPage";
 
 export const router = createBrowserRouter([
   {
@@ -17,4 +18,5 @@ export const router = createBrowserRouter([
       { path: "profile", Component: ProfilePage },
     ],
   },
+  { path: "/test/exam", Component: ExamTestPage },
 ]);
