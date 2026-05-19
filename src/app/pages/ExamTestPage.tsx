@@ -53,7 +53,29 @@ function PlayButton({ text }: { text: string }) {
   );
 }
 
+class ExamErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(err: Error) { return { error: err.message }; }
+  render() {
+    if (this.state.error) return (
+      <div className="min-h-screen bg-zinc-50 p-6">
+        <h1 className="text-xl font-bold text-red-600 mb-2">Error</h1>
+        <p className="text-sm text-zinc-700 font-mono">{this.state.error}</p>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export function ExamTestPage() {
+  return (
+    <ExamErrorBoundary>
+      <ExamTestPageInner />
+    </ExamErrorBoundary>
+  );
+}
+
+function ExamTestPageInner() {
   const { conversationLessons } = useAppContext();
   const [selectedLesson, setSelectedLesson] = useState<ConversationLesson | null>(null);
   const [model, setModel] = useState(MODELS[0].id);
