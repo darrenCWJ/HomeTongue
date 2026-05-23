@@ -99,7 +99,7 @@ export function OnboardingPage() {
         <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-brand-red opacity-20 rounded-full blur-2xl" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pt-12 pb-8 relative z-10 flex flex-col">
+      <div className="flex-1 overflow-y-auto px-6 pt-12 pb-8 relative z-10 flex flex-col scrollbar-none">
         {/* Branding */}
         <motion.div
           initial={{ y: 16, opacity: 0 }}

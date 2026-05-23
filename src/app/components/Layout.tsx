@@ -25,8 +25,8 @@ export function Layout() {
   const needsOnboarding = accessCodePassed && isEmailAuthed && !userProfile?.name;
 
   return (
-    <div className="flex justify-center bg-brand-white min-h-screen">
-      <div className="w-full max-w-[448px] bg-white h-screen flex flex-col shadow-2xl relative overflow-hidden">
+    <div className="flex justify-center bg-brand-white min-h-dvh">
+      <div className="w-full max-w-[448px] bg-white h-dvh flex flex-col shadow-2xl relative overflow-hidden">
         {!accessCodePassed ? (
           <SignInPage />
         ) : !isEmailAuthed ? (
@@ -49,11 +49,12 @@ function AuthenticatedLayout() {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto pb-16 bg-brand-white relative">
+      <div className="flex-1 overflow-y-auto pb-nav bg-brand-white relative scrollbar-none">
         <Outlet />
       </div>
 
-      <nav className="absolute bottom-0 w-full bg-white border-t border-zinc-200 flex justify-around items-center h-16 px-2 z-50">
+      <nav className="absolute bottom-0 w-full bg-white border-t border-zinc-200 flex justify-around px-2 z-50"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <NavItem to="/" icon={<MessageSquare size={24} />} label="Chat" />
         <NavItem to="/learn" icon={<BookOpen size={24} />} label="Learn" />
         <NavItem to="/bookmarks" icon={<Bookmark size={24} />} label="Saved" />
@@ -70,7 +71,7 @@ function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
+        `flex flex-col items-center justify-center w-full h-16 gap-1 transition-colors ${
           isActive ? "text-brand-blue" : "text-zinc-400 hover:text-zinc-600"
         }`
       }

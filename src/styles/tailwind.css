@@ -13,4 +13,8 @@
   .pb-safe {
     padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   }
+  /* Bottom clearance matching the nav bar height + safe area (home indicator / gesture bar) */
+  .pb-nav {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
 }

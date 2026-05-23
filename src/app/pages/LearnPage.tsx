@@ -244,7 +244,7 @@ export function LearnPage() {
             className="absolute inset-0 flex flex-col"
           >
             {/* Scrollable page */}
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 scrollbar-none">
               <div className="flex items-start justify-between mb-6 mt-2">
                 <div>
                   <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
@@ -690,7 +690,7 @@ function RoadmapView({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
+      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col"
     >
       {/* Header */}
       <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-zinc-100 sticky top-0 z-30">
@@ -716,7 +716,7 @@ function RoadmapView({
       </div>
 
       {/* Level cards */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-none pb-nav">
         {levels.map((lvl) => {
           const isCompleted = lvl.level <= completedCount;
           const isCurrent = lvl.level === completedCount + 1;
@@ -833,7 +833,7 @@ function LevelView({ level, lessonId, onBack }: { level: LessonLevel; lessonId: 
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-none pb-nav">
         {level.exerciseType === "flashcard" && <FlashcardExercise {...sharedProps} />}
         {level.exerciseType === "matching" && <MatchingExercise {...sharedProps} />}
         {level.exerciseType === "multiple-choice" && <MultipleChoiceExercise {...sharedProps} />}
@@ -1582,7 +1582,7 @@ function ConversationLessonView({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0 }}
         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-        className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
+        className="absolute inset-0 bg-zinc-50 z-20 flex flex-col"
       >
         <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
           <button onClick={() => savePhase("listen")} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
@@ -1599,7 +1599,7 @@ function ConversationLessonView({
             Skip →
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scrollbar-none pb-nav">
           <ConvFlashcardExercise vocab={vocab} onComplete={() => setPhase("done")} />
         </div>
       </motion.div>
@@ -1612,7 +1612,7 @@ function ConversationLessonView({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col pb-20"
+      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col"
     >
       <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
         <button onClick={onBack} className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
@@ -1632,7 +1632,7 @@ function ConversationLessonView({
         {statusChip}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-3 scrollbar-none pb-nav">
         {phase === "listen" && (
           <PhraseBreakdownExercise
             vocab={vocab}
@@ -1729,7 +1729,7 @@ function PhraseBreakdownExercise({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col min-h-full gap-4">
       {/* Phrase progress */}
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-zinc-400 font-medium">Phrase {phraseIdx + 1} of {vocab.length}</span>
@@ -1804,7 +1804,7 @@ function PhraseBreakdownExercise({
       </div>
 
       {/* Navigation */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 mt-auto pb-4">
         {canGoBack && (
           <button
             onClick={goBack}
@@ -2149,7 +2149,7 @@ function ExamView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5 scrollbar-none pb-nav">
         <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 p-6">
           <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2">Recite this phrase</p>
           <p className="text-2xl font-bold text-zinc-800 mb-1">{current.cantonese}</p>
@@ -2211,7 +2211,7 @@ function ExamView({
                   <span className="font-bold">
                     {transcribed ? (
                       (() => {
-                        const punct = /[，。！？、；：""''（）\s]/;
+                        const punct = /[，。！？、；：""''（）\s!?.,;:'"…—–]/;
                         const expectedChars = [...current.cantonese].filter(c => !punct.test(c));
                         return [...transcribed].map((char, ci) => {
                           if (punct.test(char)) return <span key={ci} className="text-zinc-700">{char}</span>;

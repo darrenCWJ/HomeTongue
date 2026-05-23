@@ -3,10 +3,20 @@
   <html lang="en">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
       <link rel="icon" type="image/png" href="/logo.png" />
       <title>HomeTongue</title>
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+      <style>
+        html { height: 100%; margin: 0; }
+        body {
+          margin: 0;
+          min-height: 100dvh;
+          /* Respect safe-area-inset on devices where the UA cannot clip it automatically */
+          padding-bottom: constant(safe-area-inset-bottom);
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        #root { min-height: 100dvh; }
+      </style>
     </head>
 
     <body>

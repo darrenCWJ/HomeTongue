@@ -150,15 +150,30 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
   return (data.text as string).trim();
 }
 
-export function transcribeCantonese(blob: Blob): Promise<string> {
-  return transcribeAudio(blob, "zh", "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。");
-}
-
 export function transcribeEnglish(blob: Blob): Promise<string> {
   return transcribeAudio(blob, "en");
 }
 
 const CANTONESE_PROMPT = "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。";
+
+// Whisper sometimes echoes back its prompt instead of transcribing when audio is unclear.
+// Detect this by checking whether >60% of adjacent CJK char pairs in the result also appear in the prompt.
+function isPromptHallucination(text: string, prompt: string): boolean {
+  const cjk = (s: string) => [...s].filter(c => /\p{Script=Han}/u.test(c)).join("");
+  const textCJK = cjk(text);
+  const promptCJK = cjk(prompt);
+  if (textCJK.length < 4) return false;
+  let matches = 0;
+  for (let i = 0; i < textCJK.length - 1; i++) {
+    if (promptCJK.includes(textCJK[i] + textCJK[i + 1])) matches++;
+  }
+  return matches / (textCJK.length - 1) > 0.6;
+}
+
+export async function transcribeCantonese(blob: Blob): Promise<string> {
+  const result = await transcribeAudio(blob, "zh", CANTONESE_PROMPT);
+  return isPromptHallucination(result, CANTONESE_PROMPT) ? "" : result;
+}
 
 export async function transcribeWithModel(blob: Blob, model: string, language: string): Promise<string> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
@@ -178,7 +193,9 @@ export async function transcribeWithModel(blob: Blob, model: string, language: s
   });
   if (!res.ok) throw new Error(`Transcription failed (${res.status}): ${await res.text()}`);
   const data = await res.json();
-  return (data.text as string).trim();
+  const text = (data.text as string).trim();
+  if (language === "zh" && isPromptHallucination(text, CANTONESE_PROMPT)) return "";
+  return text;
 }
 
 export async function translateCantoneseToEnglish(text: string): Promise<string> {

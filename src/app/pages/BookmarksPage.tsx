@@ -518,7 +518,7 @@ export function BookmarksPage() {
       </div>
 
       {/* List */}
-      <div className="p-4 space-y-3 overflow-y-auto">
+      <div className="p-4 space-y-3 overflow-y-auto scrollbar-none">
         {activeTab === "phrases" ? (
           bookmarkedPhrases.length === 0 && !isTourMode ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-6">
@@ -1016,7 +1016,7 @@ export function BookmarksPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-none">
               {viewingSession.messages
                 .filter((m) => !pendingMsgDeletions.has(m.id))
                 .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.cantoneseText)

@@ -71,7 +71,7 @@ export function ProfilePage() {
 
 
   return (
-    <div className="flex flex-col h-full bg-zinc-50 pb-20 overflow-y-auto">
+    <div className="flex flex-col h-full bg-zinc-50 pb-20 overflow-y-auto scrollbar-none">
       {/* Header Profile Area */}
       <div className="shrink-0 bg-white px-6 pt-10 pb-6 border-b border-zinc-200 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-brand-blue/20 to-white/0 opacity-50 pointer-events-none"></div>

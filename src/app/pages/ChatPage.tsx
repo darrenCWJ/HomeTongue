@@ -576,7 +576,7 @@ export function ChatPage() {
           </p>
         </div>
       ) : showDemoBubble ? (
-        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3 scrollbar-none">
           <div className="flex items-end gap-2 justify-start">
             <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-red">
               粵
@@ -608,7 +608,7 @@ export function ChatPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3 scrollbar-none">
           {messages.map((msg, msgIndex) => {
             const isIncomingCantonese = msg.sender === "bot" && !!msg.englishTranslation;
             const isFirstBotMsg = isIncomingCantonese && msgIndex === messages.findIndex((m) => m.sender === "bot" && !!m.englishTranslation);
