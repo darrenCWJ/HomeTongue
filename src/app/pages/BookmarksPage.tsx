@@ -12,7 +12,7 @@ import { useTour } from "../components/tour/TourProvider";
 
 
 export function BookmarksPage() {
-  const { phrases, toggleBookmark, addPhrase, sessions, userProfile, renameSession, deleteSession, deleteSessionMessage, conversationLessons, saveConversationLesson, phraseTags, sessionTags, createTag, deleteTag, setPhraseTags, setSessionTags } = useAppContext();
+  const { phrases, toggleBookmark, addPhrase, updatePhrase, sessions, userProfile, renameSession, deleteSession, deleteSessionMessage, conversationLessons, saveConversationLesson, phraseTags, sessionTags, createTag, deleteTag, setPhraseTags, setSessionTags } = useAppContext();
   const { isActive: isTourActive, activeTour, currentStep } = useTour();
   const isTourMode = isTourActive && activeTour === "bookmarks";
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
@@ -563,8 +563,8 @@ export function BookmarksPage() {
                     <TagIcon size={16} />
                   </button>
                   <button
-                    onClick={() => toggleBookmark(phrase.id)}
-                    className="text-brand-blue hover:text-brand-blue"
+                    onClick={() => updatePhrase({ ...phrase, isBookmarked: false, tags: [] })}
+                    className="text-brand-blue hover:text-brand-blue/70"
                   >
                     <Bookmark size={20} className="fill-brand-blue" />
                   </button>

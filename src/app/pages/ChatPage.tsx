@@ -498,8 +498,15 @@ export function ChatPage() {
     const title = saveTitle.trim();
     if (!title) return;
     setIsSaving(true);
+    let finalTags = saveSessionTags;
+    if (isCreatingSessionTag && newSessionTagInput.trim()) {
+      const tag = createTag(newSessionTagInput.trim(), "session");
+      finalTags = [...saveSessionTags, tag.id];
+      setIsCreatingSessionTag(false);
+      setNewSessionTagInput("");
+    }
     try {
-      saveSession(messages, title, saveSessionTags.length > 0 ? saveSessionTags : undefined);
+      saveSession(messages, title, finalTags.length > 0 ? finalTags : undefined);
       setIsSaveDialogOpen(false);
       toast.success("Session saved!");
     } catch {

@@ -2212,11 +2212,25 @@ function ExamView({
                     {transcribed ? (
                       (() => {
                         const punct = /[，。！？、；：""''（）\s!?.,;:'"…—–]/;
-                        const expectedChars = [...current.cantonese].filter(c => !punct.test(c));
-                        return [...transcribed].map((char, ci) => {
+                        const expectedClean = [...current.cantonese].filter(c => !punct.test(c));
+                        const transcribedFull = [...transcribed];
+                        const transcribedClean = transcribedFull.filter(c => !punct.test(c));
+                        // LCS to find best alignment, so missing/extra chars don't shift all subsequent matches
+                        const m = expectedClean.length, n = transcribedClean.length;
+                        const dp: number[][] = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+                        for (let r = 1; r <= m; r++)
+                          for (let c = 1; c <= n; c++)
+                            dp[r][c] = expectedClean[r-1] === transcribedClean[c-1] ? dp[r-1][c-1] + 1 : Math.max(dp[r-1][c], dp[r][c-1]);
+                        const matched = new Set<number>();
+                        let r = m, c = n;
+                        while (r > 0 && c > 0) {
+                          if (expectedClean[r-1] === transcribedClean[c-1]) { matched.add(c - 1); r--; c--; }
+                          else if (dp[r-1][c] >= dp[r][c-1]) r--; else c--;
+                        }
+                        let cleanPos = 0;
+                        return transcribedFull.map((char, ci) => {
                           if (punct.test(char)) return <span key={ci} className="text-zinc-700">{char}</span>;
-                          const cleanIdx = [...transcribed.slice(0, ci)].filter(c => !punct.test(c)).length;
-                          const isMatch = cleanIdx < expectedChars.length && char === expectedChars[cleanIdx];
+                          const isMatch = matched.has(cleanPos++);
                           return <span key={ci} className={isMatch ? "text-green-600" : "text-orange-600"}>{char}</span>;
                         });
                       })()

@@ -137,7 +137,7 @@ async function transcribeAudio(blob: Blob, language: string | null, prompt?: str
   const wavBlob = await blobToWav(blob);
   const formData = new FormData();
   formData.append("file", wavBlob, "recording.wav");
-  formData.append("model", "whisper-1");
+  formData.append("model", "gpt-4o-transcribe");
   if (language) formData.append("language", language);
   if (prompt) formData.append("prompt", prompt);
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
