@@ -175,6 +175,11 @@ export async function transcribeCantonese(blob: Blob): Promise<string> {
   return isPromptHallucination(result, CANTONESE_PROMPT) ? "" : result;
 }
 
+export function transcribeAnyLanguage(blob: Blob): Promise<string> {
+  return transcribeAudio(blob, null);
+}
+
+
 export async function transcribeWithModel(blob: Blob, model: string, language: string): Promise<string> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
   if (!apiKey || apiKey === "your-openai-api-key-here") {

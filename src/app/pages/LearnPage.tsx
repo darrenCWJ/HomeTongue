@@ -23,7 +23,7 @@ import { useAppContext } from "../context/AppContext";
 import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
 import { speakText, GOOGLE_TTS_VOICES, DEFAULT_VOICE } from "../../hooks/useGoogleTTS";
 import type { VoiceKey } from "../../hooks/useGoogleTTS";
-import { transcribeCantonese, generateWordBreakdown, scoreCantoneseAccuracy, getExampleMeta } from "../../services/translationService";
+import { transcribeCantonese, transcribeAnyLanguage, generateWordBreakdown, scoreCantoneseAccuracy, getExampleMeta } from "../../services/translationService";
 import type { WordChunk } from "../../types";
 import { motion, AnimatePresence, animate, useMotionValue } from "motion/react";
 import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
@@ -2047,7 +2047,10 @@ function ExamView({
         toast.error("No audio captured — please try again.");
         return;
       }
-      const result = await transcribeCantonese(blob);
+      let result = await transcribeCantonese(blob);
+      if (!result || result.trim().length === 0) {
+        result = await transcribeAnyLanguage(blob);
+      }
       if (!result || result.trim().length === 0) {
         toast.error("Could not detect speech — please speak louder or closer to the mic.");
         return;
