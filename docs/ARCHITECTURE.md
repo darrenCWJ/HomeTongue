@@ -66,11 +66,30 @@ Rate limiting is per-instance in-memory (resets on cold start) — durable limit
 
 Versions 1–5; tables: `phrases`, `sessions`, `profile` (singleton row), `lessonProgress`, `conversationLessons`, `draftMessages` (chat draft autosave), `tags`. See `docs/DATA_MODEL.md`.
 
+## Language packs (`src/languages/`)
+
+Everything dialect-specific lives in a `LanguagePack` (contract in `src/languages/types.ts`):
+
+- `tts` — Google TTS `languageCode`, the voice registry, default voice, legacy ElevenLabs ID map
+- `stt` — transcription language hint + hallucination-guard prompt
+- `prompts` — system prompts for translation (3 tones), word breakdown, scoring rubric (builder fn), example meta
+- `scoring` — character-equivalence map and interchangeable particle groups for the offline score
+
+`src/languages/index.ts` is the registry: `LANGUAGE_PACKS`, `getLanguagePack(code)`, `DEFAULT_LANGUAGE`, and
+`ACTIVE_LANGUAGE_PACK` (the resolved default — Cantonese, the only pack today). `useGoogleTTS` and
+`translationService` read from the active pack and remain the stable façade, so pages/components never
+import from `src/languages/` directly.
+
+**To add a dialect**: create `src/languages/<code>/index.ts` exporting a pack that `satisfies LanguagePack`
+(keep the voices map `as const` so voice keys stay a literal union), register it in `LANGUAGE_PACKS`, and
+extend the server-side allowlists in `api/` — those stay hardcoded as the security boundary. Full per-user
+language selection is the remainder of Phase 4.
+
 ## Known architectural debt (by design, tracked in the improvement plan)
 
 - God components (LearnPage/ChatPage/BookmarksPage) — Phase 2
 - Single mega-context re-rendering all consumers — Phase 2
 - `saveAll` (clear + bulkPut) phrase writes — replaced by per-entity CRUD in Phase 3
 - No `userId` on entities; profile singleton — Phase 3 (Supabase)
-- Cantonese hardcoded across services — Phase 4 (language packs)
+- Services bind statically to the single Cantonese pack (`ACTIVE_LANGUAGE_PACK`) — per-user language selection is the rest of Phase 4
 - Base64 audio inside DB rows — Phase 3 (object storage)

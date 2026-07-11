@@ -1,6 +1,11 @@
 import type { Tone, TranslationResult, WordChunk } from "../types";
 import { blobToWav, blobToDataUrl } from "../hooks/audio";
 import { postJson, ApiError } from "../lib/api";
+import { ACTIVE_LANGUAGE_PACK, type LanguagePack } from "../languages";
+
+// Typed as the general contract so nothing below depends on Cantonese-specific
+// literal types; swapping the active pack must not require edits here.
+const LANGUAGE: LanguagePack = ACTIVE_LANGUAGE_PACK;
 
 interface ChatRequestOptions {
   temperature?: number;
@@ -25,20 +30,10 @@ export function parseModelJson<T>(raw: string): T {
   return JSON.parse(cleaned) as T;
 }
 
-const SYSTEM_PROMPT = `You are a dialect translation assistant. When given an English phrase, return ONLY a JSON object (no markdown, no explanation) with this exact structure:
-{
-  "formal": { "text": "<Traditional Chinese>", "pronunciation": "<Jyutping>" },
-  "casual": { "text": "<Traditional Chinese>", "pronunciation": "<Jyutping>" },
-  "slang": { "text": "<Traditional Chinese>", "pronunciation": "<Jyutping>" },
-  "predictedResponse": "<A likely reply a native speaker would give, in Traditional Chinese>",
-  "context": "<3-5 word usage context in English>"
-}
-Use Traditional Chinese characters (not Mandarin simplified). Provide Jyutping romanization with tone numbers.`;
-
 async function translateWithProxy(text: string): Promise<TranslationResult> {
   const raw = await chatCompletion(
     [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: LANGUAGE.prompts.translateSystem },
       { role: "user", content: `Translate to dialect: "${text}"` },
     ],
     { temperature: 0.3, max_tokens: 2000 }
@@ -154,8 +149,6 @@ export function transcribeEnglish(blob: Blob): Promise<string> {
   return transcribeAudio(blob, "en");
 }
 
-const CANTONESE_PROMPT = "以下係廣東話口語，用繁體中文書寫。唔該晒，係咁㗎啦，我喺度等緊你，佢哋去咗邊呀，冇問題嘅，嗰個係咩嚟㗎，我唔知點解會咁，好耐冇見啦，你食咗飯未呀，我想去嗰度睇吓。";
-
 // The transcription model sometimes echoes back its prompt instead of transcribing
 // when audio is unclear. Detect this by checking whether >60% of adjacent CJK char
 // pairs in the result also appear in the prompt.
@@ -172,8 +165,8 @@ export function isPromptHallucination(text: string, prompt: string): boolean {
 }
 
 export async function transcribeCantonese(blob: Blob): Promise<string> {
-  const result = await transcribeAudio(blob, "zh", CANTONESE_PROMPT);
-  return isPromptHallucination(result, CANTONESE_PROMPT) ? "" : result;
+  const result = await transcribeAudio(blob, LANGUAGE.stt.language, LANGUAGE.stt.prompt);
+  return isPromptHallucination(result, LANGUAGE.stt.prompt) ? "" : result;
 }
 
 export function transcribeAnyLanguage(blob: Blob): Promise<string> {
@@ -217,10 +210,7 @@ export async function generateWordBreakdown(
   try {
     const raw = await chatCompletion(
       [
-        {
-          role: "system",
-          content: `You are a Cantonese language teacher. For each Cantonese segment given, provide its Jyutping pronunciation and a short English meaning. Return ONLY a JSON object with this exact structure: {"chunks":[{"characters":"幾時輪到我呀","pronunciation":"gei2 si4 lun4 dou3 ngo5 aa3","meaning":"when is it my turn"}]}. Preserve the order and exact characters of each segment.`,
-        },
+        { role: "system", content: LANGUAGE.prompts.breakdownSystem },
         { role: "user", content: `Segments: ${JSON.stringify(segments)}` },
       ],
       { temperature: 0.2, max_tokens: 600 }
@@ -232,30 +222,11 @@ export async function generateWordBreakdown(
   }
 }
 
-const MANDARIN_TO_CANTONESE: Record<string, string> = {
-  "的": "嘅", "不": "唔", "是": "係", "在": "喺", "了": "咗",
-  "他": "佢", "她": "佢", "它": "佢", "这": "呢", "那": "嗰",
-  "没": "冇", "和": "同", "哪": "邊", "吗": "咩", "呢": "呢",
-  "们": "哋", "着": "住", "过": "過", "给": "畀", "让": "畀",
-  "很": "好", "什": "咩", "么": "嘢", "里": "度", "裡": "度",
-  "这个": "呢個", "那个": "嗰個", "什么": "咩",
-};
-
-const PARTICLE_GROUPS = [
-  ["啦", "喇", "嘞", "啊"],
-  ["喎", "噃"],
-  ["咩", "嘛", "嗎"],
-  ["㗎", "架", "嘎", "嫁"],
-  ["囉", "咯", "囖"],
-  ["呀", "吖", "啊"],
-  ["喺", "系", "係"],
-];
-
 function normalizeChar(ch: string): string {
   // Map Mandarin equivalents first, then fold particle-group variants, so
   // e.g. 是→係 and a literal 係 both normalize to the same character.
-  const mapped = MANDARIN_TO_CANTONESE[ch] ?? ch;
-  for (const group of PARTICLE_GROUPS) {
+  const mapped = LANGUAGE.scoring.charEquivalents[ch] ?? ch;
+  for (const group of LANGUAGE.scoring.particleGroups) {
     if (group.includes(mapped)) return group[0];
   }
   return mapped;
@@ -285,24 +256,7 @@ export async function scoreCantoneseAccuracy(expected: string, actual: string): 
   try {
     const raw = await chatCompletion(
       [
-        {
-          role: "system",
-          content: `You are a fair Cantonese language examiner. Given an expected Cantonese phrase and what the student actually said (transcribed by speech recognition), score their accuracy from 0 to 100.
-
-The expected phrase has ${charCount} characters.
-
-Scoring rules:
-- Award 100 if the student said exactly the expected phrase.
-- Award 80–95 if the student said the same phrase with minor differences (extra/missing particles like 啦/喇/嘞/呀/吖, slight word order variation, or Mandarin↔Cantonese equivalent characters).
-- Mandarin↔Cantonese substitutions should be treated LENIENTLY (only -2 points each). Common pairs: 的↔嘅, 不↔唔, 是↔係, 在↔喺, 了↔咗, 他/她↔佢, 这↔呢/呢個, 那↔嗰, 没↔冇, 和↔同, 什么↔咩/乜, 哪↔邊. These often come from speech recognition errors, not student mistakes.
-- Sentence-final particles (啦/喇/嘞, 喎/噃, 咩/嘛, 㗎/架/嘎, 囉/咯) are interchangeable — no deduction.
-- Award 50–79 if the student said most of the key content words but missed some or added extras.
-- Award 20–49 if the student captured the general topic but missed significant portions.
-- Award 0–19 only if the student said something completely unrelated to the expected phrase.
-- Ignore punctuation differences entirely.
-- Be generous — this is a language learner using speech recognition which may introduce transcription errors.
-- Return ONLY a JSON object: {"score": 75}`,
-        },
+        { role: "system", content: LANGUAGE.prompts.buildScoringSystem(charCount) },
         { role: "user", content: `Expected: ${expected}\nStudent said: ${actual}` },
       ],
       { temperature: 0, max_tokens: 20 }
@@ -320,10 +274,7 @@ export async function getExampleMeta(cantonese: string): Promise<{ translation: 
   try {
     const raw = await chatCompletion(
       [
-        {
-          role: "system",
-          content: 'Given a Cantonese sentence, return JSON with exactly two fields: "translation" (natural English meaning) and "pronunciation" (full Jyutping romanization with tone numbers). Return ONLY valid JSON, no other text.',
-        },
+        { role: "system", content: LANGUAGE.prompts.exampleMetaSystem },
         { role: "user", content: cantonese },
       ],
       { response_format: { type: "json_object" }, temperature: 0.1, max_tokens: 200 }

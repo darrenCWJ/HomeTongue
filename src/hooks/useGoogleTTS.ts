@@ -1,56 +1,20 @@
 import { blobToDataUrl } from "./audio";
 import { apiUrl } from "../lib/api";
+import { ACTIVE_LANGUAGE_PACK } from "../languages";
 
-const LANGUAGE_CODE = "yue-HK";
+export type { GoogleTTSVoice } from "../languages";
 
-export interface GoogleTTSVoice {
-  name: string;
-  gender: "female" | "male";
-  style: string;
-}
+const LANGUAGE_CODE = ACTIVE_LANGUAGE_PACK.tts.languageCode;
 
-export const GOOGLE_TTS_VOICES = {
-  // Female
-  zephyr:        { name: "yue-HK-Chirp3-HD-Zephyr",        gender: "female", style: "Bright" },
-  kore:          { name: "yue-HK-Chirp3-HD-Kore",          gender: "female", style: "Firm" },
-  aoede:         { name: "yue-HK-Chirp3-HD-Aoede",         gender: "female", style: "Breezy" },
-  leda:          { name: "yue-HK-Chirp3-HD-Leda",          gender: "female", style: "Youthful" },
-  despina:       { name: "yue-HK-Chirp3-HD-Despina",       gender: "female", style: "Smooth" },
-  erinome:       { name: "yue-HK-Chirp3-HD-Erinome",       gender: "female", style: "Clear" },
-  gacrux:        { name: "yue-HK-Chirp3-HD-Gacrux",        gender: "female", style: "Mature" },
-  laomedeia:     { name: "yue-HK-Chirp3-HD-Laomedeia",     gender: "female", style: "Upbeat" },
-  pulcherrima:   { name: "yue-HK-Chirp3-HD-Pulcherrima",   gender: "female", style: "Forward" },
-  sulafat:       { name: "yue-HK-Chirp3-HD-Sulafat",       gender: "female", style: "Warm" },
-  vindemiatrix:  { name: "yue-HK-Chirp3-HD-Vindemiatrix",  gender: "female", style: "Gentle" },
-  callirrhoe:    { name: "yue-HK-Chirp3-HD-Callirrhoe",    gender: "female", style: "Easy-going" },
-  autonoe:       { name: "yue-HK-Chirp3-HD-Autonoe",       gender: "female", style: "Bright" },
-  achernar:      { name: "yue-HK-Chirp3-HD-Achernar",      gender: "female", style: "Soft" },
-  // Male
-  puck:          { name: "yue-HK-Chirp3-HD-Puck",          gender: "male",   style: "Upbeat" },
-  charon:        { name: "yue-HK-Chirp3-HD-Charon",        gender: "male",   style: "Informative" },
-  fenrir:        { name: "yue-HK-Chirp3-HD-Fenrir",        gender: "male",   style: "Excitable" },
-  orus:          { name: "yue-HK-Chirp3-HD-Orus",          gender: "male",   style: "Firm" },
-  enceladus:     { name: "yue-HK-Chirp3-HD-Enceladus",     gender: "male",   style: "Breathy" },
-  iapetus:       { name: "yue-HK-Chirp3-HD-Iapetus",       gender: "male",   style: "Clear" },
-  algenib:       { name: "yue-HK-Chirp3-HD-Algenib",       gender: "male",   style: "Gravelly" },
-  algieba:       { name: "yue-HK-Chirp3-HD-Algieba",       gender: "male",   style: "Smooth" },
-  alnilam:       { name: "yue-HK-Chirp3-HD-Alnilam",       gender: "male",   style: "Firm" },
-  rasalgethi:    { name: "yue-HK-Chirp3-HD-Rasalgethi",    gender: "male",   style: "Informative" },
-  sadachbia:     { name: "yue-HK-Chirp3-HD-Sadachbia",     gender: "male",   style: "Lively" },
-  sadaltager:    { name: "yue-HK-Chirp3-HD-Sadaltager",    gender: "male",   style: "Knowledgeable" },
-  schedar:       { name: "yue-HK-Chirp3-HD-Schedar",       gender: "male",   style: "Even" },
-  umbriel:       { name: "yue-HK-Chirp3-HD-Umbriel",       gender: "male",   style: "Easy-going" },
-  zubenelgenubi: { name: "yue-HK-Chirp3-HD-Zubenelgenubi", gender: "male",   style: "Casual" },
-  achird:        { name: "yue-HK-Chirp3-HD-Achird",        gender: "male",   style: "Friendly" },
-} as const satisfies Record<string, GoogleTTSVoice>;
+// Stable façade over the active language pack: components, constants/voices.ts,
+// and tests import the voice registry from here, not from src/languages/.
+export const GOOGLE_TTS_VOICES = ACTIVE_LANGUAGE_PACK.tts.voices;
 
 export type VoiceKey = keyof typeof GOOGLE_TTS_VOICES;
 
-export const DEFAULT_VOICE: VoiceKey = "zephyr";
+export const DEFAULT_VOICE: VoiceKey = ACTIVE_LANGUAGE_PACK.tts.defaultVoice;
 
-const ELEVENLABS_VOICE_MAP: Record<string, VoiceKey> = {
-  "21m00Tcm4TlvDq8ikWAM": "zephyr",
-};
+const ELEVENLABS_VOICE_MAP: Record<string, VoiceKey> = ACTIVE_LANGUAGE_PACK.tts.legacyVoiceMap;
 
 export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {
   return ELEVENLABS_VOICE_MAP[elevenLabsId] ?? DEFAULT_VOICE;
