@@ -1,4 +1,5 @@
 import { createSign } from "crypto";
+import { isRateLimited, requestIp } from "./_lib/rateLimit.js";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthesize";
@@ -8,22 +9,8 @@ const MAX_TEXT_LENGTH = 500;
 const ALLOWED_LANGUAGE_CODES = new Set(["yue-HK"]);
 const VOICE_NAME_PATTERN = /^yue-HK-Chirp3-HD-[A-Za-z]+$/;
 
-// Best-effort per-instance rate limiting (resets on cold start).
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
-const requestLog = new Map();
-
-function isRateLimited(ip) {
-  const now = Date.now();
-  const timestamps = (requestLog.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-    requestLog.set(ip, timestamps);
-    return true;
-  }
-  timestamps.push(now);
-  requestLog.set(ip, timestamps);
-  return false;
-}
 
 function base64url(str) {
   return Buffer.from(str, "utf8")
@@ -45,11 +32,7 @@ async function getAccessToken(rawPrivateKey, clientEmail) {
 
   const sign = createSign("RSA-SHA256");
   sign.update(signingInput);
-  const sig = sign
-    .sign(privateKey, "base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+  const sig = sign.sign(privateKey, "base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 
   const res = await fetch(TOKEN_URL, {
     method: "POST",
@@ -67,8 +50,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
-    if (isRateLimited(ip)) {
+    if (await isRateLimited("tts", requestIp(req), RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS)) {
       return res.status(429).json({ error: "Too many requests. Try again shortly." });
     }
 
@@ -85,7 +67,12 @@ export default async function handler(req, res) {
     }
 
     const { text, voiceName, languageCode } = req.body || {};
-    if (typeof text !== "string" || !text.trim() || typeof voiceName !== "string" || typeof languageCode !== "string") {
+    if (
+      typeof text !== "string" ||
+      !text.trim() ||
+      typeof voiceName !== "string" ||
+      typeof languageCode !== "string"
+    ) {
       return res.status(400).json({ error: "Missing required fields: text, voiceName, languageCode" });
     }
     if (text.length > MAX_TEXT_LENGTH) {

@@ -29,6 +29,7 @@ npx cap open android
 |---|---|---|
 | `/api/*` calls | same origin (Vercel) | must target `VITE_API_BASE_URL` (see `src/lib/api.ts`) |
 | CSP | HTTP headers from `vercel.json` | headers don't apply to bundled files — a `<meta>` CSP for the webview is roadmap work |
+| Cleartext HTTP | n/a (HTTPS origin) | blocked by `res/xml/network_security_config.xml` (`cleartextTrafficPermitted="false"`) |
 | Mic permission | browser prompt | `RECORD_AUDIO` runtime permission (declared in `AndroidManifest.xml`) |
 | Backup | n/a | `android:allowBackup="false"` — chat history/persona data stays on-device |
 

@@ -1,3 +1,5 @@
+import { isRateLimited, requestIp } from "./_lib/rateLimit.js";
+
 const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 
 // Decoded-audio cap. The base64 JSON body is ~33% larger than this, and must
@@ -8,22 +10,8 @@ const ALLOWED_MODELS = new Set(["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "
 const ALLOWED_LANGUAGES = new Set(["en", "zh"]);
 const MAX_PROMPT_CHARS = 500;
 
-// Best-effort per-instance rate limiting (resets on cold start).
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
-const requestLog = new Map();
-
-function isRateLimited(ip) {
-  const now = Date.now();
-  const timestamps = (requestLog.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-    requestLog.set(ip, timestamps);
-    return true;
-  }
-  timestamps.push(now);
-  requestLog.set(ip, timestamps);
-  return false;
-}
 
 export const config = {
   api: {
@@ -37,8 +25,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
-    if (isRateLimited(ip)) {
+    if (await isRateLimited("transcribe", requestIp(req), RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS)) {
       return res.status(429).json({ error: "Too many requests. Try again shortly." });
     }
 

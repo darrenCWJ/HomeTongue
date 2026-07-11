@@ -30,6 +30,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: File size cap
+        run: node scripts/check-file-sizes.mjs
+
       - name: Test
         run: pnpm test
 
