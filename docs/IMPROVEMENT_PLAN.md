@@ -24,13 +24,13 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 | No tsconfig, no type-checking, no `@types/react` — strict mode never ran | HIGH | **Fixed** — 0 errors under strict |
 | Mic stream leaked if user navigated mid-recording; mic button stuck after permission denial | HIGH | **Fixed** |
 | ~60 unused shadcn `ui/` files and ~48 unused npm deps (two full UI systems shipped) | MEDIUM | **Fixed** — deleted; 12 runtime deps remain |
-| God components: LearnPage 2288 / ChatPage 1318 / BookmarksPage 1231 lines | HIGH (maintainability) | Phase 2 |
-| Single 40-member AppContext re-rendering everything on any change | MEDIUM | Phase 2 |
+| God components: LearnPage 2288 / ChatPage 1318 / BookmarksPage 1231 lines | HIGH (maintainability) | **Fixed** — all three decomposed into `src/features/` |
+| Single 40-member AppContext re-rendering everything on any change | MEDIUM | **Fixed** — split into three memoized domain providers |
 | `Date.now()` IDs (collision-prone, unsyncable) | MEDIUM | **Fixed** — `newId()` (UUID) |
 | Sessions sorted lexicographically by locale date string | MEDIUM | **Fixed** — ISO `createdAt` sort |
 | Audio stored as base64 data-URLs inside DB rows | MEDIUM | Phase 3 (object storage) |
 | No `userId` on any entity; profile is a singleton row | HIGH (blocks cloud) | Phase 3 |
-| Cantonese hardcoded in every layer (voices, prompts, scoring maps) | HIGH (blocks goal 1) | Phase 4 |
+| Cantonese hardcoded in every layer (voices, prompts, scoring maps) | HIGH (blocks goal 1) | **Groundwork done** — extracted into `src/languages/yue-HK` pack; per-user selection remains |
 | Capacitor calls relative `/api/*` (breaks native) | HIGH (blocks goal 4) | **Fixed** — `VITE_API_BASE_URL` + `src/lib/api.ts` |
 | No tests, no lint, no CI | HIGH | Phase 1 (remaining) |
 
@@ -74,10 +74,10 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 Do this only after tests exist (Phase 1) so refactors are safe.
 
 1. **LearnPage** ✅ → decomposed into `src/features/learn/` (18 modules: `main/`, `roadmap/`, `exercises/`, `conversation-lesson/`, `exam/`, `shared.tsx`; largest file 343 lines, was 2288). Still to do: move the `view` state into the URL (`/learn/:lessonId/exam` etc.) for deep links and back-button support, and extract `useRecorder`/`useExamScoring` hooks when logic changes warrant it.
-2. **ChatPage** → extract `useTranslationFlow`, `useMicRecording`, `useSessionSave`, `useTagEditor` hooks; sheets/dialogs into components. Target < 300 lines per file.
-3. **BookmarksPage** → filter bar, tag CRUD, phrase card, session list components.
-4. Split `AppContext` into `ProfileProvider`, `ChatProvider`, `LibraryProvider` (phrases/tags/sessions) or adopt TanStack Query per domain; memoize provider values.
-5. Enforce the 800-line file cap in CI once the split is done.
+2. **ChatPage** ✅ → decomposed into `src/features/chat/` (650-line orchestrator keeping the entangled mic/suggestion ref web together + `useBubbleLongPress` + 12 leaf components).
+3. **BookmarksPage** ✅ → decomposed into `src/features/bookmarks/` (534-line orchestrator + 11 components).
+4. **AppContext split** ✅ → three memoized domain providers (`ProfileProvider > LibraryProvider > ChatProvider`, hooks `useProfile`/`useLibrary`/`useChat`); 18 consumers migrated. TanStack Query remains an option for Phase 3 server state rather than a goal in itself.
+5. Remaining: enforce the 800-line cap in CI; enable the react-hooks compiler preset once React Compiler is adopted (evaluated 2026-07: 18 findings, all intentional patterns — rationale in eslint.config.js).
 
 ## Phase 3 — Real auth + cloud database (Supabase)
 
@@ -90,6 +90,8 @@ Do this only after tests exist (Phase 1) so refactors are safe.
 6. Gate `/api/chat|transcribe|tts` on a verified Supabase JWT → per-user rate limits and usage tracking.
 
 ## Phase 4 — Multi-language architecture
+
+Groundwork ✅ (2026-07): `src/languages/` exists — `LanguagePack` contract, the verbatim `yue-HK` pack (voices, prompts, scoring maps, STT config), and a registry with `ACTIVE_LANGUAGE_PACK`. `useGoogleTTS`/`translationService` read from the pack behind unchanged façades. Remaining: per-user language selection (thread a `language` param through services), language-scoped lessons, server allowlist extension, and a second pack as proof.
 
 1. `LanguagePack` contract in `src/languages/`:
    ```ts

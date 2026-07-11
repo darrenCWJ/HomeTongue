@@ -51,7 +51,14 @@ The client reaches these via `src/lib/api.ts` (`apiUrl()` / `postJson()`), which
 
 ```
 src/types.ts                        ← shared domain types (Phrase, Message, Session, UserProfile, Lesson*, ConversationLesson, Tag)
-src/app/context/AppContext.tsx       ← single global React context; all app state lives here (splitting it is planned — see improvement plan)
+src/app/context/                     ← three memoized domain providers, nested Profile > Library > Chat
+  ProfileProvider.tsx                ← useProfile: userProfile, persona, tone, sign-in, dialect
+  LibraryProvider.tsx                ← useLibrary: phrases, tags, sessions, conversation lessons, progress
+  ChatProvider.tsx                   ← useChat: messages, draft autosave, saveSession/discardChat compositions
+src/features/                        ← the three product surfaces (chat/, learn/, bookmarks/), decomposed;
+                                       src/app/pages/* for these are one-line re-exports
+src/languages/                       ← LanguagePack contract + yue-HK pack (voices, prompts, scoring maps);
+                                       useGoogleTTS/translationService are the stable façades over the active pack
 src/repositories/                   ← repository pattern for persistence
   interfaces.ts                     ← I*Repository interfaces
   index.ts                          ← factory: local vs cloud impl based on VITE_STORAGE_MODE
@@ -108,6 +115,8 @@ Each `UserProfile` has two personas: `"personal"` and `"work"` (`activePersona` 
 - Generate IDs with `newId()` from `src/utils/id.ts`.
 - New persisted data: add an interface to `src/repositories/interfaces.ts`, implement in `local/` (and stub in `cloud/`), wire in `repositories/index.ts`, bump the Dexie version in `local/db.ts` with an upgrade function.
 - Learn features live in `src/features/learn/` (decomposed; `src/app/pages/LearnPage.tsx` is a re-export). New learn work goes in the matching subfolder (`main/`, `roadmap/`, `exercises/`, `conversation-lesson/`, `exam/`), keeping files under 400 lines.
-- Known debt: `ChatPage.tsx` (~1300 lines) and `BookmarksPage.tsx` (~1200) are still god components pending the same decomposition — do not add new top-level features to them; extract into components/hooks instead.
+- All three main surfaces live in `src/features/{chat,learn,bookmarks}/` — new work goes in the matching feature folder, files under 400 lines preferred (800 hard cap).
+- State: consume the narrowest context hook (`useProfile` / `useLibrary` / `useChat` from `src/app/context/`); new callbacks in providers must use `useCallback` with exhaustive deps and be added to the value `useMemo`.
+- Language-specific data (prompts, voices, scoring maps) belongs in `src/languages/<code>/` — never inline dialect specifics in services or components.
 - Run `pnpm typecheck && pnpm lint && pnpm test` before committing; CI enforces all three plus the build.
 - The product roadmap (real auth, cloud DB, multi-language packs, ML data pipeline) lives in `docs/IMPROVEMENT_PLAN.md` — align new work with its phases.

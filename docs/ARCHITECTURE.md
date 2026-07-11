@@ -6,7 +6,7 @@
 ┌─────────────────────────────────────────────┐
 │  Browser / Capacitor WebView (React + Vite) │
 │                                             │
-│  pages ──> AppContext ──> repositories ──> Dexie (IndexedDB)
+│  features ─> context providers ─> repositories ─> Dexie (IndexedDB)
 │    │                                        │
 │    └──> services / hooks ──> src/lib/api.ts │
 └──────────────────────┬──────────────────────┘
@@ -27,9 +27,10 @@ Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless envir
 
 | Layer | Location | Responsibility |
 |---|---|---|
-| Pages | `src/app/pages/` | Route-level screens (Chat, Learn, Bookmarks, Profile) + gate screens (SignIn, Auth, Onboarding) |
+| Pages | `src/app/pages/` | Thin re-exports for Chat/Learn/Bookmarks + real screens for Profile and the gate chain (SignIn, Auth, Onboarding) |
+| Features | `src/features/{chat,learn,bookmarks}/` | The three main product surfaces, decomposed into per-feature components/hooks (largest file < 700 lines) |
 | Components | `src/app/components/` | Layout with bottom nav + gate chain, LanguageFilter, guided tour (`tour/`) |
-| State | `src/app/context/AppContext.tsx` | Single global context: phrases, messages, sessions, tags, profile, lesson progress. Known debt — slated to be split (see improvement plan Phase 2). |
+| State | `src/app/context/` | Three memoized domain providers, nested `ProfileProvider > LibraryProvider > ChatProvider`; consume via `useProfile` / `useLibrary` / `useChat` (narrowest hook that has what you need) |
 | Services | `src/services/` | AI features over `/api/chat` + `/api/transcribe`: translation (3 tones), transcription with hallucination guard, scoring, word breakdown, personas, suggestions. Each has an offline fallback. |
 | Hooks | `src/hooks/` | `useGoogleTTS` (TTS + voice registry + `asVoiceKey`), `audio.ts` (recorder with unmount cleanup, WAV encoder, playback) |
 | Persistence | `src/repositories/` | Repository pattern; `index.ts` factory picks local (Dexie) vs cloud (stub) via `VITE_STORAGE_MODE` |
@@ -87,8 +88,6 @@ language selection is the remainder of Phase 4.
 
 ## Known architectural debt (by design, tracked in the improvement plan)
 
-- God components (LearnPage/ChatPage/BookmarksPage) — Phase 2
-- Single mega-context re-rendering all consumers — Phase 2
 - `saveAll` (clear + bulkPut) phrase writes — replaced by per-entity CRUD in Phase 3
 - No `userId` on entities; profile singleton — Phase 3 (Supabase)
 - Services bind statically to the single Cantonese pack (`ACTIVE_LANGUAGE_PACK`) — per-user language selection is the rest of Phase 4
