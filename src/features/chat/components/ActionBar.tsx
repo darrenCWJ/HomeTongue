@@ -1,0 +1,79 @@
+import { Keyboard, Mic, Square } from "lucide-react";
+
+type MicMode = "cantonese" | "english";
+
+interface ActionBarProps {
+  listeningMode: MicMode | null;
+  isTapMode: boolean;
+  isListening: boolean;
+  onDialectPointerDown: () => void;
+  onEnglishPointerDown: () => void;
+  onMicPointerUp: (mode: MicMode) => void;
+  onMicPointerLeave: (mode: MicMode) => void;
+  onOpenTyping: () => void;
+}
+
+export function ActionBar({
+  listeningMode,
+  isTapMode,
+  isListening,
+  onDialectPointerDown,
+  onEnglishPointerDown,
+  onMicPointerUp,
+  onMicPointerLeave,
+  onOpenTyping,
+}: ActionBarProps) {
+  return (
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-3 items-center select-none">
+      <button
+        data-tour="chat-dialect-mic"
+        onPointerDown={onDialectPointerDown}
+        onPointerUp={() => onMicPointerUp("cantonese")}
+        onPointerLeave={() => onMicPointerLeave("cantonese")}
+        onContextMenu={(e) => e.preventDefault()}
+        disabled={isListening && listeningMode !== "cantonese"}
+        className={`relative flex items-center justify-center gap-2 w-[7.5rem] py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "cantonese" ? "bg-brand-red shadow-brand-red/30 scale-105" : "bg-brand-red shadow-brand-red/20"}`}
+      >
+        {listeningMode === "cantonese" && (
+          <span className="absolute inset-0 rounded-full bg-brand-red/60 animate-ping opacity-75" />
+        )}
+        {listeningMode === "cantonese" && isTapMode ? (
+          <Square size={16} fill="currentColor" className="relative z-10" />
+        ) : (
+          <Mic size={18} className="relative z-10" />
+        )}
+        <span className="relative z-10 text-sm font-bold">Dialect</span>
+      </button>
+
+      <button
+        data-tour="chat-type-button"
+        onClick={onOpenTyping}
+        disabled={isListening}
+        className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border-2 border-zinc-300 text-zinc-600 shadow-lg shadow-zinc-100 transition-transform active:scale-95 disabled:opacity-50 select-none"
+      >
+        <Keyboard size={18} />
+        <span className="text-sm font-bold">Type</span>
+      </button>
+
+      <button
+        data-tour="chat-english-mic"
+        onPointerDown={onEnglishPointerDown}
+        onPointerUp={() => onMicPointerUp("english")}
+        onPointerLeave={() => onMicPointerLeave("english")}
+        onContextMenu={(e) => e.preventDefault()}
+        disabled={isListening && listeningMode !== "english"}
+        className={`relative flex items-center justify-center gap-2 w-[7.5rem] py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "english" ? "bg-brand-red shadow-brand-red/20 scale-105" : "bg-brand-blue shadow-brand-blue/20"}`}
+      >
+        {listeningMode === "english" && (
+          <span className="absolute inset-0 rounded-full bg-brand-red/60 animate-ping opacity-75" />
+        )}
+        {listeningMode === "english" && isTapMode ? (
+          <Square size={16} fill="currentColor" className="relative z-10" />
+        ) : (
+          <Mic size={18} className="relative z-10" />
+        )}
+        <span className="relative z-10 text-sm font-bold">Non-Dialect</span>
+      </button>
+    </div>
+  );
+}
