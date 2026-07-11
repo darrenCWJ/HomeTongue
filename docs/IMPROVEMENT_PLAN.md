@@ -67,7 +67,7 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 - [x] Vitest + React Testing Library; 50 characterization tests (scoring, hallucination guard, voice keys, vocab extraction, session sort, full api/* validation)
 - [x] ESLint (typescript-eslint) + Prettier (hooks compiler-preset rules deferred to warnings until decomposition completes — see eslint.config.js)
 - [x] GitHub Actions: typecheck → lint → test → build on every PR (first run green)
-- [ ] Durable rate limiting (Upstash Redis or Vercel KV-equivalent) replacing the in-memory limiter
+- [x] Durable rate limiting — `api/_lib/rateLimit.js` uses Upstash Redis (fixed window) when `UPSTASH_REDIS_REST_URL/TOKEN` are set, failing open to the in-memory limiter; provision Upstash and set the vars to activate
 
 ## Phase 2 — Decompose god components
 
@@ -79,7 +79,11 @@ Do this only after tests exist (Phase 1) so refactors are safe.
 4. **AppContext split** ✅ → three memoized domain providers (`ProfileProvider > LibraryProvider > ChatProvider`, hooks `useProfile`/`useLibrary`/`useChat`); 18 consumers migrated. TanStack Query remains an option for Phase 3 server state rather than a goal in itself.
 5. Remaining: enforce the 800-line cap in CI; enable the react-hooks compiler preset once React Compiler is adopted (evaluated 2026-07: 18 findings, all intentional patterns — rationale in eslint.config.js).
 
-## Phase 3 — Real auth + cloud database (Supabase)
+## Phase 3 — Real auth + cloud database (Supabase) — ✅ code-complete, config-gated
+
+**Built (2026-07)**: full schema with RLS (`supabase/migrations/0001`), real `CloudRepositories` with tested row↔domain mappers, config-gated Supabase client + auth gateway (zero bundle impact in local mode, verified), real email sign-in/sign-up in the existing gate flow with guest fallback, sign-out + Account section in Profile, provider data reloads on auth changes, and a one-way local→cloud import (`cloudImportService`). **To activate**: create a Supabase project, apply the two migrations, set `VITE_SUPABASE_URL/ANON_KEY` + `VITE_STORAGE_MODE=cloud` (see docs/SETUP.md). Remaining refinements: per-entity phrase CRUD replacing `saveAll`, OAuth providers, gating `/api/*` on verified Supabase JWTs, audio out of rows into Storage for regular phrases.
+
+Original design notes:
 
 1. Schema (all tables: `user_id uuid` FK → `auth.users`, UUID PKs, RLS `user_id = auth.uid()`):
    `profiles`, `persona_profiles`, `phrases`, `sessions`, `messages`, `tags`, `phrase_tags`, `session_tags`, `conversation_lessons`, `lesson_progress`.
@@ -91,7 +95,7 @@ Do this only after tests exist (Phase 1) so refactors are safe.
 
 ## Phase 4 — Multi-language architecture
 
-Groundwork ✅ (2026-07): `src/languages/` exists — `LanguagePack` contract, the verbatim `yue-HK` pack (voices, prompts, scoring maps, STT config), and a registry with `ACTIVE_LANGUAGE_PACK`. `useGoogleTTS`/`translationService` read from the pack behind unchanged façades. Remaining: per-user language selection (thread a `language` param through services), language-scoped lessons, server allowlist extension, and a second pack as proof.
+Groundwork ✅ (2026-07): `src/languages/` exists — `LanguagePack` contract, the verbatim `yue-HK` pack (voices, prompts, scoring maps, STT config), and a registry. Selection is live: services read `getActiveLanguagePack()` at use time and `ProfileProvider` syncs the active pack from `profile.preferredDialect`. Remaining: a second pack as proof (needs a dialect Google TTS supports), language-scoped lessons, server allowlist extension per pack.
 
 1. `LanguagePack` contract in `src/languages/`:
    ```ts
@@ -111,7 +115,11 @@ Groundwork ✅ (2026-07): `src/languages/` exists — `LanguagePack` contract, t
 4. Lesson content becomes language-scoped (`data/lessons/<code>.ts`, later DB-backed so content ships without redeploys).
 5. Prove it: add a second pack (e.g. Hokkien `nan-TW` if Google TTS supports it, else start with prompts + STT only) and flip `DIALECTS.available`.
 
-## Phase 5 — Mobile hardening (Android now, iOS next)
+## Phase 5 — Mobile hardening (Android now, iOS next) — partially done
+
+**Done (2026-07)**: `VITE_API_BASE_URL` plumbing (item 1), `android:allowBackup=false`, `network_security_config.xml` blocking cleartext traffic (item 3 partial). **Remaining**: on-device test pass (item 2), webview `<meta>` CSP, offline-first Dexie cache in front of Supabase, iOS target, store packaging.
+
+Original plan:
 
 1. Build Android against the deployed origin (`VITE_API_BASE_URL`) — plumbing already exists.
 2. Verify on-device: mic permission flow, MediaRecorder mime types, AudioContext WAV conversion, TTS playback, safe-area insets.
@@ -120,7 +128,11 @@ Groundwork ✅ (2026-07): `src/languages/` exists — `LanguagePack` contract, t
 5. `npx cap add ios`; audio behaviors re-tested on WKWebView (AudioContext unlock requires a user gesture).
 6. Store packaging: icons/splash, versioning, Play Console + TestFlight tracks.
 
-## Phase 6 — Dialect ML data pipeline (SLM/LLM training)
+## Phase 6 — Dialect ML data pipeline (SLM/LLM training) — ✅ code-complete, consent + config gated
+
+**Built (2026-07)**: consent flags (default OFF) with Profile toggles, `speech_samples`/`corrections` tables whose RLS insert policies re-verify consent server-side, private `recordings` bucket, capture from exam attempts / transcript edits / suggestion ratings (`speechSampleService`, fire-and-forget), and the anonymized JSONL export tool (`scripts/export-training-data.mjs`). See docs/ML_PIPELINE.md. Remaining: actual model training (Whisper LoRA / SLM fine-tune) once a corpus accumulates.
+
+Original plan:
 
 Goal: a clean, consented, labeled corpus that can fine-tune Whisper-class STT or an SLM for dialect understanding.
 

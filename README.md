@@ -10,6 +10,8 @@
 - 🧠 **Speaking exams** — record yourself, get transcribed, and receive a lenient dialect-aware accuracy score
 - 🔖 **Bookmarks & tags** — organize phrases and sessions
 - 👤 **Personas** — the app learns your communication style and adapts suggestions
+- ☁️ **Optional cloud accounts** — real sign-in + per-user sync via Supabase (config-gated; runs fully local without it)
+- 🧪 **Opt-in ML data pipeline** — consented, labeled speech corpus for future dialect model training
 - 📱 **Android app** via Capacitor (iOS planned)
 
 ## Tech stack
@@ -59,14 +61,15 @@ Native builds **must** set `VITE_API_BASE_URL` (e.g. `https://your-app.vercel.ap
 - [`docs/SETUP.md`](docs/SETUP.md) — environment, keys, and provider setup in detail
 - [`docs/MOBILE.md`](docs/MOBILE.md) — Capacitor Android (and future iOS) guide
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — domain types and persistence schema
-- [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) — phased roadmap: real auth, cloud DB, multi-language, ML data pipeline
+- [`docs/ML_PIPELINE.md`](docs/ML_PIPELINE.md) — consent model and training-data pipeline
+- [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) — phased roadmap and status
 - [`CLAUDE.md`](CLAUDE.md) — working conventions for AI-assisted development
 
 ## Security notes
 
-- The access-code screen is a **soft gate**, not authentication — real accounts arrive in Phase 3 of the improvement plan.
-- Never put a secret in a `VITE_`-prefixed env var; Vite embeds those in the public bundle.
-- `api/*` functions validate input and rate-limit per IP (best-effort; durable limiting is on the roadmap).
+- The access-code screen is a **soft gate**. Real authentication (Supabase email sign-in with Row-Level-Security-isolated data) activates when cloud mode is configured — see `docs/SETUP.md`.
+- Never put a secret in a `VITE_`-prefixed env var; Vite embeds those in the public bundle. (The Supabase anon key is public by design — RLS is the boundary.)
+- `api/*` functions validate input and rate-limit per IP — durable (Redis-backed) when Upstash env vars are set, best-effort in-memory otherwise.
 
 ## Status
 

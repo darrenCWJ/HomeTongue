@@ -24,8 +24,12 @@ Copy `.env.example` to `.env`. Secrets are **server-side only** — the client n
 | `OPENAI_MODEL` | server | model override (default `gpt-4o-mini`) |
 | `GOOGLE_API_JSON` | server | Google Cloud service-account JSON (single-line) for Chirp 3 HD TTS via `/api/tts` |
 | `VITE_ACCESS_CODE` | client | soft entry gate — ships in the bundle, NOT a security boundary; unset = open access |
-| `VITE_STORAGE_MODE` | client | `"local"` (IndexedDB, default) or `"cloud"` (stub, not implemented) |
+| `VITE_STORAGE_MODE` | client | `"local"` (IndexedDB, default) or `"cloud"` (requires Supabase vars) |
 | `VITE_API_BASE_URL` | client | base origin for `/api/*` calls — leave unset on web; REQUIRED for Capacitor builds (set to the deployed origin) |
+| `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` | client | enables cloud mode: real auth + per-user Postgres persistence (anon key is public by design; RLS is the boundary). Absent → local mode, and ALL supabase code must stay out of the bundle (see gating note below). |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | server | durable API rate limiting; absent → per-instance in-memory fallback |
+
+**Config-gating invariant**: any module importing `src/lib/supabase.ts` must gate with a literal `!!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)` check (NOT an imported boolean, NOT `Boolean()`) so Rollup statically eliminates the cloud branch — see `src/lib/authGateway.ts` for the documented pattern. Verify with `grep -rli supabase dist/assets/` → must be empty after a local-mode build.
 
 Legacy `VITE_OPENAI_API_KEY` / `VITE_GOOGLE_API_JSON` names are still read as fallbacks by the server code, but never referenced from client code. Never put a real secret in a `VITE_`-prefixed variable — Vite inlines those into the public JS bundle.
 
@@ -73,6 +77,12 @@ src/hooks/
   useGoogleTTS.ts                   ← TTS: Chirp 3 HD voices (yue-HK); speakText / speakTextAndCapture / asVoiceKey
   audio.ts                          ← useAudioRecorder (MediaRecorder + unmount cleanup), playDataUrl, blobToWav, blobToDataUrl
 src/lib/api.ts                      ← apiUrl / postJson / ApiError — the only place that knows the API base URL
+src/lib/supabase.ts                 ← config-gated Supabase client (getSupabaseClient / isSupabaseConfigured)
+src/lib/authGateway.ts              ← auth gateway; cloud branch statically eliminated in local mode
+src/app/context/AuthProvider.tsx     ← session tracking (useAuth); mounted outside ProfileProvider
+src/services/speechSampleService.ts ← consent-gated ML data capture (exam attempts, corrections, ratings)
+src/services/cloudImportService.ts  ← one-way local IndexedDB → Supabase import
+supabase/migrations/                ← Postgres schema: 0001 core tables + RLS, 0002 ML pipeline + consent
 src/utils/id.ts                     ← newId() — crypto.randomUUID-based IDs; use this, never Date.now().toString()
 src/utils/vocab.ts                  ← extract vocab items from chat messages
 src/data/lessons.ts                 ← static lesson content (Cantonese)

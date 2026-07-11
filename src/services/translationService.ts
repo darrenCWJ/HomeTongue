@@ -27,7 +27,10 @@ async function chatCompletion(messages: ChatMessage[], options: ChatRequestOptio
 
 /** Strip markdown fences the model sometimes wraps around JSON output. */
 export function parseModelJson<T>(raw: string): T {
-  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
   return JSON.parse(cleaned) as T;
 }
 
@@ -154,7 +157,7 @@ export function transcribeEnglish(blob: Blob): Promise<string> {
 // when audio is unclear. Detect this by checking whether >60% of adjacent CJK char
 // pairs in the result also appear in the prompt.
 export function isPromptHallucination(text: string, prompt: string): boolean {
-  const cjk = (s: string) => [...s].filter(c => /\p{Script=Han}/u.test(c)).join("");
+  const cjk = (s: string) => [...s].filter((c) => /\p{Script=Han}/u.test(c)).join("");
   const textCJK = cjk(text);
   const promptCJK = cjk(prompt);
   if (textCJK.length < 4) return false;
@@ -273,7 +276,9 @@ export async function scoreCantoneseAccuracy(expected: string, actual: string): 
   }
 }
 
-export async function getExampleMeta(cantonese: string): Promise<{ translation: string; pronunciation: string }> {
+export async function getExampleMeta(
+  cantonese: string
+): Promise<{ translation: string; pronunciation: string }> {
   try {
     const raw = await chatCompletion(
       [

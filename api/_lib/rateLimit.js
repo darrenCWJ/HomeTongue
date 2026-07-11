@@ -3,8 +3,8 @@
 // Durable mode: set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN and
 // limits survive across serverless instances/cold starts (fixed window via
 // INCR + PEXPIRE). Without them, falls back to a best-effort per-instance
-// in-memory window. Upstash errors fail open to the in-memory limiter so a
-// Redis outage never takes the API down.
+// in-memory window. Upstash errors fail over to the in-memory limiter so a
+// Redis outage never takes the API down (nor disables limiting entirely).
 //
 // Files under api/_lib are not exposed as routes by Vercel.
 

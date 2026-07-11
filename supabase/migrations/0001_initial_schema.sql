@@ -82,7 +82,9 @@ create trigger profiles_set_updated_at
 --  Storage bucket is a later Phase 3 step)
 -- ---------------------------------------------------------------------------
 create table public.phrases (
-  id              uuid primary key,
+  -- text id (not uuid): legacy local records use Date.now()/prefixed ids.
+  -- Composite PK scopes ids per user so identical ids never collide across tenants.
+  id              text not null,
   user_id         uuid not null references auth.users (id) on delete cascade,
   original        text not null,
   dialect         text not null,
@@ -93,7 +95,8 @@ create table public.phrases (
   audio_data_urls jsonb,
   tags            text[],
   created_at      timestamptz,
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  primary key (user_id, id)
 );
 
 create index phrases_user_id_idx on public.phrases (user_id);
@@ -123,7 +126,7 @@ create trigger phrases_set_updated_at
 -- imported from IndexedDB may lack it).
 -- ---------------------------------------------------------------------------
 create table public.sessions (
-  id           uuid primary key,
+  id           text not null,
   user_id      uuid not null references auth.users (id) on delete cascade,
   title        text,
   date_display text not null default '',
@@ -131,7 +134,8 @@ create table public.sessions (
   persona      text,
   tags         text[],
   created_at   timestamptz,
-  updated_at   timestamptz not null default now()
+  updated_at   timestamptz not null default now(),
+  primary key (user_id, id)
 );
 
 create index sessions_user_id_idx on public.sessions (user_id);
@@ -157,11 +161,14 @@ create trigger sessions_set_updated_at
 -- id is TEXT because default seeded tags use readable ids ("p-greetings").
 -- ---------------------------------------------------------------------------
 create table public.tags (
-  id         text primary key,
+  -- Composite PK: seeded default tags use the same literal ids ("p-greetings")
+  -- for every user — a bare id PK would collide across tenants.
+  id         text not null,
   user_id    uuid not null references auth.users (id) on delete cascade,
   name       text not null,
   type       text not null check (type in ('phrase', 'session')),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  primary key (user_id, id)
 );
 
 create index tags_user_id_idx on public.tags (user_id);
@@ -184,9 +191,9 @@ create policy "tags_delete_own" on public.tags
 -- session does not delete its generated lesson, and cloud mode mirrors that.
 -- ---------------------------------------------------------------------------
 create table public.conversation_lessons (
-  id              uuid primary key,
+  id              text not null,
   user_id         uuid not null references auth.users (id) on delete cascade,
-  session_id      uuid not null,
+  session_id      text not null,
   title           text not null,
   vocabulary      jsonb not null default '[]'::jsonb,
   exam_best_score double precision,
@@ -195,7 +202,8 @@ create table public.conversation_lessons (
   persona         text,
   current_phase   text check (current_phase in ('listen', 'flashcard', 'done')),
   created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  primary key (user_id, id)
 );
 
 create index conversation_lessons_user_id_idx on public.conversation_lessons (user_id);

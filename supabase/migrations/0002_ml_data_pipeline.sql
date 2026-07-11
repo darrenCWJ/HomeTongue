@@ -67,6 +67,14 @@ create policy "speech_samples_insert_consented" on public.speech_samples
       select 1 from public.profiles p
       where p.user_id = auth.uid() and p.data_collection_consent
     )
+    -- audio references additionally require the audio retention consent
+    and (
+      audio_url is null
+      or exists (
+        select 1 from public.profiles p
+        where p.user_id = auth.uid() and p.audio_retention_consent
+      )
+    )
   );
 create policy "speech_samples_delete_own" on public.speech_samples
   for delete using (auth.uid() = user_id);
@@ -93,6 +101,14 @@ on conflict (id) do nothing;
 create policy "recordings_read_own" on storage.objects
   for select using (bucket_id = 'recordings' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "recordings_insert_own" on storage.objects
-  for insert with check (bucket_id = 'recordings' and (storage.foldername(name))[1] = auth.uid()::text);
+  for insert with check (
+    bucket_id = 'recordings'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    -- server-side re-check: uploads require explicit audio retention consent
+    and exists (
+      select 1 from public.profiles p
+      where p.user_id = auth.uid() and p.audio_retention_consent
+    )
+  );
 create policy "recordings_delete_own" on storage.objects
   for delete using (bucket_id = 'recordings' and (storage.foldername(name))[1] = auth.uid()::text);

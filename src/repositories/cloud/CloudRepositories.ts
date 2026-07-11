@@ -79,7 +79,7 @@ export class CloudPhraseRepository implements IPhraseRepository {
     const rows = phrases.map((phrase) => phraseToRow(phrase, userId));
 
     if (rows.length > 0) {
-      const { error: upsertError } = await supabase.from("phrases").upsert(rows);
+      const { error: upsertError } = await supabase.from("phrases").upsert(rows, { onConflict: "user_id,id" });
       assertNoError(upsertError, "save phrases");
     }
 
@@ -128,13 +128,13 @@ export class CloudConversationRepository implements IConversationRepository {
 
   async addSession(session: Session): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const { error } = await supabase.from("sessions").upsert(sessionToRow(session, userId));
+    const { error } = await supabase.from("sessions").upsert(sessionToRow(session, userId), { onConflict: "user_id,id" });
     assertNoError(error, "add session");
   }
 
   async updateSession(session: Session): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const { error } = await supabase.from("sessions").upsert(sessionToRow(session, userId));
+    const { error } = await supabase.from("sessions").upsert(sessionToRow(session, userId), { onConflict: "user_id,id" });
     assertNoError(error, "update session");
   }
 
@@ -193,7 +193,7 @@ export class CloudConversationLessonRepository implements IConversationLessonRep
     const { supabase, userId } = await requireAuth();
     const { error } = await supabase
       .from("conversation_lessons")
-      .upsert(conversationLessonToRow(lesson, userId));
+      .upsert(conversationLessonToRow(lesson, userId), { onConflict: "user_id,id" });
     assertNoError(error, "save conversation lesson");
   }
 
@@ -201,7 +201,7 @@ export class CloudConversationLessonRepository implements IConversationLessonRep
     const { supabase, userId } = await requireAuth();
     const { error } = await supabase
       .from("conversation_lessons")
-      .upsert(conversationLessonToRow(lesson, userId));
+      .upsert(conversationLessonToRow(lesson, userId), { onConflict: "user_id,id" });
     assertNoError(error, "update conversation lesson");
   }
 
@@ -226,7 +226,7 @@ export class CloudTagRepository implements ITagRepository {
       // Mirror the local repository: seed the default tag set on first use.
       const { error: seedError } = await supabase
         .from("tags")
-        .upsert(DEFAULT_TAGS.map((tag) => tagToRow(tag, userId)));
+        .upsert(DEFAULT_TAGS.map((tag) => tagToRow(tag, userId)), { onConflict: "user_id,id" });
       assertNoError(seedError, "seed default tags");
       return DEFAULT_TAGS;
     }
@@ -235,7 +235,7 @@ export class CloudTagRepository implements ITagRepository {
 
   async create(tag: Tag): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const { error } = await supabase.from("tags").upsert(tagToRow(tag, userId));
+    const { error } = await supabase.from("tags").upsert(tagToRow(tag, userId), { onConflict: "user_id,id" });
     assertNoError(error, "create tag");
   }
 

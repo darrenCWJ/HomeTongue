@@ -23,8 +23,19 @@ Fill `.env`:
 | `OPENAI_MODEL` | no | default `gpt-4o-mini` |
 | `GOOGLE_API_JSON` | for TTS | the **entire** service-account JSON as a single line. In Vercel, paste it as-is into one env var; `\n` inside `private_key` is normalized automatically. |
 | `VITE_ACCESS_CODE` | no | enables the entry gate. This value ships in the JS bundle — treat it as a courtesy gate, not security. |
-| `VITE_STORAGE_MODE` | no | `local` (default). `cloud` is a non-functional stub. |
+| `VITE_STORAGE_MODE` | no | `local` (default) or `cloud` (requires Supabase, below) |
 | `VITE_API_BASE_URL` | native builds only | deployed origin for `/api/*`; leave unset for web |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | cloud mode | from your Supabase project (Settings → API). The anon key is public by design — Row-Level Security is the boundary. |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | no | server-side; upgrades API rate limiting from per-instance to durable |
+
+## Activating cloud mode (accounts + sync)
+
+Without these steps the app runs fully local (IndexedDB, soft gate) — nothing breaks.
+
+1. Create a free project at supabase.com.
+2. Apply the schema: paste `supabase/migrations/0001_initial_schema.sql` then `0002_ml_data_pipeline.sql` into the SQL editor (or `supabase db push`).
+3. Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_STORAGE_MODE=cloud` in `.env` (dev) and the Vercel project (prod), then redeploy.
+4. What changes: the email step becomes real sign-in/sign-up (guest stays available, local-only), all data persists per-user in Postgres behind RLS, Profile gains an Account section (sign out, one-way "import this device's data"), and opt-in Data & privacy toggles enable the ML training-data pipeline (`docs/ML_PIPELINE.md`).
 
 Missing keys degrade gracefully: translation uses a small offline mock; TTS/STT surface toasts.
 

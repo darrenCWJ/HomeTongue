@@ -20,6 +20,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// If the session restore never settles (dead network, captive portal), stop
+// blocking the UI and fall through to the sign-in gate instead of a blank screen.
+const SESSION_RESTORE_TIMEOUT_MS = 8_000;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(authGateway.isEnabled);
@@ -42,16 +46,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const unsubscribe = authGateway.onAuthUserChange(applyUser);
+    const restoreTimeout = setTimeout(() => {
+      if (!cancelled) setAuthLoading(false);
+    }, SESSION_RESTORE_TIMEOUT_MS);
     authGateway
       .getSessionUser()
       .then(applyUser)
       .catch((err) => {
         console.error("Failed to restore auth session:", err);
         if (!cancelled) setAuthLoading(false);
-      });
+      })
+      .finally(() => clearTimeout(restoreTimeout));
 
     return () => {
       cancelled = true;
+      clearTimeout(restoreTimeout);
       unsubscribe();
     };
   }, []);

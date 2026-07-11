@@ -33,7 +33,8 @@ Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless envir
 | State | `src/app/context/` | Three memoized domain providers, nested `ProfileProvider > LibraryProvider > ChatProvider`; consume via `useProfile` / `useLibrary` / `useChat` (narrowest hook that has what you need) |
 | Services | `src/services/` | AI features over `/api/chat` + `/api/transcribe`: translation (3 tones), transcription with hallucination guard, scoring, word breakdown, personas, suggestions. Each has an offline fallback. |
 | Hooks | `src/hooks/` | `useGoogleTTS` (TTS + voice registry + `asVoiceKey`), `audio.ts` (recorder with unmount cleanup, WAV encoder, playback) |
-| Persistence | `src/repositories/` | Repository pattern; `index.ts` factory picks local (Dexie) vs cloud (stub) via `VITE_STORAGE_MODE` |
+| Persistence | `src/repositories/` | Repository pattern; `index.ts` factory picks local (Dexie) or cloud (Supabase + RLS) via `VITE_STORAGE_MODE`; cloud requires configured Supabase and falls back to local with a warning |
+| Cloud (optional) | `src/lib/supabase.ts`, `authGateway.ts`, `AuthProvider` | Config-gated on `VITE_SUPABASE_URL/ANON_KEY`; statically eliminated from the bundle in local mode (see the gating invariant in CLAUDE.md) |
 | Lib | `src/lib/api.ts` | The only module that knows the API base URL; `postJson` + typed `ApiError` |
 | Utils | `src/utils/` | `id.ts` (UUID `newId()`), `vocab.ts` (chat → vocab extraction), `voicePreviewCache.ts` |
 
@@ -66,6 +67,10 @@ Rate limiting is per-instance in-memory (resets on cold start) — durable limit
 ## Persistence (Dexie, DB `hometongue`)
 
 Versions 1–5; tables: `phrases`, `sessions`, `profile` (singleton row), `lessonProgress`, `conversationLessons`, `draftMessages` (chat draft autosave), `tags`. See `docs/DATA_MODEL.md`.
+
+## Cloud mode (Supabase, optional)
+
+When `VITE_SUPABASE_URL/ANON_KEY` + `VITE_STORAGE_MODE=cloud` are set: real email auth (guest still local-only), per-user Postgres tables behind Row-Level Security (`supabase/migrations/0001`), a one-way local→cloud import from Profile, and the consent-gated ML data pipeline (`0002`, `docs/ML_PIPELINE.md`). Every cloud code path is statically eliminated from local-mode bundles — the gate pattern is documented in `src/lib/authGateway.ts` and CLAUDE.md.
 
 ## Language packs (`src/languages/`)
 

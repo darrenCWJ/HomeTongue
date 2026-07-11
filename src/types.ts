@@ -9,9 +9,9 @@ export interface DialectOption {
 
 export const DIALECTS: DialectOption[] = [
   { value: "Cantonese", label: "Cantonese", character: "粵", available: true },
-  { value: "Hokkien",   label: "Hokkien",   character: "閩", available: false },
-  { value: "Hakka",     label: "Hakka",     character: "客", available: false },
-  { value: "Teochew",   label: "Teochew",   character: "潮", available: false },
+  { value: "Hokkien", label: "Hokkien", character: "閩", available: false },
+  { value: "Hakka", label: "Hakka", character: "客", available: false },
+  { value: "Teochew", label: "Teochew", character: "潮", available: false },
 ];
 
 export type PersonaType = "personal" | "work";
@@ -27,7 +27,7 @@ export const WORK_JOB_TITLES = [
   "Office Worker",
 ] as const;
 
-export type WorkJobTitle = typeof WORK_JOB_TITLES[number];
+export type WorkJobTitle = (typeof WORK_JOB_TITLES)[number];
 
 export interface PersonaProfile {
   personaSummary?: string;

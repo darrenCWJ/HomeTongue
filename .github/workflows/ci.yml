@@ -38,3 +38,12 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # The local-mode bundle must never contain cloud code — the config
+      # gates in src/lib/authGateway.ts (and peers) rely on tree-shaking.
+      - name: Verify no supabase code in local-mode bundle
+        run: |
+          if grep -rliE "supabase|GoTrueClient|postgrest" dist/assets/; then
+            echo "supabase-js leaked into the local-mode bundle" && exit 1
+          fi
+          echo "Bundle clean."

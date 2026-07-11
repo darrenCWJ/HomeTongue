@@ -80,25 +80,34 @@ export async function speakTextAndCapture(
   const play = () =>
     new Promise<void>((resolve, reject) => {
       const audio = new Audio(audioUrl);
-      audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
-      audio.onerror = () => { URL.revokeObjectURL(audioUrl); reject(new Error("Audio playback failed")); };
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        resolve();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        reject(new Error("Audio playback failed"));
+      };
       audio.play().catch(reject);
     });
 
   return { audioDataUrl, play };
 }
 
-export async function speakText(
-  text: string,
-  voice: string = DEFAULT_VOICE
-): Promise<void> {
+export async function speakText(text: string, voice: string = DEFAULT_VOICE): Promise<void> {
   const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
   const audioUrl = URL.createObjectURL(audioBlob);
 
   await new Promise<void>((resolve, reject) => {
     const audio = new Audio(audioUrl);
-    audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
-    audio.onerror = () => { URL.revokeObjectURL(audioUrl); reject(new Error("Audio playback failed")); };
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      resolve();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(audioUrl);
+      reject(new Error("Audio playback failed"));
+    };
     audio.play().catch(reject);
   });
 }
