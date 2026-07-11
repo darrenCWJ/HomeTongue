@@ -12,8 +12,11 @@ import {
   MessageCircle,
   BookOpen,
   Bookmark,
+  LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
+import { useAuth } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileProvider";
 import { type PersonaType } from "../../types";
 import { VOICES } from "../../constants/voices";
@@ -23,6 +26,7 @@ import { useTour } from "../components/tour/TourProvider";
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
 export function ProfilePage() {
+  const { isCloudAuthEnabled, authUser, signOut } = useAuth();
   const { setIsSignedIn, userProfile, updateUserProfile, activePersona } = useProfile();
   const { startTour } = useTour();
   const navigate = useNavigate();
@@ -32,6 +36,21 @@ export function ProfilePage() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleCloudSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      localStorage.removeItem("ht_email_authed");
+      toast.success("Signed out of your account.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sign out. Please try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   const handlePreview = async (e: React.MouseEvent, id: (typeof VOICES)[number]["id"]) => {
     e.preventDefault();
@@ -357,6 +376,31 @@ export function ProfilePage() {
             ))}
           </div>
         </section>
+
+        {/* Cloud Account */}
+        {isCloudAuthEnabled && authUser && (
+          <section>
+            <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
+              <div className="flex items-center justify-between p-4 gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <User size={18} className="text-zinc-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-zinc-800">Account</p>
+                    <p className="text-xs text-zinc-400 mt-0.5 truncate">{authUser.email ?? "Signed in"}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloudSignOut}
+                  disabled={isSigningOut}
+                  className="flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 transition-colors disabled:opacity-60 shrink-0"
+                >
+                  {isSigningOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Sign Out */}
         <div className="pt-4">

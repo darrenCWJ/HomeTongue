@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
-import { repositories } from "../../repositories";
+import { repositories, isCloudStorageMode } from "../../repositories";
 import type { Phrase, Session, LessonProgress, ConversationLesson, Tag, TagType } from "../../types";
 import { newId } from "../../utils/id";
+import { useAuth } from "./AuthProvider";
 
 interface LibraryContextType {
   phrases: Phrase[];
@@ -35,6 +36,7 @@ interface LibraryContextType {
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
 
 export const LibraryProvider = ({ children }: { children: ReactNode }) => {
+  const { authEpoch } = useAuth();
   const [phrases, setPhrases] = useState<Phrase[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [conversationLessons, setConversationLessons] = useState<ConversationLesson[]>([]);
@@ -42,7 +44,13 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
   const [tags, setTags] = useState<Tag[]>([]);
 
+  // In cloud storage mode the initial load must re-run when the auth session
+  // changes (data is per-user); in local mode this stays a constant 0 so the
+  // effect runs exactly once, as before.
+  const reloadEpoch = isCloudStorageMode ? authEpoch : 0;
+
   useEffect(() => {
+    void reloadEpoch;
     Promise.all([
       repositories.phrases.getAll(),
       repositories.conversations.getAll(),
@@ -60,7 +68,7 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       .catch((err) => {
         console.error("Failed to load saved data from local storage:", err);
       });
-  }, []);
+  }, [reloadEpoch]);
 
   const toggleBookmark = useCallback((id: string) => {
     setPhrases((prev) => {

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Outlet, NavLink } from "react-router";
 import { MessageSquare, BookOpen, Bookmark, User } from "lucide-react";
+import { useAuth } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileProvider";
 import { SignInPage } from "../pages/SignInPage";
 import { AuthPage } from "../pages/AuthPage";
@@ -13,26 +14,47 @@ import { useTourAutoTrigger } from "./tour/useTourAutoTrigger";
 const HAS_ACCESS_CODE = !!import.meta.env.VITE_ACCESS_CODE;
 
 export function Layout() {
+  const { isCloudAuthEnabled, authUser, authLoading } = useAuth();
   const { isSignedIn, userProfile } = useProfile();
   const [isEmailAuthed, setIsEmailAuthedState] = useState(
     () => localStorage.getItem("ht_email_authed") === "true"
   );
-  const setIsEmailAuthed = (val: boolean) => {
+  const setIsEmailAuthed = useCallback((val: boolean) => {
     localStorage.setItem("ht_email_authed", String(val));
     setIsEmailAuthedState(val);
-  };
+  }, []);
+
+  // When cloud auth is enabled, a live Supabase session passes the email gate
+  // automatically; guests still pass via the local flag set by "Continue as Guest".
+  const emailGatePassed = isEmailAuthed || (isCloudAuthEnabled && !!authUser);
+
+  // When a cloud session ends (sign-out), return to the email gate. Guests are
+  // unaffected: they never had a session, so this transition never fires for them.
+  const hadCloudSession = useRef(false);
+  useEffect(() => {
+    if (!isCloudAuthEnabled) return;
+    if (authUser) {
+      hadCloudSession.current = true;
+    } else if (hadCloudSession.current) {
+      hadCloudSession.current = false;
+      setIsEmailAuthed(false);
+    }
+  }, [isCloudAuthEnabled, authUser, setIsEmailAuthed]);
 
   // If no access code is configured, treat the gate as already passed
   const accessCodePassed = !HAS_ACCESS_CODE || isSignedIn;
-  const needsOnboarding = accessCodePassed && isEmailAuthed && !userProfile?.name;
+  const needsOnboarding = accessCodePassed && emailGatePassed && !userProfile?.name;
 
   return (
     <div className="flex justify-center bg-brand-white min-h-dvh">
       <div className="w-full max-w-[448px] bg-white h-dvh flex flex-col shadow-2xl relative overflow-hidden">
         {!accessCodePassed ? (
           <SignInPage />
-        ) : !isEmailAuthed ? (
-          <AuthPage onComplete={() => setIsEmailAuthed(true)} />
+        ) : !emailGatePassed ? (
+          // Avoid flashing the sign-in form while an existing session restores.
+          isCloudAuthEnabled && authLoading ? null : (
+            <AuthPage onComplete={() => setIsEmailAuthed(true)} />
+          )
         ) : needsOnboarding ? (
           <OnboardingPage />
         ) : (

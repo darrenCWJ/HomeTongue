@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
-import { repositories } from "../../repositories";
+import { repositories, isCloudStorageMode } from "../../repositories";
 import type { Tone, Message, UserProfile, PersonaType } from "../../types";
 import { updatePersona } from "../../services/personaService";
 import { newId } from "../../utils/id";
+import { useAuth } from "./AuthProvider";
 
 interface ProfileContextType {
   dialect: string;
@@ -20,6 +21,7 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider = ({ children }: { children: ReactNode }) => {
+  const { authEpoch } = useAuth();
   const [dialect, setDialect] = useState("Cantonese");
   const [isSignedIn, setIsSignedInState] = useState(() => localStorage.getItem("ht_signed_in") === "true");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -32,7 +34,13 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.style.setProperty("--font-size", "18px");
   }, []);
 
+  // In cloud storage mode the initial load must re-run when the auth session
+  // changes (data is per-user); in local mode this stays a constant 0 so the
+  // effect runs exactly once, as before.
+  const reloadEpoch = isCloudStorageMode ? authEpoch : 0;
+
   useEffect(() => {
+    void reloadEpoch;
     repositories.user
       .getProfile()
       .then((u) => {
@@ -41,7 +49,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       .catch((err) => {
         console.error("Failed to load saved data from local storage:", err);
       });
-  }, []);
+  }, [reloadEpoch]);
 
   const setIsSignedIn = useCallback((val: boolean) => {
     localStorage.setItem("ht_signed_in", String(val));

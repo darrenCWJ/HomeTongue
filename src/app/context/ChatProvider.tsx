@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, R
 import { db } from "../../repositories/local/db";
 import type { Phrase, Message, Session } from "../../types";
 import { newId } from "../../utils/id";
+import { isCloudStorageMode } from "../../repositories";
+import { useAuth } from "./AuthProvider";
 import { useProfile } from "./ProfileProvider";
 import { useLibrary } from "./LibraryProvider";
 
@@ -20,11 +22,18 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
+  const { authEpoch } = useAuth();
   const { activePersona, updatePersonaInBackground } = useProfile();
   const { addSessionRecord, mergeSuggestedPhrases, addTranslationPhrase } = useLibrary();
   const [messages, setMessages] = useState<Message[]>([]);
 
+  // In cloud storage mode the initial load must re-run when the auth session
+  // changes; in local mode this stays a constant 0 so the effect runs exactly
+  // once, as before.
+  const reloadEpoch = isCloudStorageMode ? authEpoch : 0;
+
   useEffect(() => {
+    void reloadEpoch;
     db.draftMessages
       .get("draft")
       .then((draft) => {
@@ -33,7 +42,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       .catch((err) => {
         console.error("Failed to load saved data from local storage:", err);
       });
-  }, []);
+  }, [reloadEpoch]);
 
   useEffect(() => {
     if (messages.length === 0) {

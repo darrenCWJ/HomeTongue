@@ -17,6 +17,13 @@ import {
 } from "./cloud/CloudRepositories";
 import { isSupabaseConfigured } from "../lib/supabase";
 
+const STORAGE_MODE: string = import.meta.env.VITE_STORAGE_MODE ?? "local";
+
+// True only when cloud storage is both requested and actually configured.
+// Providers use this to decide whether their initial-load effects should
+// re-run when the auth session changes; in local mode it is a constant.
+export const isCloudStorageMode: boolean = STORAGE_MODE === "cloud" && isSupabaseConfigured;
+
 function createRepositories(mode: string): Repositories {
   // Cloud mode requires BOTH the mode flag and a configured Supabase project;
   // otherwise the app silently keeps working on local IndexedDB storage.
@@ -46,6 +53,4 @@ function createRepositories(mode: string): Repositories {
   };
 }
 
-export const repositories = createRepositories(
-  import.meta.env.VITE_STORAGE_MODE ?? "local"
-);
+export const repositories = createRepositories(STORAGE_MODE);
