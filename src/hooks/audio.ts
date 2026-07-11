@@ -1,8 +1,4 @@
-import { useRef } from "react";
-import { DEFAULT_VOICE_ID } from "../constants/voices";
-
-const API_KEY = import.meta.env.VITE_ELEVEN_LABS_API as string;
-const BASE_URL = "https://api.elevenlabs.io/v1";
+import { useEffect, useRef } from "react";
 
 export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -33,57 +29,24 @@ export function playDataUrl(dataUrl: string): Promise<void> {
   });
 }
 
-export async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", audioBlob, "recording.webm");
-  formData.append("model_id", "scribe_v1");
-
-  const response = await fetch(`${BASE_URL}/speech-to-text`, {
-    method: "POST",
-    headers: { "xi-api-key": API_KEY },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`STT failed (${response.status}): ${error}`);
-  }
-
-  const data = await response.json();
-  return (data.text as string).trim();
-}
-
-export async function cloneVoice(blob: Blob, name: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("name", name);
-  formData.append("files", blob, "voice-sample.webm");
-  formData.append("description", "User recorded voice clone");
-
-  const response = await fetch(`${BASE_URL}/voices/add`, {
-    method: "POST",
-    headers: { "xi-api-key": API_KEY },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Voice cloning failed (${response.status}): ${error}`);
-  }
-
-  const data = await response.json();
-  return data.voice_id as string;
-}
-
-export async function deleteClonedVoice(voiceId: string): Promise<void> {
-  await fetch(`${BASE_URL}/voices/${voiceId}`, {
-    method: "DELETE",
-    headers: { "xi-api-key": API_KEY },
-  });
-}
-
 export function useAudioRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Release the microphone if the component unmounts mid-recording
+  useEffect(() => {
+    return () => {
+      const recorder = mediaRecorderRef.current;
+      if (!recorder) return;
+      try {
+        if (recorder.state !== "inactive") recorder.stop();
+      } catch {
+        // recorder already stopped
+      }
+      recorder.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
+    };
+  }, []);
 
   const startRecording = async (): Promise<void> => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -109,6 +72,11 @@ export function useAudioRecorder() {
       const mediaRecorder = mediaRecorderRef.current;
       if (!mediaRecorder) {
         reject(new Error("No active recording"));
+        return;
+      }
+      if (mediaRecorder.state === "inactive") {
+        mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+        reject(new Error("Recording already stopped"));
         return;
       }
 

@@ -1,11 +1,6 @@
-import React from "react";
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { ChatPage } from "./pages/ChatPage";
-import { LearnPage } from "./pages/LearnPage";
-import { BookmarksPage } from "./pages/BookmarksPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { ExamTestPage } from "./pages/ExamTestPage";
 
 export const router = createBrowserRouter([
   {
@@ -13,10 +8,18 @@ export const router = createBrowserRouter([
     Component: Layout,
     children: [
       { index: true, Component: ChatPage },
-      { path: "learn", Component: LearnPage },
-      { path: "bookmarks", Component: BookmarksPage },
-      { path: "profile", Component: ProfilePage },
+      {
+        path: "learn",
+        lazy: async () => ({ Component: (await import("./pages/LearnPage")).LearnPage }),
+      },
+      {
+        path: "bookmarks",
+        lazy: async () => ({ Component: (await import("./pages/BookmarksPage")).BookmarksPage }),
+      },
+      {
+        path: "profile",
+        lazy: async () => ({ Component: (await import("./pages/ProfilePage")).ProfilePage }),
+      },
     ],
   },
-  { path: "/test/exam", Component: ExamTestPage },
 ]);

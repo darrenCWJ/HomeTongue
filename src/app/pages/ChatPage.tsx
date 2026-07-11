@@ -5,7 +5,7 @@ import { useAppContext } from "../context/AppContext";
 import type { Phrase, Message } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
-import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/useElevenLabs";
+import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/audio";
 import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import { translate, transcribeCantonese, transcribeEnglish, translateCantoneseToEnglish } from "../../services/translationService";
 import { getSuggestions } from "../../services/suggestionService";
@@ -180,6 +180,7 @@ export function ChatPage() {
       setListeningMode("cantonese");
     } catch {
       recordingStartRef.current = null;
+      recordingModeRef.current = null;
       toast.error("Microphone access denied. Please allow microphone permissions.");
     }
   };
@@ -191,6 +192,7 @@ export function ChatPage() {
       setListeningMode("english");
     } catch {
       recordingStartRef.current = null;
+      recordingModeRef.current = null;
       toast.error("Microphone access denied. Please allow microphone permissions.");
     }
   };
@@ -519,9 +521,11 @@ export function ChatPage() {
 
   const handleNewChat = () => {
     if (messages.length === 0) return;
+    suggestionGenRef.current++; // invalidate any in-flight suggestion fetches
     prefetchCacheRef.current.clear();
     lastRecordRef.current = null;
     setPendingEnglish(null);
+    setLatestSuggestions([]);
     discardChat(messages);
   };
 

@@ -10,9 +10,9 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, "../public/voice-previews");
 
-const rawJson = process.env.VITE_GOOGLE_API_JSON;
+const rawJson = process.env.GOOGLE_API_JSON ?? process.env.VITE_GOOGLE_API_JSON;
 if (!rawJson) {
-  console.error("Error: VITE_GOOGLE_API_JSON not set. Run with: node --env-file=.env scripts/generate-voice-previews.mjs");
+  console.error("Error: GOOGLE_API_JSON not set. Run with: node --env-file=.env scripts/generate-voice-previews.mjs");
   process.exit(1);
 }
 

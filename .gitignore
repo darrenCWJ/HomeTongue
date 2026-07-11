@@ -8,8 +8,21 @@ out/
 
 # Environment variables (contains secrets)
 .env
-.env.local
-.env.*.local
+.env.*
+.env.txt
+!.env.example
+
+# Screenshots / local debug artifacts
+*.png
+!public/**
+!src/assets/**
+.playwright-mcp/
+
+# Android local config and build output
+android/local.properties
+android/app/build/
+android/build/
+android/.gradle/
 
 # OS files
 .DS_Store

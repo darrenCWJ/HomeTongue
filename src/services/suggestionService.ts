@@ -1,6 +1,6 @@
 import type { Message, UserProfile, Phrase } from "../types";
-
-const OPENAI_BASE = "https://api.openai.com/v1";
+import { postJson } from "../lib/api";
+import { newId } from "../utils/id";
 
 const SYSTEM_PROMPT = `You are a conversation assistant helping someone reply to a native dialect speaker. Based on what the native speaker just said (given as an English translation) and the conversation history, suggest 3 natural English phrases the user might want to say in reply.
 
@@ -31,9 +31,6 @@ export async function getSuggestions(
   conversationHistory: Message[],
   userProfile: UserProfile | null
 ): Promise<Phrase[]> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string;
-  if (!apiKey || apiKey === "your-openai-api-key-here") return [];
-
   const activePersona = userProfile?.activePersona ?? "personal";
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
   const tone = activePersonaProfile?.tone ?? userProfile?.preferredTone ?? "casual";
@@ -65,32 +62,19 @@ export async function getSuggestions(
     .join("\n\n");
 
   try {
-    const model = (import.meta.env.VITE_OPENAI_MODEL as string) || "gpt-4o-mini";
-    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
-        temperature: 0.7,
-        max_tokens: 400,
-      }),
+    const { content } = await postJson<{ content: string }>("/api/chat", {
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContent },
+      ],
+      temperature: 0.7,
+      max_tokens: 400,
     });
 
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    const raw: string = data.choices?.[0]?.message?.content ?? "[]";
-
-    const parsed: SuggestionItem[] = JSON.parse(raw);
-    return parsed.map((item, i) => ({
-      id: `suggestion-${Date.now()}-${i}`,
+    const parsed: SuggestionItem[] = JSON.parse(content);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => ({
+      id: `suggestion-${newId()}`,
       original: item.english,
       dialect: item.cantonese,
       pronunciation: item.pronunciation,

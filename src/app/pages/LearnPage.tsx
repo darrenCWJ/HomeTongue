@@ -20,7 +20,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import { useAudioRecorder, playDataUrl } from "../../hooks/useElevenLabs";
+import { useAudioRecorder, playDataUrl } from "../../hooks/audio";
 import { speakText, GOOGLE_TTS_VOICES, DEFAULT_VOICE } from "../../hooks/useGoogleTTS";
 import type { VoiceKey } from "../../hooks/useGoogleTTS";
 import { transcribeCantonese, transcribeAnyLanguage, generateWordBreakdown, scoreCantoneseAccuracy, getExampleMeta } from "../../services/translationService";

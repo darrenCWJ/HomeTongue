@@ -1,0 +1,85 @@
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+
+const MAX_TOTAL_CHARS = 24_000;
+const MAX_TOKENS_CAP = 2_000;
+const DEFAULT_MODEL = "gpt-4o-mini";
+
+// Best-effort per-instance rate limiting (resets on cold start).
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 60;
+const requestLog = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const timestamps = (requestLog.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    requestLog.set(ip, timestamps);
+    return true;
+  }
+  timestamps.push(now);
+  requestLog.set(ip, timestamps);
+  return false;
+}
+
+export default async function handler(req, res) {
+  try {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
+    if (isRateLimited(ip)) {
+      return res.status(429).json({ error: "Too many requests. Try again shortly." });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY ?? process.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: "Translation service is not configured" });
+    }
+
+    const { messages, temperature, max_tokens, response_format } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
+      return res.status(400).json({ error: "messages must be a non-empty array (max 20)" });
+    }
+    let totalChars = 0;
+    for (const m of messages) {
+      if (
+        !m ||
+        (m.role !== "system" && m.role !== "user" && m.role !== "assistant") ||
+        typeof m.content !== "string"
+      ) {
+        return res.status(400).json({ error: "Each message needs a valid role and string content" });
+      }
+      totalChars += m.content.length;
+    }
+    if (totalChars > MAX_TOTAL_CHARS) {
+      return res.status(400).json({ error: "Request too large" });
+    }
+
+    const model = process.env.OPENAI_MODEL ?? process.env.VITE_OPENAI_MODEL ?? DEFAULT_MODEL;
+
+    const upstream = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: typeof temperature === "number" ? Math.min(Math.max(temperature, 0), 2) : 0.3,
+        max_tokens: typeof max_tokens === "number" ? Math.min(max_tokens, MAX_TOKENS_CAP) : 1_000,
+        ...(response_format?.type === "json_object" ? { response_format: { type: "json_object" } } : {}),
+      }),
+    });
+
+    if (!upstream.ok) {
+      console.error("[api/chat] upstream error:", upstream.status, await upstream.text());
+      return res.status(502).json({ error: "Translation request failed" });
+    }
+
+    const data = await upstream.json();
+    const content = data.choices?.[0]?.message?.content ?? "";
+    return res.status(200).json({ content });
+  } catch (err) {
+    console.error("[api/chat] error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}

@@ -1,9 +1,10 @@
-import { playDataUrl } from "../hooks/useElevenLabs";
-import { speakTextAndCapture, type VoiceKey } from "../hooks/useGoogleTTS";
+import { playDataUrl } from "../hooks/audio";
+import { speakTextAndCapture, asVoiceKey } from "../hooks/useGoogleTTS";
 
 const sessionCache = new Map<string, string>();
 
-export async function previewVoice(voiceKey: VoiceKey, text: string): Promise<void> {
+export async function previewVoice(voice: string, text: string): Promise<void> {
+  const voiceKey = asVoiceKey(voice);
   // 1. Try pre-bundled static file first (zero API cost)
   const staticUrl = `/voice-previews/${voiceKey}.mp3`;
   try {
@@ -11,7 +12,7 @@ export async function previewVoice(voiceKey: VoiceKey, text: string): Promise<vo
     if (res.ok) {
       const audio = new Audio(staticUrl);
       await new Promise<void>((resolve, reject) => {
-        audio.onended = resolve;
+        audio.onended = () => resolve();
         audio.onerror = () => reject(new Error("playback failed"));
         audio.play().catch(reject);
       });

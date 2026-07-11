@@ -1,6 +1,5 @@
 import type { Message, UserProfile } from "../types";
-
-const OPENAI_BASE = "https://api.openai.com/v1";
+import { postJson } from "../lib/api";
 
 const BASE_SYSTEM_PROMPT = `You are building a user persona profile for a dialect learning app. The user is learning to communicate with native dialect speakers through an AI translation assistant.
 
@@ -26,13 +25,8 @@ export async function updatePersona(
   sessionMessages: Message[],
   currentProfile: UserProfile
 ): Promise<PersonaResult | null> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
-  if (!apiKey || apiKey === "your-openai-api-key-here") return null;
-
   const userReplies = sessionMessages.filter((m) => m.sender === "user");
   if (userReplies.length < 2) return null;
-
-  const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
 
   const activePersona = currentProfile.activePersona ?? "personal";
   const activePersonaProfile = currentProfile.personaProfiles?.[activePersona];
@@ -61,29 +55,16 @@ export async function updatePersona(
     .join("\n\n");
 
   try {
-    const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
-        ],
-        temperature: 0.4,
-        max_tokens: 300,
-      }),
+    const { content } = await postJson<{ content: string }>("/api/chat", {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      temperature: 0.4,
+      max_tokens: 300,
     });
 
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const raw: string = data.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw) as PersonaResult;
-
+    const parsed = JSON.parse(content) as PersonaResult;
     if (!parsed.personaSummary) return null;
     return {
       personaSummary: parsed.personaSummary,

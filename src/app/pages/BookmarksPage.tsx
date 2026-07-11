@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Bookmark, Volume2, Search, History, ChevronDown, Pencil, Trash2, Check, X, BookOpen, Home, Briefcase, Mic, Plus, Tag as TagIcon, StickyNote, ArrowLeft, MoreHorizontal } from "lucide-react";
 import type { PersonaType, Session } from "../../types";
 import { useAppContext } from "../context/AppContext";
-import { playDataUrl } from "../../hooks/useElevenLabs";
+import { playDataUrl } from "../../hooks/audio";
 import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 import { extractVocabFromMessages } from "../../utils/vocab";

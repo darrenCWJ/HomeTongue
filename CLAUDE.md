@@ -5,83 +5,107 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pnpm dev                    # start dev server
+pnpm dev                    # start dev server (includes /api/* middleware — see vite.config.ts)
 pnpm build                  # production build (output: dist/)
+pnpm typecheck              # tsc --noEmit (strict mode) — run before committing
 pnpm generate:previews      # pre-generate Google TTS voice preview audio files
+pnpm android:sync           # build web assets and sync into the Capacitor Android project
 ```
 
-No test runner or lint script is configured.
+No test runner or lint script is configured yet (see docs/IMPROVEMENT_PLAN.md Phase 1).
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and set:
+Copy `.env.example` to `.env`. Secrets are **server-side only** — the client never sees them.
 
-| Variable | Purpose | Default |
+| Variable | Side | Purpose |
 |---|---|---|
-| `VITE_ACCESS_CODE` | App entry gate (leave unset for open access) | unset |
-| `VITE_OPENAI_API_KEY` | OpenAI – translation, suggestions, persona, Whisper STT | required |
-| `VITE_OPENAI_MODEL` | OpenAI model override | `gpt-4o-mini` |
-| `VITE_ELEVEN_LABS_API` | ElevenLabs – STT (scribe_v1) and voice cloning only | required for STT |
-| `VITE_GOOGLE_API_JSON` | Google Cloud service account JSON (stringified) for TTS | required for TTS |
-| `VITE_STORAGE_MODE` | `"local"` (IndexedDB) or `"cloud"` | `"local"` |
+| `OPENAI_API_KEY` | server | translation, suggestions, persona, speech-to-text (via `/api/chat`, `/api/transcribe`) |
+| `OPENAI_MODEL` | server | model override (default `gpt-4o-mini`) |
+| `GOOGLE_API_JSON` | server | Google Cloud service-account JSON (single-line) for Chirp 3 HD TTS via `/api/tts` |
+| `VITE_ACCESS_CODE` | client | soft entry gate — ships in the bundle, NOT a security boundary; unset = open access |
+| `VITE_STORAGE_MODE` | client | `"local"` (IndexedDB, default) or `"cloud"` (stub, not implemented) |
+| `VITE_API_BASE_URL` | client | base origin for `/api/*` calls — leave unset on web; REQUIRED for Capacitor builds (set to the deployed origin) |
 
-`VITE_GOOGLE_API_JSON` must be the full service account JSON as a single-line string. The app signs JWTs client-side using `crypto.subtle` to exchange for OAuth2 access tokens.
+Legacy `VITE_OPENAI_API_KEY` / `VITE_GOOGLE_API_JSON` names are still read as fallbacks by the server code, but never referenced from client code. Never put a real secret in a `VITE_`-prefixed variable — Vite inlines those into the public JS bundle.
 
 ## Architecture
 
-**Stack**: React 18 + TypeScript, Vite 6, Tailwind CSS v4, shadcn/ui (Radix UI primitives), pnpm.
+**Stack**: React 18 + TypeScript (strict), Vite 6, Tailwind CSS v4, pnpm, Dexie (IndexedDB), Capacitor 8 (Android), Vercel serverless functions.
+
+### API layer (server-side proxies)
+
+All third-party AI calls go through serverless functions in `api/` so keys stay server-side:
+
+```
+api/chat.js        ← OpenAI chat completions proxy (translation, suggestions, persona, scoring)
+api/transcribe.js  ← OpenAI audio transcription proxy (accepts base64 WAV JSON body)
+api/tts.js         ← Google Cloud Chirp 3 HD TTS proxy (signs SA JWT server-side)
+```
+
+Each function validates input (length caps, model/voice allowlists) and applies best-effort per-IP rate limiting. `vite.config.ts` contains dev middleware mirroring all three endpoints so `pnpm dev` works identically — **keep them in sync when changing an endpoint**.
+
+The client reaches these via `src/lib/api.ts` (`apiUrl()` / `postJson()`), which prefixes `VITE_API_BASE_URL` for native builds.
 
 ### Data flow
 
 ```
-src/types.ts                        ← shared domain types (Phrase, Message, Session, UserProfile, Lesson*, ConversationLesson)
-src/app/context/AppContext.tsx       ← single global React context; all app state lives here
+src/types.ts                        ← shared domain types (Phrase, Message, Session, UserProfile, Lesson*, ConversationLesson, Tag)
+src/app/context/AppContext.tsx       ← single global React context; all app state lives here (splitting it is planned — see improvement plan)
 src/repositories/                   ← repository pattern for persistence
-  interfaces.ts                     ← IPhraseRepository, IConversationRepository, IUserRepository, ILessonRepository, IConversationLessonRepository
-  index.ts                          ← factory: picks local vs cloud impl based on VITE_STORAGE_MODE
-  local/db.ts                       ← Dexie (IndexedDB) schema; DB name: "hometongue", v1 + v2
+  interfaces.ts                     ← I*Repository interfaces
+  index.ts                          ← factory: local vs cloud impl based on VITE_STORAGE_MODE
+  local/db.ts                       ← Dexie schema; DB name "hometongue", versions 1–5
   local/LocalRepositories.ts        ← Dexie implementations
-  cloud/CloudRepositories.ts        ← stub cloud implementations (not yet functional)
+  cloud/CloudRepositories.ts        ← stub cloud implementations (throw; not functional)
 src/services/
-  translationService.ts             ← OpenAI chat completions (EN→Cantonese, 3 tones) + Whisper STT; falls back to mock
-  personaService.ts                 ← OpenAI persona summary built from chat history
-  suggestionService.ts              ← AI phrase suggestions based on conversation context + user persona
+  translationService.ts             ← translation, transcription, scoring, word breakdown (all via /api proxies; offline mock fallback when server unconfigured)
+  personaService.ts                 ← persona summary from chat history (via /api/chat)
+  suggestionService.ts              ← AI reply suggestions (via /api/chat)
 src/hooks/
-  useGoogleTTS.ts                   ← PRIMARY TTS: Google Cloud Chirp 3 HD voices for Cantonese (yue-HK); handles JWT signing and OAuth2
-  useElevenLabs.ts                  ← STT via ElevenLabs scribe_v1, voice cloning, useAudioRecorder hook, blobToDataUrl utility
-src/data/lessons.ts                 ← static lesson content
+  useGoogleTTS.ts                   ← TTS: Chirp 3 HD voices (yue-HK); speakText / speakTextAndCapture / asVoiceKey
+  audio.ts                          ← useAudioRecorder (MediaRecorder + unmount cleanup), playDataUrl, blobToWav, blobToDataUrl
+src/lib/api.ts                      ← apiUrl / postJson / ApiError — the only place that knows the API base URL
+src/utils/id.ts                     ← newId() — crypto.randomUUID-based IDs; use this, never Date.now().toString()
+src/utils/vocab.ts                  ← extract vocab items from chat messages
+src/data/lessons.ts                 ← static lesson content (Cantonese)
 ```
 
-### TTS split
+### TTS / STT split
 
-TTS and STT are handled by separate providers:
-- **TTS** → `useGoogleTTS.ts`. Voices are `GOOGLE_TTS_VOICES` (Chirp 3 HD, yue-HK). `VoiceKey` selects a voice; `DEFAULT_VOICE = "zephyr"`. Call `speakText(text, voiceKey)` or `speakTextAndCapture(text, voiceKey)`.
-- **STT** → `useElevenLabs.ts` (`transcribeAudio` using scribe_v1) and `translationService.ts` (`transcribeCantonese` / `transcribeEnglish` using Whisper).
-- `useElevenLabs.ts` also exports `useAudioRecorder` (browser MediaRecorder) and `blobToDataUrl` (imported by useGoogleTTS).
+- **TTS** → `useGoogleTTS.ts` → `/api/tts`. Voices are `GOOGLE_TTS_VOICES` (Chirp 3 HD, yue-HK). `asVoiceKey()` safely resolves any stored voice ID (including legacy ElevenLabs IDs) to a valid `VoiceKey`. `DEFAULT_VOICE = "zephyr"`.
+- **STT** → `translationService.ts` (`transcribeCantonese` / `transcribeEnglish` / `transcribeAnyLanguage`) → `/api/transcribe`. Audio is converted to WAV client-side (`blobToWav`) and sent as base64. `transcribeCantonese` includes a prompt-hallucination guard.
+- ElevenLabs is no longer used anywhere.
+
+### Auth & gating (IMPORTANT: cosmetic only)
+
+`Layout.tsx` chains three client-side gates: `SignInPage` (access code compared against `VITE_ACCESS_CODE` in the bundle) → `AuthPage` (fake email form, no backend) → `OnboardingPage` (profile name). State lives in localStorage (`ht_signed_in`, `ht_email_authed`). None of this is real authentication — treat it as a demo veneer. Real auth is Phase 3 of the improvement plan.
 
 ### Persona system
 
-Each `UserProfile` has two personas: `"personal"` and `"work"`. `activePersona` is stored on the profile. Each persona has its own `PersonaProfile` (tone, jobTitle, personaSummary, characteristicPhrases). `tone` in `AppContext` resolves as: active persona profile tone → profile preferredTone → `"casual"`. Persona summaries are regenerated in the background whenever a session is saved or discarded (`updatePersonaInBackground`).
+Each `UserProfile` has two personas: `"personal"` and `"work"` (`activePersona` on the profile). Each persona has its own `PersonaProfile` (tone, jobTitle, personaSummary, characteristicPhrases). `tone` resolves: active persona tone → profile preferredTone → `"casual"`. Persona summaries regenerate in the background on session save/discard (`updatePersonaInBackground`).
 
 ### Routing
 
-Four routes under a shared `Layout` wrapper (`src/app/routes.tsx`):
-- `/` → `ChatPage` – main translation/conversation interface
-- `/learn` → `LearnPage` – structured lessons + conversation lessons from chat history
-- `/bookmarks` → `BookmarksPage` – saved phrases with category filters
-- `/profile` → `ProfilePage` – user settings, persona management, voice selection
+`src/app/routes.tsx` — all under a shared `Layout`; non-index pages are lazy-loaded (route-level code splitting):
 
-### UI components
+- `/` → `ChatPage` (eager) — live translation/conversation
+- `/learn` → `LearnPage` — lessons + conversation lessons + exam mode
+- `/bookmarks` → `BookmarksPage` — saved phrases with tag filters
+- `/profile` → `ProfilePage` — settings, personas, voice selection
 
-`src/app/components/ui/` is the shadcn/ui component library — do not modify generated files there. Custom application components live in `src/app/components/`.
+### Mobile (Capacitor)
+
+`android/` is a Capacitor 8 Android project (`appId com.hometongue.app`, webDir `dist`). Build flow: `pnpm android:sync` then open in Android Studio. Native builds MUST set `VITE_API_BASE_URL` at build time or all `/api/*` calls fail (the webview has no origin).
 
 ### Path alias
 
 `@` resolves to `src/`. Figma asset imports (`figma:asset/<file>`) resolve to `src/assets/`.
 
-### Adding a new page
+## Conventions
 
-1. Create the component in `src/app/pages/`.
-2. Add the route in `src/app/routes.tsx`.
-3. If the page needs persisted data, add an interface to `src/repositories/interfaces.ts`, implement it in both `local/` and `cloud/`, and wire it in `src/repositories/index.ts`.
-4. Expose state via `AppContext` if it needs to be shared across pages.
+- Strict TypeScript everywhere; `pnpm typecheck` must pass (0 errors) before committing.
+- Generate IDs with `newId()` from `src/utils/id.ts`.
+- New persisted data: add an interface to `src/repositories/interfaces.ts`, implement in `local/` (and stub in `cloud/`), wire in `repositories/index.ts`, bump the Dexie version in `local/db.ts` with an upgrade function.
+- Known debt: `LearnPage.tsx` (~2300 lines), `ChatPage.tsx` (~1300), `BookmarksPage.tsx` (~1200) are god components pending decomposition — do not add new top-level features to them; extract into `src/app/components/` or hooks instead.
+- The product roadmap (real auth, cloud DB, multi-language packs, ML data pipeline) lives in `docs/IMPROVEMENT_PLAN.md` — align new work with its phases.

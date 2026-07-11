@@ -76,7 +76,10 @@ export interface Message {
 export interface Session {
   id: string;
   title?: string;
+  /** Display-formatted date (locale string) — kept for older records */
   date: string;
+  /** ISO timestamp used for reliable sorting; older records may lack it */
+  createdAt?: string;
   messages: Message[];
   persona?: PersonaType;
   tags?: string[];

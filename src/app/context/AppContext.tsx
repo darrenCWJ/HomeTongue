@@ -3,27 +3,9 @@ import { repositories } from "../../repositories";
 import { db } from "../../repositories/local/db";
 import type { Tone, Phrase, Message, Session, UserProfile, LessonProgress, ConversationLesson, PersonaType, Tag, TagType } from "../../types";
 import { updatePersona } from "../../services/personaService";
+import { newId } from "../../utils/id";
 
 export type { Tone, Phrase, Message, Session, ConversationLesson, PersonaType, Tag, TagType };
-
-const DEFAULT_PHRASES: Phrase[] = [
-  {
-    id: "1",
-    original: "Hello, how are you?",
-    dialect: "你好嗎？",
-    pronunciation: "nei5 hou2 maa1?",
-    isBookmarked: true,
-    context: "General greeting",
-  },
-  {
-    id: "2",
-    original: "I don't understand.",
-    dialect: "我唔明。",
-    pronunciation: "ngo5 m4 ming4.",
-    isBookmarked: false,
-    context: "When confused",
-  },
-];
 
 interface AppContextType {
   dialect: string;
@@ -75,7 +57,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [dialect, setDialect] = useState("Cantonese");
 
-  const [phrases, setPhrases] = useState<Phrase[]>(DEFAULT_PHRASES);
+  const [phrases, setPhrases] = useState<Phrase[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [conversationLessons, setConversationLessons] = useState<ConversationLesson[]>([]);
@@ -114,6 +96,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setConversationLessons(cl);
       if (draft && draft.messages.length > 0) setMessages(draft.messages);
       setTags(t);
+    }).catch((err) => {
+      console.error("Failed to load saved data from local storage:", err);
     });
   }, []);
 
@@ -144,10 +128,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const updatePersonaInBackground = (msgs: Message[], profile: UserProfile | null, persona: PersonaType) => {
     const now = new Date().toISOString();
     const effectiveProfile: UserProfile = profile ?? {
-      id: Date.now().toString(),
+      id: newId(),
       name: "",
       preferredDialect: "Cantonese",
       preferredTone: "casual",
+      toneOverrideEnabled: false,
       personalityNotes: "",
       conversationCount: 0,
       createdAt: now,
@@ -188,7 +173,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const createTag = (name: string, type: TagType): Tag => {
     const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase() && t.type === type);
     if (existing) return existing;
-    const tag: Tag = { id: Date.now().toString(), name, type, createdAt: new Date().toISOString() };
+    const tag: Tag = { id: newId(), name, type, createdAt: new Date().toISOString() };
     setTags((prev) => [...prev, tag]);
     repositories.tags.create(tag);
     return tag;
@@ -237,9 +222,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const saveSession = (msgs: Message[], title: string, sessionTags?: string[]) => {
     const newSession: Session = {
-      id: Date.now().toString(),
+      id: newId(),
       title,
       date: new Date().toLocaleDateString(),
+      createdAt: new Date().toISOString(),
       messages: msgs,
       persona: activePersona,
       tags: sessionTags,
@@ -301,7 +287,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const msg: Message = {
-      id: messageId ?? Date.now().toString(),
+      id: messageId ?? newId(),
       sender: "bot",
       text: transcript ? `Translating: "${transcript}"` : "Here are some ways to say that:",
       suggestions,
@@ -317,7 +303,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return updated;
     });
     const msg: Message = {
-      id: Date.now().toString(),
+      id: newId(),
       sender: "bot",
       text: phrase.dialect,
       cantoneseText: phrase.dialect,
@@ -338,10 +324,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const updated: UserProfile = prev
         ? { ...prev, ...updates, updatedAt: now }
         : {
-            id: Date.now().toString(),
+            id: newId(),
             name: "",
             preferredDialect: "Cantonese",
             preferredTone: "casual",
+            toneOverrideEnabled: false,
             personalityNotes: "",
             conversationCount: 0,
             createdAt: now,

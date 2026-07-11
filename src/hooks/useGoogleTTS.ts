@@ -1,4 +1,5 @@
-import { blobToDataUrl } from "./useElevenLabs";
+import { blobToDataUrl } from "./audio";
+import { apiUrl } from "../lib/api";
 
 const LANGUAGE_CODE = "yue-HK";
 
@@ -55,6 +56,16 @@ export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {
   return ELEVENLABS_VOICE_MAP[elevenLabsId] ?? DEFAULT_VOICE;
 }
 
+/**
+ * Resolve any stored voice identifier (VoiceKey, legacy ElevenLabs ID, or
+ * undefined) to a valid VoiceKey, falling back to the default voice.
+ */
+export function asVoiceKey(id: string | undefined | null): VoiceKey {
+  if (!id) return DEFAULT_VOICE;
+  if (id in GOOGLE_TTS_VOICES) return id as VoiceKey;
+  return ELEVENLABS_VOICE_MAP[id] ?? DEFAULT_VOICE;
+}
+
 // ──────────────────────────────────────────────────────────
 // Core synthesis — proxied through /api/tts to avoid CORS
 // ──────────────────────────────────────────────────────────
@@ -64,7 +75,7 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
 
   let res: Response;
   try {
-    res = await fetch("/api/tts", {
+    res = await fetch(apiUrl("/api/tts"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, voiceName, languageCode: LANGUAGE_CODE }),
@@ -94,9 +105,9 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
 // ──────────────────────────────────────────────────────────
 export async function speakTextAndCapture(
   text: string,
-  voiceKey: VoiceKey = DEFAULT_VOICE
+  voice: string = DEFAULT_VOICE
 ): Promise<{ audioDataUrl: string; play: () => Promise<void> }> {
-  const audioBlob = await synthesizeToBlob(text, voiceKey);
+  const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
   const audioDataUrl = await blobToDataUrl(audioBlob);
   const audioUrl = URL.createObjectURL(audioBlob);
 
@@ -113,9 +124,9 @@ export async function speakTextAndCapture(
 
 export async function speakText(
   text: string,
-  voiceKey: VoiceKey = DEFAULT_VOICE
+  voice: string = DEFAULT_VOICE
 ): Promise<void> {
-  const audioBlob = await synthesizeToBlob(text, voiceKey);
+  const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
   const audioUrl = URL.createObjectURL(audioBlob);
 
   await new Promise<void>((resolve, reject) => {
