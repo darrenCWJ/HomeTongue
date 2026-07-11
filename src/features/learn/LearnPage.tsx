@@ -1,0 +1,291 @@
+import { useState } from "react";
+import { Play, BookOpen, Star, Trophy } from "lucide-react";
+import { useAppContext } from "../../app/context/AppContext";
+import { motion, AnimatePresence } from "motion/react";
+import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
+import { LanguageFilter } from "../../app/components/LanguageFilter";
+import type { LessonLevel, VocabItem, ConversationLesson } from "../../types";
+import { getDailyVocab } from "./dailyVocab";
+import { DailyReviewModal } from "./main/DailyReviewModal";
+import { LessonCard } from "./main/LessonCard";
+import { ConversationLessonCard } from "./main/ConversationLessonCard";
+import { RoadmapView } from "./roadmap/RoadmapView";
+import { LevelView } from "./roadmap/LevelView";
+import { ConversationLessonView } from "./conversation-lesson/ConversationLessonView";
+import { ExamView } from "./exam/ExamView";
+
+type View = "main" | "roadmap" | "level" | "conversation-lesson" | "exam";
+
+interface ActiveLevel {
+  categoryId: string;
+  lessonId: string;
+  level: LessonLevel;
+}
+
+export function LearnPage() {
+  const { lessonProgress, conversationLessons, updateConversationLesson, deleteConversationLesson } =
+    useAppContext();
+  const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
+
+  const [view, setView] = useState<View>("main");
+  const [mainTab, setMainTab] = useState<"standard" | "custom">("standard");
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const [activeLevel, setActiveLevel] = useState<ActiveLevel | null>(null);
+  const [dailyCard, setDailyCard] = useState<VocabItem | null>(null);
+  const [activeConversationLesson, setActiveConversationLesson] = useState<ConversationLesson | null>(null);
+
+  const activeCategoryTitle =
+    LESSON_CATEGORIES.find((c) => c.id === activeCategoryId)?.title ?? activeCategoryId ?? "";
+
+  const completedConvLessons = personalLessons.filter((l) => l.examCompleted).length;
+  const completedStandardLessons = LESSONS.filter((lesson) => {
+    const prog = lessonProgress[lesson.id];
+    return prog ? prog.completedLevels >= prog.totalLevels : false;
+  }).length;
+  const totalLessonsDone = completedConvLessons + completedStandardLessons;
+
+  const scoredLessons = personalLessons.filter((l) => l.examBestScore !== undefined);
+  const avgScore =
+    scoredLessons.length > 0
+      ? Math.round(scoredLessons.reduce((sum, l) => sum + (l.examBestScore ?? 0), 0) / scoredLessons.length)
+      : null;
+
+  const handleSelectCategory = (categoryId: string) => {
+    setActiveCategoryId(categoryId);
+    setView("roadmap");
+  };
+
+  const handleSelectLevel = (level: LessonLevel) => {
+    if (!activeCategoryId) return;
+    const lesson = LESSONS.find((l) => l.categoryId === activeCategoryId);
+    setActiveLevel({ categoryId: activeCategoryId, lessonId: lesson?.id ?? "", level });
+    setView("level");
+  };
+
+  const handleBackToRoadmap = () => {
+    setActiveLevel(null);
+    setView("roadmap");
+  };
+
+  const handleBackToMain = () => {
+    setActiveCategoryId(null);
+    setActiveLevel(null);
+    setActiveConversationLesson(null);
+    setView("main");
+  };
+
+  const handleSelectConversationLesson = (lesson: ConversationLesson) => {
+    setActiveConversationLesson(lesson);
+    setView("conversation-lesson");
+  };
+
+  const handleStartExam = () => {
+    setView("exam");
+  };
+
+  const handleExamComplete = (score: number) => {
+    if (!activeConversationLesson) return;
+    const passed = score >= 60;
+    const updated: ConversationLesson = {
+      ...activeConversationLesson,
+      examAttempts: activeConversationLesson.examAttempts + 1,
+      examBestScore:
+        activeConversationLesson.examBestScore === undefined
+          ? score
+          : Math.max(activeConversationLesson.examBestScore, score),
+      examCompleted: activeConversationLesson.examCompleted || passed,
+    };
+    updateConversationLesson(updated);
+    setActiveConversationLesson(updated);
+    setView("conversation-lesson");
+  };
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-zinc-50">
+      <AnimatePresence initial={false} mode="wait">
+        {view === "main" && (
+          <motion.div
+            key="main"
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-50%", opacity: 0 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            className="absolute inset-0 flex flex-col"
+          >
+            {/* Scrollable page */}
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 scrollbar-none">
+              <div className="flex items-start justify-between mb-6 mt-2">
+                <div>
+                  <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
+                  <p className="text-sm text-zinc-500">Master your saved phrases</p>
+                </div>
+                <div data-tour="learn-language-filter">
+                  <LanguageFilter />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div
+                  data-tour="learn-lessons-done"
+                  className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center"
+                >
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1.5">
+                    <Trophy size={16} className="text-green-500" />
+                  </div>
+                  <span className="text-xl font-bold text-zinc-800">{totalLessonsDone}</span>
+                  <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">
+                    Lessons Done
+                  </span>
+                </div>
+                <div
+                  data-tour="learn-dialect-fluency"
+                  className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center"
+                >
+                  <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center mb-1.5">
+                    <Star size={16} className="text-brand-red" />
+                  </div>
+                  <span className="text-xl font-bold text-zinc-800">
+                    {avgScore !== null ? `${avgScore}%` : "–"}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">
+                    Dialect Fluency
+                  </span>
+                </div>
+              </div>
+
+              <div
+                data-tour="learn-word-of-day"
+                className="bg-gradient-to-br from-brand-blue to-brand-red rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3"
+              >
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
+                <p className="text-sm font-bold relative z-10">Word of the Day</p>
+                <button
+                  onClick={() => setDailyCard(getDailyVocab())}
+                  className="bg-white text-brand-blue rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
+                >
+                  <Play size={16} className="fill-brand-blue ml-0.5" />
+                </button>
+              </div>
+
+              {/* Tab switcher */}
+              <div
+                data-tour="learn-tab-switcher"
+                className="flex bg-zinc-100 rounded-2xl p-1 mb-4 sticky top-0 z-10"
+              >
+                <button
+                  onClick={() => setMainTab("standard")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
+                    mainTab === "standard"
+                      ? "bg-white text-zinc-800 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Standard Lesson
+                </button>
+                <button
+                  onClick={() => setMainTab("custom")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
+                    mainTab === "custom"
+                      ? "bg-white text-zinc-800 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Custom Conversation
+                </button>
+              </div>
+              {mainTab === "standard" && (
+                <div data-tour="learn-lesson-cards" className="space-y-3">
+                  {LESSON_CATEGORIES.filter((cat) => {
+                    const lesson = LESSONS.find((l) => l.categoryId === cat.id);
+                    return (lesson?.content.levels?.length ?? 0) > 0;
+                  }).map((cat) => {
+                    const lesson = LESSONS.find((l) => l.categoryId === cat.id);
+                    const prog = lesson ? lessonProgress[lesson.id] : null;
+                    const totalLevels = lesson?.content.levels?.length ?? 5;
+                    const progressPct = prog ? Math.round((prog.completedLevels / totalLevels) * 100) : 0;
+                    return (
+                      <LessonCard
+                        key={cat.id}
+                        title={cat.title}
+                        subtitle={cat.description}
+                        progress={progressPct}
+                        onClick={() => handleSelectCategory(cat.id)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {mainTab === "custom" && (
+                <div data-tour="learn-conversation-lessons">
+                  {personalLessons.length === 0 ? (
+                    <div className="bg-white rounded-2xl p-8 text-center border border-zinc-100 shadow-sm">
+                      <BookOpen size={32} className="text-zinc-300 mx-auto mb-3" />
+                      <p className="text-sm font-semibold text-zinc-500 mb-1">No custom lessons yet</p>
+                      <p className="text-xs text-zinc-400">
+                        Go to Saved Conversations and tap the bookmark icon to convert a chat into a lesson.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {personalLessons.map((cl) => (
+                        <ConversationLessonCard
+                          key={cl.id}
+                          lesson={cl}
+                          onClick={() => handleSelectConversationLesson(cl)}
+                          onDelete={() => deleteConversationLesson(cl.id)}
+                          onEditTitle={(newTitle) => {
+                            updateConversationLesson({ ...cl, title: newTitle });
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {dailyCard && <DailyReviewModal card={dailyCard} onClose={() => setDailyCard(null)} />}
+          </motion.div>
+        )}
+
+        {view === "roadmap" && activeCategoryId && (
+          <RoadmapView
+            key="roadmap"
+            title={activeCategoryTitle}
+            categoryId={activeCategoryId}
+            onBack={handleBackToMain}
+            onSelectLevel={handleSelectLevel}
+          />
+        )}
+
+        {view === "level" && activeLevel && (
+          <LevelView
+            key="level"
+            level={activeLevel.level}
+            lessonId={activeLevel.lessonId}
+            onBack={handleBackToRoadmap}
+          />
+        )}
+
+        {view === "conversation-lesson" && activeConversationLesson && (
+          <ConversationLessonView
+            key="conversation-lesson"
+            lesson={activeConversationLesson}
+            onBack={handleBackToMain}
+            onStartExam={handleStartExam}
+          />
+        )}
+
+        {view === "exam" && activeConversationLesson && (
+          <ExamView
+            key="exam"
+            lesson={activeConversationLesson}
+            onBack={() => setView("conversation-lesson")}
+            onComplete={handleExamComplete}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

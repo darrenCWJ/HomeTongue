@@ -107,5 +107,7 @@ Each `UserProfile` has two personas: `"personal"` and `"work"` (`activePersona` 
 - Strict TypeScript everywhere; `pnpm typecheck` must pass (0 errors) before committing.
 - Generate IDs with `newId()` from `src/utils/id.ts`.
 - New persisted data: add an interface to `src/repositories/interfaces.ts`, implement in `local/` (and stub in `cloud/`), wire in `repositories/index.ts`, bump the Dexie version in `local/db.ts` with an upgrade function.
-- Known debt: `LearnPage.tsx` (~2300 lines), `ChatPage.tsx` (~1300), `BookmarksPage.tsx` (~1200) are god components pending decomposition — do not add new top-level features to them; extract into `src/app/components/` or hooks instead.
+- Learn features live in `src/features/learn/` (decomposed; `src/app/pages/LearnPage.tsx` is a re-export). New learn work goes in the matching subfolder (`main/`, `roadmap/`, `exercises/`, `conversation-lesson/`, `exam/`), keeping files under 400 lines.
+- Known debt: `ChatPage.tsx` (~1300 lines) and `BookmarksPage.tsx` (~1200) are still god components pending the same decomposition — do not add new top-level features to them; extract into components/hooks instead.
+- Run `pnpm typecheck && pnpm lint && pnpm test` before committing; CI enforces all three plus the build.
 - The product roadmap (real auth, cloud DB, multi-language packs, ML data pipeline) lives in `docs/IMPROVEMENT_PLAN.md` — align new work with its phases.

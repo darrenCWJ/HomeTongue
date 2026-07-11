@@ -64,16 +64,16 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 - [x] CSP tightened: `connect-src 'self'`, `script-src 'self'` (no unsafe-inline)
 - [ ] **ROTATE the OpenAI key** — the old one shipped in previously deployed bundles (manual step, do immediately)
 - [ ] Set `OPENAI_API_KEY`, `OPENAI_MODEL`, `GOOGLE_API_JSON` in Vercel project env; delete `VITE_OPENAI_API_KEY` / `VITE_ELEVEN_LABS_API` / `VITE_GOOGLE_API_JSON`
-- [ ] Vitest + React Testing Library; characterization tests for pure logic first (`utils/vocab`, `charMatchScore`, `isPromptHallucination`, `asVoiceKey`)
-- [ ] ESLint (typescript-eslint) + Prettier
-- [ ] GitHub Actions: typecheck → lint → test → build on every PR
+- [x] Vitest + React Testing Library; 50 characterization tests (scoring, hallucination guard, voice keys, vocab extraction, session sort, full api/* validation)
+- [x] ESLint (typescript-eslint) + Prettier (hooks compiler-preset rules deferred to warnings until decomposition completes — see eslint.config.js)
+- [x] GitHub Actions: typecheck → lint → test → build on every PR (first run green)
 - [ ] Durable rate limiting (Upstash Redis or Vercel KV-equivalent) replacing the in-memory limiter
 
 ## Phase 2 — Decompose god components
 
 Do this only after tests exist (Phase 1) so refactors are safe.
 
-1. **LearnPage** → `features/learn/{roadmap,flashcards,conversation-lesson,exam}/`; extract `useRecorder`, `useExamScoring`; move the `view` state into the URL (`/learn/:lessonId/exam` etc.) for deep links and back-button support.
+1. **LearnPage** ✅ → decomposed into `src/features/learn/` (18 modules: `main/`, `roadmap/`, `exercises/`, `conversation-lesson/`, `exam/`, `shared.tsx`; largest file 343 lines, was 2288). Still to do: move the `view` state into the URL (`/learn/:lessonId/exam` etc.) for deep links and back-button support, and extract `useRecorder`/`useExamScoring` hooks when logic changes warrant it.
 2. **ChatPage** → extract `useTranslationFlow`, `useMicRecording`, `useSessionSave`, `useTagEditor` hooks; sheets/dialogs into components. Target < 300 lines per file.
 3. **BookmarksPage** → filter bar, tag CRUD, phrase card, session list components.
 4. Split `AppContext` into `ProfileProvider`, `ChatProvider`, `LibraryProvider` (phrases/tags/sessions) or adopt TanStack Query per domain; memoize provider values.
