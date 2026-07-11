@@ -72,7 +72,7 @@ export function TourOverlay() {
 
   const retryCountRef = useRef(0);
 
-  const updatePosition = useCallback(() => {
+  const updatePosition = useCallback(function positionPass() {
     if (!activeTour) return;
     const step = TOUR_STEPS[activeTour][currentStep];
     if (!step) return;
@@ -81,7 +81,7 @@ export function TourOverlay() {
     if (!rect) {
       if (retryCountRef.current < 5) {
         retryCountRef.current += 1;
-        setTimeout(updatePosition, 100);
+        setTimeout(positionPass, 100);
       } else {
         retryCountRef.current = 0;
         nextStep();

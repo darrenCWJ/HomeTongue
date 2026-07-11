@@ -13,10 +13,12 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
-      // Classic hooks rules only. The v7 compiler-powered preset (purity/refs/
-      // set-state-in-effect) flags ~30 pre-existing patterns inside the god
-      // components that Phase 2 of docs/IMPROVEMENT_PLAN.md rewrites — enable
-      // the full preset once those pages are decomposed.
+      // Classic hooks rules only. The v7 compiler-powered preset was evaluated
+      // after the Phase 2 decomposition (2026-07): 18 findings remain, all
+      // intentional patterns (per-question shuffle useMemo keyed on index,
+      // the latest-ref pattern, loading-state effects). Rewriting them risks
+      // behavior changes for little gain until React Compiler is adopted —
+      // revisit if/when the compiler lands in the build.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': 'off',

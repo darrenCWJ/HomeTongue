@@ -185,7 +185,6 @@ export function ChatPage() {
     const lastMsg = messagesRef.current.find((m) => m.id === last.msgId);
     if (!lastMsg?.englishTranslation) return;
     fetchSuggestionsRef.current(lastMsg.englishTranslation, last.suggestionMsgId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePersona]);
 
   const startListeningCantonese = async () => {
