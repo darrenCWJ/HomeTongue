@@ -20,7 +20,7 @@ async function chatCompletion(messages: ChatMessage[], options: ChatRequestOptio
 }
 
 /** Strip markdown fences the model sometimes wraps around JSON output. */
-function parseModelJson<T>(raw: string): T {
+export function parseModelJson<T>(raw: string): T {
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   return JSON.parse(cleaned) as T;
 }
@@ -159,7 +159,7 @@ const CANTONESE_PROMPT = "以下係廣東話口語，用繁體中文書寫。唔
 // The transcription model sometimes echoes back its prompt instead of transcribing
 // when audio is unclear. Detect this by checking whether >60% of adjacent CJK char
 // pairs in the result also appear in the prompt.
-function isPromptHallucination(text: string, prompt: string): boolean {
+export function isPromptHallucination(text: string, prompt: string): boolean {
   const cjk = (s: string) => [...s].filter(c => /\p{Script=Han}/u.test(c)).join("");
   const textCJK = cjk(text);
   const promptCJK = cjk(prompt);
@@ -252,15 +252,16 @@ const PARTICLE_GROUPS = [
 ];
 
 function normalizeChar(ch: string): string {
-  const mapped = MANDARIN_TO_CANTONESE[ch];
-  if (mapped) return mapped;
+  // Map Mandarin equivalents first, then fold particle-group variants, so
+  // e.g. 是→係 and a literal 係 both normalize to the same character.
+  const mapped = MANDARIN_TO_CANTONESE[ch] ?? ch;
   for (const group of PARTICLE_GROUPS) {
-    if (group.includes(ch)) return group[0];
+    if (group.includes(mapped)) return group[0];
   }
-  return ch;
+  return mapped;
 }
 
-function charMatchScore(expected: string, actual: string): number {
+export function charMatchScore(expected: string, actual: string): number {
   const CHINESE = /[一-鿿㐀-䶿]/g;
   const expectedChars = (expected.match(CHINESE) ?? []).map(normalizeChar);
   if (expectedChars.length === 0) return 0;

@@ -81,7 +81,7 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
       body: JSON.stringify({ text, voiceName, languageCode: LANGUAGE_CODE }),
     });
   } catch (e) {
-    throw new Error(`TTS request failed: ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(`TTS request failed: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
   }
 
   if (!res.ok) {

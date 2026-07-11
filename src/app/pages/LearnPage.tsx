@@ -156,9 +156,8 @@ function getDailyVocab(): VocabItem {
 }
 
 export function LearnPage() {
-  const { phrases, lessonProgress, conversationLessons, updateConversationLesson, deleteConversationLesson, userProfile } = useAppContext();
+  const { lessonProgress, conversationLessons, updateConversationLesson, deleteConversationLesson } = useAppContext();
   const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
-  const bookmarkedPhrases = phrases.filter((p) => p.isBookmarked);
 
   const [view, setView] = useState<View>("main");
   const [mainTab, setMainTab] = useState<"standard" | "custom">("standard");
@@ -1314,6 +1313,16 @@ function FillBlankExercise({
   const [selected, setSelected] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
+  // Must run before the empty-state early return — hooks cannot be conditional
+  const current = itemsWithSentences[index];
+  const options = React.useMemo(() => {
+    if (!current) return [];
+    const others = level.vocabulary.filter((v) => v.cantonese !== current.cantonese);
+    const shuffled = [...others].sort(() => Math.random() - 0.5).slice(0, 2);
+    return [...shuffled, current].sort(() => Math.random() - 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
   if (itemsWithSentences.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-4">
@@ -1325,14 +1334,7 @@ function FillBlankExercise({
     );
   }
 
-  const current = itemsWithSentences[index];
   const sentence = personalise(current.exampleSentence ?? "", userProfile?.name);
-
-  const options = React.useMemo(() => {
-    const others = level.vocabulary.filter((v) => v.cantonese !== current.cantonese);
-    const shuffled = [...others].sort(() => Math.random() - 0.5).slice(0, 2);
-    return [...shuffled, current].sort(() => Math.random() - 0.5);
-  }, [index]);
 
   const handleSelect = (cantonese: string) => {
     if (selected !== null) return;

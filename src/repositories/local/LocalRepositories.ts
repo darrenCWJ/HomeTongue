@@ -37,15 +37,20 @@ export class LocalPhraseRepository implements IPhraseRepository {
   }
 }
 
+// `date` is a locale-formatted string, so a Dexie index on it sorts
+// lexicographically (wrong across months). Sort by the ISO createdAt,
+// falling back to parsing the display date for old records.
+export function sortSessionsNewestFirst(sessions: Session[]): Session[] {
+  const sortKey = (s: Session) => {
+    const parsed = s.createdAt ? Date.parse(s.createdAt) : Date.parse(s.date);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+  return [...sessions].sort((a, b) => sortKey(b) - sortKey(a));
+}
+
 export class LocalConversationRepository implements IConversationRepository {
   async getAll(): Promise<Session[]> {
-    // `date` is a locale-formatted string, so the Dexie index sorts it
-    // lexicographically (wrong across months). Sort in JS by the ISO
-    // createdAt, falling back to parsing the display date for old records.
-    const sessions = await db.sessions.toArray();
-    const sortKey = (s: Session) =>
-      s.createdAt ? Date.parse(s.createdAt) : Date.parse(s.date) || 0;
-    return sessions.sort((a, b) => sortKey(b) - sortKey(a));
+    return sortSessionsNewestFirst(await db.sessions.toArray());
   }
 
   async addSession(session: Session): Promise<void> {

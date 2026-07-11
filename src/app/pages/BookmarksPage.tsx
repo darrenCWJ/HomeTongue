@@ -714,7 +714,6 @@ export function BookmarksPage() {
             </div>
             ) : (
             filteredSessions.map((session, sessionIdx) => {
-              const hasAudio = session.messages.some((m) => m.audioDataUrl);
               return (
                 <div key={session.id} {...(sessionIdx === 0 ? { "data-tour": "bookmarks-session-card" } : {})} className="relative bg-white rounded-2xl shadow-sm border border-zinc-100">
                   {/* Session header */}

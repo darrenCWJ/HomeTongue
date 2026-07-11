@@ -1,10 +1,10 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
+import { ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
-import { WORK_JOB_TITLES, type WorkJobTitle, type PersonaType } from "../../types";
+import type { WorkJobTitle, PersonaType } from "../../types";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
@@ -19,7 +19,7 @@ export function OnboardingPage() {
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>("personal");
-  const [selectedJobTitle, setSelectedJobTitle] = useState<WorkJobTitle | null>(null);
+  const [selectedJobTitle] = useState<WorkJobTitle | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const stepIndex = STEPS.indexOf(step);

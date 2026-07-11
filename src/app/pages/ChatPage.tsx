@@ -33,7 +33,6 @@ export function ChatPage() {
     phraseTags,
     sessionTags,
     createTag,
-    setPhraseTags,
   } = useAppContext();
   const { isActive: isTourActive, activeTour } = useTour();
   const showDemoBubble = isTourActive && activeTour === "chat" && !messages.some((m) => m.sender === "bot" && !!m.englishTranslation);

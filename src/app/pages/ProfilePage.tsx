@@ -37,10 +37,6 @@ export function ProfilePage() {
     }
   };
 
-  const handleDeleteCustomVoice = () => {
-    updateUserProfile({ customVoiceId: undefined, preferredVoiceId: VOICES[0].id });
-  };
-
   const handleNameBlur = () => {
     const trimmed = nameInput.trim();
     if (trimmed !== (userProfile?.name ?? "")) {
@@ -58,7 +54,6 @@ export function ProfilePage() {
     setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
-  const workProfile = userProfile?.personaProfiles?.work;
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
   const personaSummary = activePersonaProfile?.personaSummary
     ?? (activePersona === "personal" ? userProfile?.personaSummary : undefined);
