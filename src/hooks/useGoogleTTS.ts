@@ -1,20 +1,22 @@
 import { blobToDataUrl } from "./audio";
 import { apiUrl } from "../lib/api";
-import { ACTIVE_LANGUAGE_PACK } from "../languages";
+import { getActiveLanguagePack } from "../languages";
+import { CANTONESE_PACK } from "../languages/yue-HK";
 
 export type { GoogleTTSVoice } from "../languages";
 
-const LANGUAGE_CODE = ACTIVE_LANGUAGE_PACK.tts.languageCode;
-
-// Stable façade over the active language pack: components, constants/voices.ts,
-// and tests import the voice registry from here, not from src/languages/.
-export const GOOGLE_TTS_VOICES = ACTIVE_LANGUAGE_PACK.tts.voices;
+// Stable façade over the voice registry: components, constants/voices.ts, and
+// tests import it from here, not from src/languages/. VoiceKey stays a literal
+// union derived from the const-asserted yue-HK map (the general LanguagePack
+// type would widen it to string); runtime request values (languageCode) read
+// getActiveLanguagePack() at call time instead.
+export const GOOGLE_TTS_VOICES = CANTONESE_PACK.tts.voices;
 
 export type VoiceKey = keyof typeof GOOGLE_TTS_VOICES;
 
-export const DEFAULT_VOICE: VoiceKey = ACTIVE_LANGUAGE_PACK.tts.defaultVoice;
+export const DEFAULT_VOICE: VoiceKey = CANTONESE_PACK.tts.defaultVoice;
 
-const ELEVENLABS_VOICE_MAP: Record<string, VoiceKey> = ACTIVE_LANGUAGE_PACK.tts.legacyVoiceMap;
+const ELEVENLABS_VOICE_MAP: Record<string, VoiceKey> = CANTONESE_PACK.tts.legacyVoiceMap;
 
 export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {
   return ELEVENLABS_VOICE_MAP[elevenLabsId] ?? DEFAULT_VOICE;
@@ -42,7 +44,7 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
     res = await fetch(apiUrl("/api/tts"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voiceName, languageCode: LANGUAGE_CODE }),
+      body: JSON.stringify({ text, voiceName, languageCode: getActiveLanguagePack().tts.languageCode }),
     });
   } catch (e) {
     throw new Error(`TTS request failed: ${e instanceof Error ? e.message : String(e)}`, { cause: e });

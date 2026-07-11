@@ -3,6 +3,7 @@ import { repositories, isCloudStorageMode } from "../../repositories";
 import type { Tone, Message, UserProfile, PersonaType } from "../../types";
 import { updatePersona } from "../../services/personaService";
 import { newId } from "../../utils/id";
+import { resolveLanguagePackByLabel, setActiveLanguage } from "../../languages";
 import { useAuth } from "./AuthProvider";
 
 interface ProfileContextType {
@@ -33,6 +34,14 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     document.documentElement.style.setProperty("--font-size", "18px");
   }, []);
+
+  // Keep the module-level active language pack in sync with the profile's
+  // preferred dialect (Phase 4). With one shipped pack this always resolves
+  // to Cantonese, so behavior is unchanged today.
+  const preferredDialect = userProfile?.preferredDialect ?? "Cantonese";
+  useEffect(() => {
+    setActiveLanguage(resolveLanguagePackByLabel(preferredDialect).code);
+  }, [preferredDialect]);
 
   // In cloud storage mode the initial load must re-run when the auth session
   // changes (data is per-user); in local mode this stays a constant 0 so the

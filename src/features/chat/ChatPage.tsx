@@ -13,6 +13,7 @@ import {
   translateCantoneseToEnglish,
 } from "../../services/translationService";
 import { getSuggestions } from "../../services/suggestionService";
+import { recordCorrection, consentFromProfile } from "../../services/speechSampleService";
 import { useTour } from "../../app/components/tour/TourProvider";
 import { useBubbleLongPress } from "./hooks/useBubbleLongPress";
 import { ChatHeader } from "./components/ChatHeader";
@@ -349,6 +350,13 @@ export function ChatPage() {
     if (!pendingEnglish) return;
     const { text: originalText, resultPromise } = pendingEnglish;
     const finalText = pendingEditText.trim() || originalText;
+    if (finalText !== originalText) {
+      // ML data capture: human-labeled STT correction (consent-gated, fire-and-forget)
+      recordCorrection(
+        { kind: "transcript_edit", original: originalText, corrected: finalText },
+        consentFromProfile(userProfile)
+      );
+    }
     setPendingEnglish(null);
     setIsEditingPending(false);
     lastRecordRef.current = null;
@@ -578,6 +586,21 @@ export function ChatPage() {
     }
   };
 
+  // Intercept suggestion ratings for ML data capture before delegating to the
+  // normal message update (consent-gated, fire-and-forget).
+  const handleUpdateMessage = (id: string, updates: Partial<Message>) => {
+    if (updates.rating === "up" || updates.rating === "down") {
+      const rated = messages.find((m) => m.id === id);
+      if (rated) {
+        recordCorrection(
+          { kind: "suggestion_rating", original: rated.text, rating: updates.rating },
+          consentFromProfile(userProfile)
+        );
+      }
+    }
+    updateMessage(id, updates);
+  };
+
   const handleNewChat = () => {
     if (messages.length === 0) return;
     suggestionGenRef.current++; // invalidate any in-flight suggestion fetches
@@ -631,7 +654,7 @@ export function ChatPage() {
           onReply={handleReply}
           onToggleBookmark={toggleBookmark}
           onReplay={replayPhrase}
-          onUpdateMessage={updateMessage}
+          onUpdateMessage={handleUpdateMessage}
           onBubblePointerDown={handleBubblePointerDown}
           onBubblePointerMove={handleBubblePointerMove}
           onBubblePointerCancel={cancelBubbleLongPress}

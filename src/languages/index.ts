@@ -18,8 +18,30 @@ export function getLanguagePack(code: string): LanguagePack {
 }
 
 /**
- * The single active pack. Cantonese is the only shipped language today;
- * when per-user language selection lands (Phase 4), callers switch from
- * this constant to `getLanguagePack(user.language)`.
+ * Look up a pack by its human-readable label (matches `DIALECTS` labels in
+ * src/types.ts, e.g. "Cantonese"), falling back to the default pack.
  */
-export const ACTIVE_LANGUAGE_PACK = LANGUAGE_PACKS[DEFAULT_LANGUAGE];
+export function resolveLanguagePackByLabel(label: string): LanguagePack {
+  for (const pack of Object.values(LANGUAGE_PACKS)) {
+    if (pack.label === label) return pack;
+  }
+  return LANGUAGE_PACKS[DEFAULT_LANGUAGE];
+}
+
+// Per-user language selection (Phase 4): ProfileProvider calls
+// setActiveLanguage() from the profile's preferredDialect; services and hooks
+// read getActiveLanguagePack() at USE time so a selection change is live
+// without re-importing modules. With one shipped pack this is always the
+// Cantonese pack, i.e. behavior-identical to the old ACTIVE_LANGUAGE_PACK
+// module constant.
+let activeLanguagePack: LanguagePack = LANGUAGE_PACKS[DEFAULT_LANGUAGE];
+
+/** The currently active language pack (module-level, not reactive). */
+export function getActiveLanguagePack(): LanguagePack {
+  return activeLanguagePack;
+}
+
+/** Switch the active language pack; unknown codes fall back to the default. */
+export function setActiveLanguage(code: string): void {
+  activeLanguagePack = getLanguagePack(code);
+}

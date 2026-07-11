@@ -13,6 +13,8 @@ import {
   BookOpen,
   Bookmark,
   LogOut,
+  ShieldCheck,
+  UploadCloud,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -21,6 +23,7 @@ import { useProfile } from "../context/ProfileProvider";
 import { type PersonaType } from "../../types";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
+import { importLocalDataToCloud } from "../../services/cloudImportService";
 import { useTour } from "../components/tour/TourProvider";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
@@ -37,6 +40,56 @@ export function ProfilePage() {
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const hasDataConsent = userProfile?.dataCollectionConsent === true;
+  const hasAudioConsent = hasDataConsent && userProfile?.audioRetentionConsent === true;
+
+  const handleToggleDataConsent = () => {
+    const next = !hasDataConsent;
+    updateUserProfile({
+      dataCollectionConsent: next,
+      // Withdrawing data consent also withdraws the stricter audio consent.
+      ...(next ? {} : { audioRetentionConsent: false }),
+      consentUpdatedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleToggleAudioConsent = () => {
+    if (!hasDataConsent) return;
+    updateUserProfile({
+      audioRetentionConsent: !hasAudioConsent,
+      consentUpdatedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleImportToCloud = async () => {
+    if (isImporting) return;
+    const confirmed = window.confirm(
+      "Copy this device's data to your account? This is one-way — your local data stays on this device and is not deleted."
+    );
+    if (!confirmed) return;
+    setIsImporting(true);
+    try {
+      const counts = await importLocalDataToCloud();
+      const total =
+        counts.phrases +
+        counts.sessions +
+        counts.tags +
+        counts.conversationLessons +
+        counts.lessonProgress +
+        counts.profile;
+      toast.success(
+        total === 0
+          ? "Nothing new to import — your account already has this device's data."
+          : `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags.`
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Import failed. Please try again.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const handleCloudSignOut = async () => {
     if (isSigningOut) return;
@@ -380,7 +433,7 @@ export function ProfilePage() {
         {/* Cloud Account */}
         {isCloudAuthEnabled && authUser && (
           <section>
-            <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
               <div className="flex items-center justify-between p-4 gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <User size={18} className="text-zinc-400 shrink-0" />
@@ -398,7 +451,84 @@ export function ProfilePage() {
                   Sign out
                 </button>
               </div>
+              <div className="p-4">
+                <button
+                  onClick={handleImportToCloud}
+                  disabled={isImporting}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-blue/10 text-brand-blue text-sm font-semibold hover:bg-brand-blue/15 transition-colors disabled:opacity-60"
+                >
+                  {isImporting ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                  {isImporting ? "Importing…" : "Import this device's data to your account"}
+                </button>
+                <p className="text-xs text-zinc-400 mt-2 text-center">
+                  One-way copy — your local data is not deleted.
+                </p>
+              </div>
             </div>
+          </section>
+        )}
+
+        {/* Data & privacy (ML data pipeline consent, docs/ML_PIPELINE.md) */}
+        {isCloudAuthEnabled && authUser && (
+          <section>
+            <div className="flex items-center gap-2 mb-3 px-2">
+              <ShieldCheck size={18} className="text-zinc-400" />
+              <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">
+                Data &amp; privacy
+              </h2>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
+              <div className="flex items-center justify-between p-4 gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-800">Help improve dialect recognition</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Share your practice phrases, transcripts, corrections and scores to train better dialect
+                    models
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleDataConsent}
+                  aria-label="Toggle data collection consent"
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
+                    hasDataConsent ? "bg-brand-blue" : "bg-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                      hasDataConsent ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+              <div
+                className={`flex items-center justify-between p-4 gap-3 ${hasDataConsent ? "" : "opacity-50"}`}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-800">Also keep my recordings</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Additionally store your practice recordings in private storage for model training
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleAudioConsent}
+                  disabled={!hasDataConsent}
+                  aria-label="Toggle audio retention consent"
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 disabled:cursor-not-allowed ${
+                    hasAudioConsent ? "bg-brand-blue" : "bg-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                      hasAudioConsent ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-400 mt-2 px-2">
+              Both are off by default. Withdrawing consent stops future collection; your data is deleted with
+              your account.
+            </p>
           </section>
         )}
 

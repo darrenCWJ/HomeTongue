@@ -65,6 +65,12 @@ export interface ProfileRow {
   custom_voice_id: string | null;
   suggested_replies_enabled: boolean | null;
   tour_completed: Partial<Record<TourPageId, boolean>> | null;
+  // ML data pipeline consent (migration 0002). Columns are NOT NULL DEFAULT
+  // false, so `undefined` maps to false on the way out and false maps back to
+  // an omitted domain field (absent ≡ not consented).
+  data_collection_consent: boolean;
+  audio_retention_consent: boolean;
+  consent_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -174,6 +180,9 @@ export function profileToRow(profile: UserProfile, userId: string): ProfileRow {
     custom_voice_id: profile.customVoiceId ?? null,
     suggested_replies_enabled: profile.suggestedRepliesEnabled ?? null,
     tour_completed: profile.tourCompleted ?? null,
+    data_collection_consent: profile.dataCollectionConsent ?? false,
+    audio_retention_consent: profile.audioRetentionConsent ?? false,
+    consent_updated_at: profile.consentUpdatedAt ?? null,
     created_at: profile.createdAt,
     updated_at: profile.updatedAt,
   };
@@ -200,6 +209,9 @@ export function rowToProfile(row: ProfileRow): UserProfile {
       ? { suggestedRepliesEnabled: row.suggested_replies_enabled }
       : {}),
     ...(row.tour_completed !== null ? { tourCompleted: row.tour_completed } : {}),
+    ...(row.data_collection_consent ? { dataCollectionConsent: true } : {}),
+    ...(row.audio_retention_consent ? { audioRetentionConsent: true } : {}),
+    ...(row.consent_updated_at !== null ? { consentUpdatedAt: row.consent_updated_at } : {}),
   };
 }
 

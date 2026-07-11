@@ -200,6 +200,91 @@ describe("profile mapping", () => {
     expect(restored.suggestedRepliesEnabled).toBe(false);
     expect(restored).toStrictEqual(profile);
   });
+
+  test("round-trips ML consent fields when granted", () => {
+    // Arrange
+    const profile: UserProfile = {
+      id: USER_ID,
+      name: "Darren",
+      preferredDialect: "Cantonese",
+      preferredTone: "casual",
+      toneOverrideEnabled: false,
+      personalityNotes: "",
+      conversationCount: 3,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+      dataCollectionConsent: true,
+      audioRetentionConsent: true,
+      consentUpdatedAt: "2026-07-01T09:00:00.000Z",
+    };
+
+    // Act
+    const row = profileToRow(profile, USER_ID);
+    const restored = rowToProfile(row);
+
+    // Assert
+    expect(row.data_collection_consent).toBe(true);
+    expect(row.audio_retention_consent).toBe(true);
+    expect(row.consent_updated_at).toBe("2026-07-01T09:00:00.000Z");
+    expect(restored).toStrictEqual(profile);
+  });
+
+  test("maps absent consent to NOT NULL false columns and omits them on the way back", () => {
+    // Arrange — consent columns are NOT NULL DEFAULT false, so undefined must
+    // never serialize to null; false and absent are semantically identical.
+    const profile: UserProfile = {
+      id: USER_ID,
+      name: "",
+      preferredDialect: "Cantonese",
+      preferredTone: "casual",
+      toneOverrideEnabled: false,
+      personalityNotes: "",
+      conversationCount: 0,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    // Act
+    const row = profileToRow(profile, USER_ID);
+    const restored = rowToProfile(row);
+
+    // Assert
+    expect(row.data_collection_consent).toBe(false);
+    expect(row.audio_retention_consent).toBe(false);
+    expect(row.consent_updated_at).toBeNull();
+    expect(restored.dataCollectionConsent).toBeUndefined();
+    expect(restored.audioRetentionConsent).toBeUndefined();
+    expect(restored).toStrictEqual(profile);
+  });
+
+  test("normalizes explicit consent=false to an omitted field after a round-trip", () => {
+    // Arrange
+    const profile: UserProfile = {
+      id: USER_ID,
+      name: "",
+      preferredDialect: "Cantonese",
+      preferredTone: "casual",
+      toneOverrideEnabled: false,
+      personalityNotes: "",
+      conversationCount: 0,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      dataCollectionConsent: false,
+      audioRetentionConsent: false,
+      consentUpdatedAt: "2026-07-02T00:00:00.000Z",
+    };
+
+    // Act
+    const row = profileToRow(profile, USER_ID);
+    const restored = rowToProfile(row);
+
+    // Assert — false is stored as false; reading back yields "absent", which
+    // the app treats identically (consent checks use `=== true` semantics).
+    expect(row.data_collection_consent).toBe(false);
+    expect(restored.dataCollectionConsent).toBeUndefined();
+    expect(restored.audioRetentionConsent).toBeUndefined();
+    expect(restored.consentUpdatedAt).toBe("2026-07-02T00:00:00.000Z");
+  });
 });
 
 describe("tag mapping", () => {

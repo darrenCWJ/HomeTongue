@@ -1,11 +1,12 @@
 import type { Tone, TranslationResult, WordChunk } from "../types";
 import { blobToWav, blobToDataUrl } from "../hooks/audio";
 import { postJson, ApiError } from "../lib/api";
-import { ACTIVE_LANGUAGE_PACK, type LanguagePack } from "../languages";
+import { getActiveLanguagePack, type LanguagePack } from "../languages";
 
-// Typed as the general contract so nothing below depends on Cantonese-specific
-// literal types; swapping the active pack must not require edits here.
-const LANGUAGE: LanguagePack = ACTIVE_LANGUAGE_PACK;
+// The active pack is read at USE time (inside each function) rather than
+// bound at import time, so a per-user language selection change takes effect
+// live. Typed as the general contract so nothing below depends on
+// Cantonese-specific literal types.
 
 interface ChatRequestOptions {
   temperature?: number;
@@ -33,7 +34,7 @@ export function parseModelJson<T>(raw: string): T {
 async function translateWithProxy(text: string): Promise<TranslationResult> {
   const raw = await chatCompletion(
     [
-      { role: "system", content: LANGUAGE.prompts.translateSystem },
+      { role: "system", content: getActiveLanguagePack().prompts.translateSystem },
       { role: "user", content: `Translate to dialect: "${text}"` },
     ],
     { temperature: 0.3, max_tokens: 2000 }
@@ -165,8 +166,9 @@ export function isPromptHallucination(text: string, prompt: string): boolean {
 }
 
 export async function transcribeCantonese(blob: Blob): Promise<string> {
-  const result = await transcribeAudio(blob, LANGUAGE.stt.language, LANGUAGE.stt.prompt);
-  return isPromptHallucination(result, LANGUAGE.stt.prompt) ? "" : result;
+  const pack = getActiveLanguagePack();
+  const result = await transcribeAudio(blob, pack.stt.language, pack.stt.prompt);
+  return isPromptHallucination(result, pack.stt.prompt) ? "" : result;
 }
 
 export function transcribeAnyLanguage(blob: Blob): Promise<string> {
@@ -210,7 +212,7 @@ export async function generateWordBreakdown(
   try {
     const raw = await chatCompletion(
       [
-        { role: "system", content: LANGUAGE.prompts.breakdownSystem },
+        { role: "system", content: getActiveLanguagePack().prompts.breakdownSystem },
         { role: "user", content: `Segments: ${JSON.stringify(segments)}` },
       ],
       { temperature: 0.2, max_tokens: 600 }
@@ -222,21 +224,22 @@ export async function generateWordBreakdown(
   }
 }
 
-function normalizeChar(ch: string): string {
+function normalizeChar(ch: string, pack: LanguagePack): string {
   // Map Mandarin equivalents first, then fold particle-group variants, so
   // e.g. 是→係 and a literal 係 both normalize to the same character.
-  const mapped = LANGUAGE.scoring.charEquivalents[ch] ?? ch;
-  for (const group of LANGUAGE.scoring.particleGroups) {
+  const mapped = pack.scoring.charEquivalents[ch] ?? ch;
+  for (const group of pack.scoring.particleGroups) {
     if (group.includes(mapped)) return group[0];
   }
   return mapped;
 }
 
 export function charMatchScore(expected: string, actual: string): number {
+  const pack = getActiveLanguagePack();
   const CHINESE = /[一-鿿㐀-䶿]/g;
-  const expectedChars = (expected.match(CHINESE) ?? []).map(normalizeChar);
+  const expectedChars = (expected.match(CHINESE) ?? []).map((ch) => normalizeChar(ch, pack));
   if (expectedChars.length === 0) return 0;
-  const actualChars = (actual.match(CHINESE) ?? []).map(normalizeChar);
+  const actualChars = (actual.match(CHINESE) ?? []).map((ch) => normalizeChar(ch, pack));
   if (actualChars.length === 0) return 0;
 
   const pool = [...actualChars];
@@ -256,7 +259,7 @@ export async function scoreCantoneseAccuracy(expected: string, actual: string): 
   try {
     const raw = await chatCompletion(
       [
-        { role: "system", content: LANGUAGE.prompts.buildScoringSystem(charCount) },
+        { role: "system", content: getActiveLanguagePack().prompts.buildScoringSystem(charCount) },
         { role: "user", content: `Expected: ${expected}\nStudent said: ${actual}` },
       ],
       { temperature: 0, max_tokens: 20 }
@@ -274,7 +277,7 @@ export async function getExampleMeta(cantonese: string): Promise<{ translation: 
   try {
     const raw = await chatCompletion(
       [
-        { role: "system", content: LANGUAGE.prompts.exampleMetaSystem },
+        { role: "system", content: getActiveLanguagePack().prompts.exampleMetaSystem },
         { role: "user", content: cantonese },
       ],
       { response_format: { type: "json_object" }, temperature: 0.1, max_tokens: 200 }

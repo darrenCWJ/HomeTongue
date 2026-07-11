@@ -118,6 +118,12 @@ export interface UserProfile {
   customVoiceId?: string;
   suggestedRepliesEnabled?: boolean;
   tourCompleted?: Partial<Record<TourPageId, boolean>>;
+  /** ML data pipeline consent: text-level data (transcripts, scores) may be stored. Default OFF. */
+  dataCollectionConsent?: boolean;
+  /** ML data pipeline consent: recordings may additionally be kept. Default OFF. */
+  audioRetentionConsent?: boolean;
+  /** ISO timestamp of the last consent change. */
+  consentUpdatedAt?: string;
 }
 
 export interface WordChunk {

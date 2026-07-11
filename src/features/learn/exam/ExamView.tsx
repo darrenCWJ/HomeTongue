@@ -6,6 +6,8 @@ import {
   transcribeAnyLanguage,
   scoreCantoneseAccuracy,
 } from "../../../services/translationService";
+import { recordSpeechSample, consentFromProfile } from "../../../services/speechSampleService";
+import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import type { ConversationLesson } from "../../../types";
@@ -31,6 +33,7 @@ export function ExamView({
   const [transcribed, setTranscribed] = useState<string | null>(null);
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
+  const { userProfile } = useProfile();
   const { startRecording, stopRecording } = useAudioRecorder();
   const current = vocab[index];
   const recordingStartRef = useRef<number | null>(null);
@@ -76,6 +79,11 @@ export function ExamView({
         return;
       }
       const score = await scoreCantoneseAccuracy(current.cantonese, result);
+      // ML data capture (consent-gated, fire-and-forget — never blocks the exam)
+      recordSpeechSample(
+        { source: "exam", expectedText: current.cantonese, transcript: result, score, audioBlob: blob },
+        consentFromProfile(userProfile)
+      );
       setTranscribed(result);
       setItemScore(score);
     } catch (err) {
