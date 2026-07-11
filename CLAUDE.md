@@ -43,7 +43,7 @@ api/transcribe.js  ← OpenAI audio transcription proxy (accepts base64 WAV JSON
 api/tts.js         ← Google Cloud Chirp 3 HD TTS proxy (signs SA JWT server-side)
 ```
 
-Each function validates input (length caps, model/voice allowlists) and applies best-effort per-IP rate limiting. `vite.config.ts` contains dev middleware mirroring all three endpoints so `pnpm dev` works identically — **keep them in sync when changing an endpoint**.
+Each function validates input (length caps, model/voice allowlists) and applies best-effort per-IP rate limiting. `vite.config.ts` contains dev middleware mirroring all three endpoints so `pnpm dev` works identically — **keep them in sync when changing an endpoint**. Note: the dev middleware only mirrors the happy path and missing-key errors; the hardening guards (rate limits, allowlists, size caps) are production-only, so test those against a preview deploy.
 
 The client reaches these via `src/lib/api.ts` (`apiUrl()` / `postJson()`), which prefixes `VITE_API_BASE_URL` for native builds.
 

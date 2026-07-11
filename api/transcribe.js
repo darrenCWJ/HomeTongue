@@ -1,7 +1,9 @@
 const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 
-// ~4MB decoded audio (Vercel request body limit is 4.5MB)
-const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
+// Decoded-audio cap. The base64 JSON body is ~33% larger than this, and must
+// stay under Vercel's 4.5MB platform body limit: 3.2MB raw → ~4.3MB body.
+// The client resamples to 16kHz mono WAV and pre-checks size (translationService).
+const MAX_AUDIO_BYTES = 3.2 * 1024 * 1024;
 const ALLOWED_MODELS = new Set(["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"]);
 const ALLOWED_LANGUAGES = new Set(["en", "zh"]);
 const MAX_PROMPT_CHARS = 500;

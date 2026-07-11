@@ -132,9 +132,16 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return dataUrl.slice(dataUrl.indexOf(",") + 1);
 }
 
+// Vercel rejects request bodies over 4.5MB at the platform edge (opaque 413),
+// so guard before uploading. 4MB of base64 ≈ 3MB of 16kHz WAV ≈ 90+ seconds.
+const MAX_UPLOAD_BASE64_CHARS = 4 * 1024 * 1024;
+
 async function transcribeAudio(blob: Blob, language: string | null, prompt?: string): Promise<string> {
   const wavBlob = await blobToWav(blob);
   const audio = await blobToBase64(wavBlob);
+  if (audio.length > MAX_UPLOAD_BASE64_CHARS) {
+    throw new Error("Recording is too long to transcribe. Please keep recordings under 90 seconds.");
+  }
   const { text } = await postJson<{ text: string }>("/api/transcribe", {
     audio,
     ...(language ? { language } : {}),

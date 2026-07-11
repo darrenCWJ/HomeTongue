@@ -21,7 +21,7 @@
 └─────────────────────────────────────────────┘
 ```
 
-Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless environment. In development, `vite.config.ts` registers middleware that mirrors the three functions so `pnpm dev` behaves identically.
+Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless environment. In development, `vite.config.ts` registers middleware that mirrors the three functions so `pnpm dev` behaves the same for the happy path — but the production hardening (rate limits, allowlists, size caps) exists only in `api/*.js`; verify those against a preview deploy.
 
 ## Frontend layers
 

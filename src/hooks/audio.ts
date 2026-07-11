@@ -94,13 +94,28 @@ export function useAudioRecorder() {
   return { startRecording, stopRecording };
 }
 
+// Speech-to-text models operate at 16 kHz internally, so resampling here
+// loses no accuracy while cutting upload size ~3x (fits Vercel's 4.5MB
+// request-body limit for much longer recordings).
+const WAV_SAMPLE_RATE = 16_000;
+
 export async function blobToWav(blob: Blob): Promise<Blob> {
   const arrayBuffer = await blob.arrayBuffer();
   const audioCtx = new AudioContext();
   const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+  await audioCtx.close();
+
+  // Resample to 16 kHz mono (OfflineAudioContext downmixes channels)
+  const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * WAV_SAMPLE_RATE), WAV_SAMPLE_RATE);
+  const source = offline.createBufferSource();
+  source.buffer = decoded;
+  source.connect(offline.destination);
+  source.start();
+  const rendered = await offline.startRendering();
+
   const numChannels = 1;
-  const sampleRate = decoded.sampleRate;
-  const samples = decoded.getChannelData(0);
+  const sampleRate = WAV_SAMPLE_RATE;
+  const samples = rendered.getChannelData(0);
   const buffer = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buffer);
   const writeStr = (offset: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i)); };
@@ -121,6 +136,5 @@ export async function blobToWav(blob: Blob): Promise<Blob> {
     const s = Math.max(-1, Math.min(1, samples[i]));
     view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
   }
-  await audioCtx.close();
   return new Blob([buffer], { type: "audio/wav" });
 }
