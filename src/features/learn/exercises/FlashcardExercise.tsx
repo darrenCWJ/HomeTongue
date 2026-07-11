@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Bookmark, Loader2 } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useProfile } from "../../../app/context/ProfileProvider";
+import { useLibrary } from "../../../app/context/LibraryProvider";
 import { getExampleMeta } from "../../../services/translationService";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { LessonLevel } from "../../../types";
@@ -18,7 +19,8 @@ export function FlashcardExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
-  const { userProfile, phrases, addPhrase, toggleBookmark } = useAppContext();
+  const { userProfile } = useProfile();
+  const { phrases, addPhrase, toggleBookmark } = useLibrary();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | null>(null);

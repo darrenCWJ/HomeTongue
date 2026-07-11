@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useLibrary } from "../../../app/context/LibraryProvider";
 import { motion } from "motion/react";
 import type { WordChunk, ConversationLesson } from "../../../types";
 import { PhraseBreakdownExercise } from "./PhraseBreakdownExercise";
@@ -19,7 +19,7 @@ export function ConversationLessonView({
   onBack: () => void;
   onStartExam: () => void;
 }) {
-  const { updateConversationLesson } = useAppContext();
+  const { updateConversationLesson } = useLibrary();
   const [phase, setPhase] = useState<LessonPhase>(lesson.currentPhase ?? "listen");
 
   const savePhase = (next: LessonPhase) => {

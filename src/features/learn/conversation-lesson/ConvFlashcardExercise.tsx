@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Bookmark } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useLibrary } from "../../../app/context/LibraryProvider";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { VocabItem } from "../../../types";
 import { PlayButton } from "../shared";
@@ -8,7 +8,7 @@ import { PlayButton } from "../shared";
 // ─── ConvFlashcardExercise ────────────────────────────────────────────────────
 
 export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
-  const { phrases, addPhrase, toggleBookmark } = useAppContext();
+  const { phrases, addPhrase, toggleBookmark } = useLibrary();
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | null>(null);

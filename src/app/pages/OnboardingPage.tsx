@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useProfile } from "../context/ProfileProvider";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
 import type { WorkJobTitle, PersonaType } from "../../types";
@@ -12,7 +12,7 @@ type Step = "name" | "voice" | "persona" | "video";
 const STEPS: Step[] = ["name", "voice", "persona", "video"];
 
 export function OnboardingPage() {
-  const { updateUserProfile } = useAppContext();
+  const { updateUserProfile } = useProfile();
   const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
   const [voiceId, setVoiceId] = useState(VOICES[0].id);
@@ -107,7 +107,11 @@ export function OnboardingPage() {
           transition={{ duration: 0.4 }}
           className="text-center mb-8"
         >
-          <img src="/logo.png" alt="HomeTongue" className="w-16 h-16 rounded-2xl mx-auto shadow-lg shadow-brand-blue/20 mb-4 object-cover" />
+          <img
+            src="/logo.png"
+            alt="HomeTongue"
+            className="w-16 h-16 rounded-2xl mx-auto shadow-lg shadow-brand-blue/20 mb-4 object-cover"
+          />
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Welcome to HomeTongue</h1>
           <p className="text-white/80 text-sm mt-1">Let's set up your learning journey.</p>
         </motion.div>
@@ -135,9 +139,7 @@ export function OnboardingPage() {
               className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
             >
               <h2 className="text-xl font-bold text-zinc-800 mb-1">What's your name?</h2>
-              <p className="text-zinc-500 text-sm mb-6">
-                This helps personalise your learning journey.
-              </p>
+              <p className="text-zinc-500 text-sm mb-6">This helps personalise your learning journey.</p>
 
               <form onSubmit={handleNameNext} className="space-y-4">
                 <input
@@ -174,9 +176,7 @@ export function OnboardingPage() {
                 <Volume2 size={20} className="text-brand-blue" />
                 <h2 className="text-xl font-bold text-zinc-800">Pick your voice</h2>
               </div>
-              <p className="text-zinc-500 text-sm mb-5">
-                Choose the voice for your learning journey.
-              </p>
+              <p className="text-zinc-500 text-sm mb-5">Choose the voice for your learning journey.</p>
 
               {/* Gender tabs */}
               <div className="flex bg-zinc-100 rounded-xl p-1 mb-4">
@@ -209,12 +209,16 @@ export function OnboardingPage() {
                           : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
                       }`}
                     >
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-zinc-200"}`}>
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-zinc-200"}`}
+                      >
                         <Volume2 size={16} className={selected ? "text-white" : "text-zinc-500"} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
+                          <span
+                            className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-zinc-800"}`}
+                          >
                             {voice.name}
                           </span>
                         </div>
@@ -227,10 +231,11 @@ export function OnboardingPage() {
                             : "bg-zinc-100 hover:bg-brand-blue/15"
                         }`}
                       >
-                        {previewingId === voice.id
-                          ? <Loader2 size={14} className="text-brand-blue animate-spin" />
-                          : <Volume2 size={14} className="text-zinc-500" />
-                        }
+                        {previewingId === voice.id ? (
+                          <Loader2 size={14} className="text-brand-blue animate-spin" />
+                        ) : (
+                          <Volume2 size={14} className="text-zinc-500" />
+                        )}
                       </div>
                       {selected && (
                         <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center shrink-0">
@@ -275,11 +280,18 @@ export function OnboardingPage() {
                       : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
                   }`}
                 >
-                  <Home size={28} className={selectedPersona === "personal" ? "text-brand-blue" : "text-zinc-400"} />
-                  <span className={`font-semibold text-sm ${selectedPersona === "personal" ? "text-brand-blue" : "text-zinc-600"}`}>
+                  <Home
+                    size={28}
+                    className={selectedPersona === "personal" ? "text-brand-blue" : "text-zinc-400"}
+                  />
+                  <span
+                    className={`font-semibold text-sm ${selectedPersona === "personal" ? "text-brand-blue" : "text-zinc-600"}`}
+                  >
                     Personal
                   </span>
-                  <span className="text-xs text-zinc-400 text-center leading-tight">Home & family conversations</span>
+                  <span className="text-xs text-zinc-400 text-center leading-tight">
+                    Home & family conversations
+                  </span>
                   {selectedPersona === "personal" && (
                     <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center mt-1">
                       <Check size={12} className="text-white" />
@@ -294,11 +306,18 @@ export function OnboardingPage() {
                       : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
                   }`}
                 >
-                  <Briefcase size={28} className={selectedPersona === "work" ? "text-brand-blue" : "text-zinc-400"} />
-                  <span className={`font-semibold text-sm ${selectedPersona === "work" ? "text-brand-blue" : "text-zinc-600"}`}>
+                  <Briefcase
+                    size={28}
+                    className={selectedPersona === "work" ? "text-brand-blue" : "text-zinc-400"}
+                  />
+                  <span
+                    className={`font-semibold text-sm ${selectedPersona === "work" ? "text-brand-blue" : "text-zinc-600"}`}
+                  >
                     Work
                   </span>
-                  <span className="text-xs text-zinc-400 text-center leading-tight">Professional context</span>
+                  <span className="text-xs text-zinc-400 text-center leading-tight">
+                    Professional context
+                  </span>
                   {selectedPersona === "work" && (
                     <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center mt-1">
                       <Check size={12} className="text-white" />
@@ -306,7 +325,6 @@ export function OnboardingPage() {
                   )}
                 </button>
               </div>
-
 
               <button
                 onClick={handlePersonaNext}
@@ -317,7 +335,6 @@ export function OnboardingPage() {
               </button>
             </motion.div>
           )}
-
         </AnimatePresence>
       </div>
     </div>

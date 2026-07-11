@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Loader2, Volume2 } from "lucide-react";
-import { useAppContext } from "../../app/context/AppContext";
+import { useProfile } from "../../app/context/ProfileProvider";
 import { playDataUrl } from "../../hooks/audio";
 import { speakText, GOOGLE_TTS_VOICES, DEFAULT_VOICE } from "../../hooks/useGoogleTTS";
 import type { VoiceKey } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 
-export const personalise = (text: string, name: string | undefined) => text.replace(/\{\{name\}\}/g, name || "you");
+export const personalise = (text: string, name: string | undefined) =>
+  text.replace(/\{\{name\}\}/g, name || "you");
 
 export function PlayButton({
   text,
@@ -17,7 +18,7 @@ export function PlayButton({
   size?: "sm" | "md";
   audioDataUrl?: string;
 }) {
-  const { userProfile } = useAppContext();
+  const { userProfile } = useProfile();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlay = async (e: React.MouseEvent) => {
@@ -64,7 +65,7 @@ export function PlayButtonDark({
   audioDataUrl?: string;
   disabled?: boolean;
 }) {
-  const { userProfile } = useAppContext();
+  const { userProfile } = useProfile();
   const [isPlaying, setIsPlaying] = useState(false);
   const disabled = isPlaying || !!externalDisabled;
 

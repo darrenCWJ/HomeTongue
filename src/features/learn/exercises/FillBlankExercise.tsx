@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Check, X } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion } from "motion/react";
 import type { LessonLevel } from "../../../types";
 import { PlayButtonDark, personalise } from "../shared";
@@ -15,7 +15,7 @@ export function FillBlankExercise({
   onComplete: () => void;
   onBack: () => void;
 }) {
-  const { userProfile } = useAppContext();
+  const { userProfile } = useProfile();
   const itemsWithSentences = level.vocabulary.filter((v) => v.exampleSentence);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);

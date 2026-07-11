@@ -1,5 +1,5 @@
 import { ChevronRight, ArrowLeft, CheckCircle, Star } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useLibrary } from "../../../app/context/LibraryProvider";
 import { motion } from "motion/react";
 import { LESSONS } from "../../../data/lessons";
 import type { LessonLevel } from "../../../types";
@@ -25,7 +25,7 @@ export function RoadmapView({
   categoryId: string;
   onSelectLevel: (level: LessonLevel) => void;
 }) {
-  const { lessonProgress } = useAppContext();
+  const { lessonProgress } = useLibrary();
   const lesson = LESSONS.find((l) => l.categoryId === categoryId);
   const levels = lesson?.content.levels ?? [];
   const prog = lesson ? lessonProgress[lesson.id] : null;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion, AnimatePresence } from "motion/react";
 import type { VocabItem } from "../../../types";
 import { PlayButton, personalise } from "../shared";
@@ -8,7 +8,7 @@ import { PlayButton, personalise } from "../shared";
 // ─── DailyReviewModal ─────────────────────────────────────────────────────────
 
 export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: () => void }) {
-  const { userProfile } = useAppContext();
+  const { userProfile } = useProfile();
   const [flipped, setFlipped] = useState(false);
 
   return (

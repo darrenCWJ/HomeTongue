@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 import type { TourPageId } from "@/types";
-import { useAppContext } from "@/app/context/AppContext";
+import { useProfile } from "@/app/context/ProfileProvider";
 import { useTour } from "./TourProvider";
 
 const PATH_TO_PAGE: Record<string, TourPageId> = {
@@ -13,7 +13,7 @@ const PATH_TO_PAGE: Record<string, TourPageId> = {
 
 export function useTourAutoTrigger(): void {
   const { pathname } = useLocation();
-  const { userProfile } = useAppContext();
+  const { userProfile } = useProfile();
   const { startTour, isActive } = useTour();
 
   useEffect(() => {

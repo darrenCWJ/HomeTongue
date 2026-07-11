@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, NavLink } from "react-router";
 import { MessageSquare, BookOpen, Bookmark, User } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useProfile } from "../context/ProfileProvider";
 import { SignInPage } from "../pages/SignInPage";
 import { AuthPage } from "../pages/AuthPage";
 import { OnboardingPage } from "../pages/OnboardingPage";
@@ -13,8 +13,10 @@ import { useTourAutoTrigger } from "./tour/useTourAutoTrigger";
 const HAS_ACCESS_CODE = !!import.meta.env.VITE_ACCESS_CODE;
 
 export function Layout() {
-  const { isSignedIn, userProfile } = useAppContext();
-  const [isEmailAuthed, setIsEmailAuthedState] = useState(() => localStorage.getItem("ht_email_authed") === "true");
+  const { isSignedIn, userProfile } = useProfile();
+  const [isEmailAuthed, setIsEmailAuthedState] = useState(
+    () => localStorage.getItem("ht_email_authed") === "true"
+  );
   const setIsEmailAuthed = (val: boolean) => {
     localStorage.setItem("ht_email_authed", String(val));
     setIsEmailAuthedState(val);
@@ -53,8 +55,10 @@ function AuthenticatedLayout() {
         <Outlet />
       </div>
 
-      <nav className="absolute bottom-0 w-full bg-white border-t border-zinc-200 flex justify-around px-2 z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <nav
+        className="absolute bottom-0 w-full bg-white border-t border-zinc-200 flex justify-around px-2 z-50"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         <NavItem to="/" icon={<MessageSquare size={24} />} label="Chat" />
         <NavItem to="/learn" icon={<BookOpen size={24} />} label="Learn" />
         <NavItem to="/bookmarks" icon={<Bookmark size={24} />} label="Saved" />

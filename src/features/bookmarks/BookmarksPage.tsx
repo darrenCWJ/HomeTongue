@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import type { PersonaType, Session } from "../../types";
-import { useAppContext } from "../../app/context/AppContext";
+import { useProfile } from "../../app/context/ProfileProvider";
+import { useLibrary } from "../../app/context/LibraryProvider";
 import { playDataUrl } from "../../hooks/audio";
 import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
@@ -18,13 +19,13 @@ import { SessionMenu } from "./components/SessionMenu";
 import { DeleteSessionDialog } from "./components/DeleteSessionDialog";
 
 export function BookmarksPage() {
+  const { userProfile } = useProfile();
   const {
     phrases,
     toggleBookmark,
     addPhrase,
     updatePhrase,
     sessions,
-    userProfile,
     renameSession,
     deleteSession,
     deleteSessionMessage,
@@ -36,7 +37,7 @@ export function BookmarksPage() {
     deleteTag,
     setPhraseTags,
     setSessionTags,
-  } = useAppContext();
+  } = useLibrary();
   const { isActive: isTourActive, activeTour, currentStep } = useTour();
   const isTourMode = isTourActive && activeTour === "bookmarks";
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");

@@ -1,7 +1,20 @@
 import React, { useState, useRef } from "react";
-import { User, Sparkles, Brain, Home, Briefcase, Volume2, Loader2, Pencil, HelpCircle, MessageCircle, BookOpen, Bookmark } from "lucide-react";
+import {
+  User,
+  Sparkles,
+  Brain,
+  Home,
+  Briefcase,
+  Volume2,
+  Loader2,
+  Pencil,
+  HelpCircle,
+  MessageCircle,
+  BookOpen,
+  Bookmark,
+} from "lucide-react";
 import { useNavigate } from "react-router";
-import { useAppContext } from "../context/AppContext";
+import { useProfile } from "../context/ProfileProvider";
 import { type PersonaType } from "../../types";
 import { VOICES } from "../../constants/voices";
 import { previewVoice } from "../../utils/voicePreviewCache";
@@ -10,11 +23,7 @@ import { useTour } from "../components/tour/TourProvider";
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
 export function ProfilePage() {
-  const {
-    setIsSignedIn,
-    userProfile, updateUserProfile,
-    activePersona,
-  } = useAppContext();
+  const { setIsSignedIn, userProfile, updateUserProfile, activePersona } = useProfile();
   const { startTour } = useTour();
   const navigate = useNavigate();
 
@@ -24,7 +33,7 @@ export function ProfilePage() {
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
 
-  const handlePreview = async (e: React.MouseEvent, id: typeof VOICES[number]["id"]) => {
+  const handlePreview = async (e: React.MouseEvent, id: (typeof VOICES)[number]["id"]) => {
     e.preventDefault();
     if (previewingId) return;
     setPreviewingId(id);
@@ -55,15 +64,16 @@ export function ProfilePage() {
   };
 
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
-  const personaSummary = activePersonaProfile?.personaSummary
-    ?? (activePersona === "personal" ? userProfile?.personaSummary : undefined);
-  const characteristicPhrases = activePersonaProfile?.characteristicPhrases
-    ?? (activePersona === "personal" ? userProfile?.characteristicPhrases : undefined);
+  const personaSummary =
+    activePersonaProfile?.personaSummary ??
+    (activePersona === "personal" ? userProfile?.personaSummary : undefined);
+  const characteristicPhrases =
+    activePersonaProfile?.characteristicPhrases ??
+    (activePersona === "personal" ? userProfile?.characteristicPhrases : undefined);
 
   const handleSelectPersona = (p: PersonaType) => {
     updateUserProfile({ activePersona: p });
   };
-
 
   return (
     <div className="flex flex-col h-full bg-zinc-50 pb-20 overflow-y-auto scrollbar-none">
@@ -90,9 +100,7 @@ export function ProfilePage() {
             />
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-zinc-900">
-                {userProfile?.name || "Your Persona"}
-              </h1>
+              <h1 className="text-2xl font-bold text-zinc-900">{userProfile?.name || "Your Persona"}</h1>
               <button
                 onClick={handleEditNameClick}
                 className="text-zinc-400 hover:text-brand-blue transition-colors"
@@ -125,8 +133,13 @@ export function ProfilePage() {
                   : "bg-white border-zinc-100 hover:border-zinc-300"
               }`}
             >
-              <Home size={24} className={activePersona === "personal" ? "text-brand-blue" : "text-zinc-400"} />
-              <span className={`font-semibold text-sm ${activePersona === "personal" ? "text-brand-blue" : "text-zinc-600"}`}>
+              <Home
+                size={24}
+                className={activePersona === "personal" ? "text-brand-blue" : "text-zinc-400"}
+              />
+              <span
+                className={`font-semibold text-sm ${activePersona === "personal" ? "text-brand-blue" : "text-zinc-600"}`}
+              >
                 Personal
               </span>
               <span className="text-xs text-zinc-400 text-center">Home & family conversations</span>
@@ -139,14 +152,18 @@ export function ProfilePage() {
                   : "bg-white border-zinc-100 hover:border-zinc-300"
               }`}
             >
-              <Briefcase size={24} className={activePersona === "work" ? "text-brand-blue" : "text-zinc-400"} />
-              <span className={`font-semibold text-sm ${activePersona === "work" ? "text-brand-blue" : "text-zinc-600"}`}>
+              <Briefcase
+                size={24}
+                className={activePersona === "work" ? "text-brand-blue" : "text-zinc-400"}
+              />
+              <span
+                className={`font-semibold text-sm ${activePersona === "work" ? "text-brand-blue" : "text-zinc-600"}`}
+              >
                 Work
               </span>
               <span className="text-xs text-zinc-400 text-center">Professional context</span>
             </button>
           </div>
-
         </section>
 
         {/* AI Personality Summary */}
@@ -164,9 +181,7 @@ export function ProfilePage() {
 
               {personaSummary ? (
                 <>
-                  <p className="text-sm text-zinc-600 leading-relaxed">
-                    {personaSummary}
-                  </p>
+                  <p className="text-sm text-zinc-600 leading-relaxed">{personaSummary}</p>
                   {(characteristicPhrases?.length ?? 0) > 0 && (
                     <div className="mt-4">
                       <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
@@ -208,12 +223,18 @@ export function ProfilePage() {
                 <div>
                   <p className="text-sm font-semibold text-zinc-800">Suggested Replies</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    {userProfile?.suggestedRepliesEnabled !== false ? "Showing reply suggestions in chat" : "Suggestions hidden"}
+                    {userProfile?.suggestedRepliesEnabled !== false
+                      ? "Showing reply suggestions in chat"
+                      : "Suggestions hidden"}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => updateUserProfile({ suggestedRepliesEnabled: userProfile?.suggestedRepliesEnabled === false })}
+                onClick={() =>
+                  updateUserProfile({
+                    suggestedRepliesEnabled: userProfile?.suggestedRepliesEnabled === false,
+                  })
+                }
                 className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
                   userProfile?.suggestedRepliesEnabled !== false ? "bg-brand-blue" : "bg-zinc-300"
                 }`}
@@ -256,7 +277,10 @@ export function ProfilePage() {
             {VOICES.filter((v) => v.gender === voiceGenderTab).map((voice) => {
               const selected = (userProfile?.preferredVoiceId ?? VOICES[0].id) === voice.id;
               return (
-                <label key={voice.id} className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors">
+                <label
+                  key={voice.id}
+                  className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
@@ -267,15 +291,14 @@ export function ProfilePage() {
                   <button
                     onClick={(e) => handlePreview(e, voice.id)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
-                      previewingId === voice.id
-                        ? "bg-brand-blue/15"
-                        : "bg-zinc-100 hover:bg-brand-blue/15"
+                      previewingId === voice.id ? "bg-brand-blue/15" : "bg-zinc-100 hover:bg-brand-blue/15"
                     }`}
                   >
-                    {previewingId === voice.id
-                      ? <Loader2 size={14} className="text-brand-blue animate-spin" />
-                      : <Volume2 size={14} className="text-zinc-500" />
-                    }
+                    {previewingId === voice.id ? (
+                      <Loader2 size={14} className="text-brand-blue animate-spin" />
+                    ) : (
+                      <Volume2 size={14} className="text-zinc-500" />
+                    )}
                   </button>
                   <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
                     <input
@@ -303,12 +326,17 @@ export function ProfilePage() {
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Replay Tour</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {([
+            {[
               { id: "chat" as const, label: "Chat", icon: <MessageCircle size={20} />, path: "/" },
               { id: "learn" as const, label: "Learn", icon: <BookOpen size={20} />, path: "/learn" },
-              { id: "bookmarks" as const, label: "Bookmarks", icon: <Bookmark size={20} />, path: "/bookmarks" },
+              {
+                id: "bookmarks" as const,
+                label: "Bookmarks",
+                icon: <Bookmark size={20} />,
+                path: "/bookmarks",
+              },
               { id: "profile" as const, label: "Profile", icon: <User size={20} />, path: "/profile" },
-            ]).map((tour) => (
+            ].map((tour) => (
               <button
                 key={tour.id}
                 onClick={() => {

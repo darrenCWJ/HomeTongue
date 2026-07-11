@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle } from "lucide-react";
-import { useAppContext } from "../../../app/context/AppContext";
+import { useLibrary } from "../../../app/context/LibraryProvider";
 import { motion } from "motion/react";
 import { LESSONS } from "../../../data/lessons";
 import type { LessonLevel } from "../../../types";
@@ -21,7 +21,7 @@ export function LevelView({
   lessonId: string;
   onBack: () => void;
 }) {
-  const { lessonProgress, updateLessonProgress } = useAppContext();
+  const { lessonProgress, updateLessonProgress } = useLibrary();
   const [completed, setCompleted] = useState(false);
 
   const handleComplete = () => {

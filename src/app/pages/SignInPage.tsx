@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Lock, ArrowRight } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useProfile } from "../context/ProfileProvider";
 
 const ACCESS_CODE = import.meta.env.VITE_ACCESS_CODE as string | undefined;
 
 export function SignInPage() {
-  const { setIsSignedIn } = useAppContext();
+  const { setIsSignedIn } = useProfile();
   const [code, setCode] = useState("");
   const [error, setError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +45,11 @@ export function SignInPage() {
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <img src="/logo.png" alt="HomeTongue" className="w-20 h-20 rounded-2xl mx-auto shadow-lg shadow-brand-blue/20 mb-6 object-cover" />
+          <img
+            src="/logo.png"
+            alt="HomeTongue"
+            className="w-20 h-20 rounded-2xl mx-auto shadow-lg shadow-brand-blue/20 mb-6 object-cover"
+          />
           <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">HomeTongue</h1>
           <p className="text-brand-white text-sm font-medium">Master your dialect, naturally.</p>
         </motion.div>
@@ -72,13 +76,17 @@ export function SignInPage() {
               <input
                 type="password"
                 value={code}
-                onChange={(e) => { setCode(e.target.value); setError(false); }}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setError(false);
+                }}
                 placeholder="••••••••"
                 autoFocus
                 className={`w-full bg-zinc-50 border rounded-xl py-3 px-4 text-center text-lg tracking-[0.3em] font-semibold outline-none transition-all
-                  ${error
-                    ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400"
-                    : "border-zinc-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
+                  ${
+                    error
+                      ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                      : "border-zinc-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
                   }`}
               />
               {error && (

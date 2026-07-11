@@ -1,13 +1,18 @@
 import React from "react";
 import { RouterProvider } from "react-router";
 import { router } from "./routes";
-import { AppProvider } from "./context/AppContext";
+import { ProfileProvider } from "./context/ProfileProvider";
+import { LibraryProvider } from "./context/LibraryProvider";
+import { ChatProvider } from "./context/ChatProvider";
 
 export default function App() {
-  // Added a comment to force HMR to refresh AppProvider
   return (
-    <AppProvider>
-      <RouterProvider router={router} />
-    </AppProvider>
+    <ProfileProvider>
+      <LibraryProvider>
+        <ChatProvider>
+          <RouterProvider router={router} />
+        </ChatProvider>
+      </LibraryProvider>
+    </ProfileProvider>
   );
 }

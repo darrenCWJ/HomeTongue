@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useAppContext } from "../../app/context/AppContext";
+import { useProfile } from "../../app/context/ProfileProvider";
+import { useLibrary } from "../../app/context/LibraryProvider";
+import { useChat } from "../../app/context/ChatProvider";
 import type { Phrase, Message } from "../../types";
 import { toast } from "sonner";
 import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/audio";
@@ -25,28 +27,11 @@ import { PhraseSaveSheet } from "./components/PhraseSaveSheet";
 import { PendingEnglishOverlay } from "./components/PendingEnglishOverlay";
 
 export function ChatPage() {
-  const {
-    phrases,
-    tone,
-    toggleBookmark,
-    addPhrase,
-    updatePhrase,
-    messages,
-    addMessage,
-    addBotSuggestions,
-    updateMessage,
-    removeMessage,
-    saveSession,
-    discardChat,
-    userProfile,
-    updateUserProfile,
-    activePersona,
-    dialect,
-    setDialect,
-    phraseTags,
-    sessionTags,
-    createTag,
-  } = useAppContext();
+  const { tone, userProfile, updateUserProfile, activePersona, dialect, setDialect } = useProfile();
+  const { phrases, toggleBookmark, addPhrase, updatePhrase, phraseTags, sessionTags, createTag } =
+    useLibrary();
+  const { messages, addMessage, addBotSuggestions, updateMessage, removeMessage, saveSession, discardChat } =
+    useChat();
   const { isActive: isTourActive, activeTour } = useTour();
   const showDemoBubble =
     isTourActive &&

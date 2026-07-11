@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Play, BookOpen, Star, Trophy } from "lucide-react";
-import { useAppContext } from "../../app/context/AppContext";
+import { useLibrary } from "../../app/context/LibraryProvider";
 import { motion, AnimatePresence } from "motion/react";
 import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
@@ -24,7 +24,7 @@ interface ActiveLevel {
 
 export function LearnPage() {
   const { lessonProgress, conversationLessons, updateConversationLesson, deleteConversationLesson } =
-    useAppContext();
+    useLibrary();
   const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
 
   const [view, setView] = useState<View>("main");

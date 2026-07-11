@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { TourPageId } from "@/types";
-import { useAppContext } from "@/app/context/AppContext";
+import { useProfile } from "@/app/context/ProfileProvider";
 import { TOUR_STEPS } from "./tourConfig";
 
 interface TourContextType {
@@ -28,7 +28,7 @@ interface TourProviderProps {
 }
 
 export function TourProvider({ children }: TourProviderProps) {
-  const { updateUserProfile, userProfile } = useAppContext();
+  const { updateUserProfile, userProfile } = useProfile();
   const [activeTour, setActiveTour] = useState<TourPageId | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
