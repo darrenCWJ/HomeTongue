@@ -1,0 +1,299 @@
+import { describe, expect, test } from "vitest";
+import type { ConversationLesson, LessonProgress, Phrase, Session, Tag, UserProfile } from "../../types";
+import {
+  conversationLessonToRow,
+  lessonProgressToRow,
+  phraseToRow,
+  profileToRow,
+  rowToConversationLesson,
+  rowToLessonProgress,
+  rowToPhrase,
+  rowToProfile,
+  rowToSession,
+  rowToTag,
+  sessionToRow,
+  tagToRow,
+} from "./mapping";
+
+const USER_ID = "11111111-2222-3333-4444-555555555555";
+
+describe("phrase mapping", () => {
+  test("round-trips a fully populated phrase", () => {
+    // Arrange
+    const phrase: Phrase = {
+      id: "aaaa1111-0000-0000-0000-000000000001",
+      original: "Where is the bathroom?",
+      dialect: "廁所喺邊度？",
+      pronunciation: "ci3 so2 hai2 bin1 dou6",
+      isBookmarked: true,
+      context: "Asking for directions",
+      audioDataUrl: "data:audio/mp3;base64,AAA=",
+      audioDataUrls: ["data:audio/mp3;base64,AAA=", "data:audio/mp3;base64,BBB="],
+      tags: ["p-greetings", "p-transport"],
+      createdAt: "2026-07-01T10:00:00.000Z",
+    };
+
+    // Act
+    const row = phraseToRow(phrase, USER_ID);
+    const restored = rowToPhrase(row);
+
+    // Assert
+    expect(row.user_id).toBe(USER_ID);
+    expect(restored).toStrictEqual(phrase);
+  });
+
+  test("round-trips a phrase with all optional fields absent", () => {
+    // Arrange
+    const phrase: Phrase = {
+      id: "aaaa1111-0000-0000-0000-000000000002",
+      original: "Thank you",
+      dialect: "唔該",
+      pronunciation: "m4 goi1",
+      isBookmarked: false,
+      context: "",
+    };
+
+    // Act
+    const row = phraseToRow(phrase, USER_ID);
+    const restored = rowToPhrase(row);
+
+    // Assert
+    expect(row.audio_data_url).toBeNull();
+    expect(row.audio_data_urls).toBeNull();
+    expect(row.tags).toBeNull();
+    expect(row.created_at).toBeNull();
+    expect(restored).toStrictEqual(phrase);
+  });
+});
+
+describe("session mapping", () => {
+  test("round-trips a fully populated session", () => {
+    // Arrange
+    const session: Session = {
+      id: "bbbb1111-0000-0000-0000-000000000001",
+      title: "Dinner with grandma",
+      date: "7/1/2026",
+      createdAt: "2026-07-01T18:30:00.000Z",
+      messages: [
+        { id: "m1", sender: "user", text: "How do I say hello?" },
+        {
+          id: "m2",
+          sender: "bot",
+          text: "你好",
+          cantoneseText: "你好",
+          pronunciation: "nei5 hou2",
+          rating: "up",
+        },
+      ],
+      persona: "personal",
+      tags: ["s-daily"],
+    };
+
+    // Act
+    const restored = rowToSession(sessionToRow(session, USER_ID));
+
+    // Assert
+    expect(restored).toStrictEqual(session);
+  });
+
+  test("round-trips a legacy session without optional fields", () => {
+    // Arrange — old records have only a locale display date and messages
+    const session: Session = {
+      id: "bbbb1111-0000-0000-0000-000000000002",
+      date: "12/31/2025",
+      messages: [],
+    };
+
+    // Act
+    const row = sessionToRow(session, USER_ID);
+    const restored = rowToSession(row);
+
+    // Assert
+    expect(row.title).toBeNull();
+    expect(row.created_at).toBeNull();
+    expect(row.persona).toBeNull();
+    expect(row.tags).toBeNull();
+    expect(restored).toStrictEqual(session);
+  });
+});
+
+describe("profile mapping", () => {
+  test("round-trips a fully populated profile (id maps to user_id)", () => {
+    // Arrange — in cloud mode the profile id IS the auth user id
+    const profile: UserProfile = {
+      id: USER_ID,
+      name: "Darren",
+      preferredDialect: "Cantonese",
+      preferredTone: "casual",
+      toneOverrideEnabled: true,
+      personalityNotes: "Learning for family dinners",
+      conversationCount: 12,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+      personaSummary: "Friendly and informal",
+      characteristicPhrases: ["唔該", "早晨"],
+      activePersona: "work",
+      personaProfiles: {
+        personal: { tone: "casual", personaSummary: "Chatty" },
+        work: { tone: "formal", jobTitle: "Nurse", characteristicPhrases: ["請問"] },
+      },
+      preferredVoiceId: "zephyr",
+      customVoiceId: "custom-123",
+      suggestedRepliesEnabled: false,
+      tourCompleted: { chat: true, learn: false },
+    };
+
+    // Act
+    const row = profileToRow(profile, USER_ID);
+    const restored = rowToProfile(row);
+
+    // Assert
+    expect(row.user_id).toBe(USER_ID);
+    expect(restored).toStrictEqual(profile);
+  });
+
+  test("round-trips a minimal profile with optional fields absent", () => {
+    // Arrange
+    const profile: UserProfile = {
+      id: USER_ID,
+      name: "",
+      preferredDialect: "Cantonese",
+      preferredTone: "formal",
+      toneOverrideEnabled: false,
+      personalityNotes: "",
+      conversationCount: 0,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    // Act
+    const row = profileToRow(profile, USER_ID);
+    const restored = rowToProfile(row);
+
+    // Assert
+    expect(row.persona_summary).toBeNull();
+    expect(row.persona_profiles).toBeNull();
+    expect(row.tour_completed).toBeNull();
+    expect(row.suggested_replies_enabled).toBeNull();
+    expect(restored).toStrictEqual(profile);
+  });
+
+  test("preserves suggestedRepliesEnabled=false (falsy but present)", () => {
+    // Arrange
+    const profile: UserProfile = {
+      id: USER_ID,
+      name: "x",
+      preferredDialect: "Cantonese",
+      preferredTone: "slang",
+      toneOverrideEnabled: false,
+      personalityNotes: "",
+      conversationCount: 1,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      suggestedRepliesEnabled: false,
+    };
+
+    // Act
+    const restored = rowToProfile(profileToRow(profile, USER_ID));
+
+    // Assert
+    expect(restored.suggestedRepliesEnabled).toBe(false);
+    expect(restored).toStrictEqual(profile);
+  });
+});
+
+describe("tag mapping", () => {
+  test("round-trips a tag (including non-uuid seeded ids)", () => {
+    // Arrange — default seeded tags use readable ids, not uuids
+    const tag: Tag = {
+      id: "p-greetings",
+      name: "Greetings",
+      type: "phrase",
+      createdAt: "2024-01-01T00:00:00.000Z",
+    };
+
+    // Act
+    const row = tagToRow(tag, USER_ID);
+    const restored = rowToTag(row);
+
+    // Assert
+    expect(row.user_id).toBe(USER_ID);
+    expect(restored).toStrictEqual(tag);
+  });
+});
+
+describe("conversation lesson mapping", () => {
+  test("round-trips a fully populated lesson", () => {
+    // Arrange
+    const lesson: ConversationLesson = {
+      id: "cccc1111-0000-0000-0000-000000000001",
+      sessionId: "bbbb1111-0000-0000-0000-000000000001",
+      title: "Ordering dim sum",
+      createdAt: "2026-07-02T09:00:00.000Z",
+      vocabulary: [
+        {
+          english: "shrimp dumpling",
+          cantonese: "蝦餃",
+          pronunciation: "haa1 gaau2",
+          exampleSentence: "我想食蝦餃",
+          breakdown: [{ characters: "蝦", pronunciation: "haa1", meaning: "shrimp" }],
+        },
+      ],
+      examBestScore: 87.5,
+      examCompleted: true,
+      examAttempts: 3,
+      persona: "personal",
+      currentPhase: "done",
+    };
+
+    // Act
+    const restored = rowToConversationLesson(conversationLessonToRow(lesson, USER_ID));
+
+    // Assert
+    expect(restored).toStrictEqual(lesson);
+  });
+
+  test("round-trips a lesson with optional fields absent", () => {
+    // Arrange
+    const lesson: ConversationLesson = {
+      id: "cccc1111-0000-0000-0000-000000000002",
+      sessionId: "bbbb1111-0000-0000-0000-000000000002",
+      title: "New lesson",
+      createdAt: "2026-07-02T09:00:00.000Z",
+      vocabulary: [],
+      examCompleted: false,
+      examAttempts: 0,
+    };
+
+    // Act
+    const row = conversationLessonToRow(lesson, USER_ID);
+    const restored = rowToConversationLesson(row);
+
+    // Assert
+    expect(row.exam_best_score).toBeNull();
+    expect(row.persona).toBeNull();
+    expect(row.current_phase).toBeNull();
+    expect(restored).toStrictEqual(lesson);
+  });
+});
+
+describe("lesson progress mapping", () => {
+  test("round-trips lesson progress", () => {
+    // Arrange
+    const progress: LessonProgress = {
+      lessonId: "greetings-basics",
+      completedLevels: 2,
+      totalLevels: 5,
+      lastAccessedAt: "2026-07-03T12:00:00.000Z",
+    };
+
+    // Act
+    const row = lessonProgressToRow(progress, USER_ID);
+    const restored = rowToLessonProgress(row);
+
+    // Assert
+    expect(row.user_id).toBe(USER_ID);
+    expect(row.lesson_id).toBe("greetings-basics");
+    expect(restored).toStrictEqual(progress);
+  });
+});

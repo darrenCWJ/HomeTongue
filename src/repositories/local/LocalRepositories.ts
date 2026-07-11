@@ -106,7 +106,7 @@ export class LocalConversationLessonRepository implements IConversationLessonRep
   }
 }
 
-const DEFAULT_TAGS: Tag[] = [
+export const DEFAULT_TAGS: Tag[] = [
   { id: "p-greetings", name: "Greetings", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
   { id: "p-food", name: "Food & Dining", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },
   { id: "p-transport", name: "Transport", type: "phrase", createdAt: "2024-01-01T00:00:00.000Z" },

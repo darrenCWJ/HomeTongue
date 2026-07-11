@@ -1,0 +1,273 @@
+import type {
+  ConversationLesson,
+  LessonProgress,
+  Message,
+  PersonaProfile,
+  PersonaType,
+  Phrase,
+  Session,
+  Tag,
+  TagType,
+  Tone,
+  TourPageId,
+  UserProfile,
+  VocabItem,
+} from "../../types";
+
+// Pure row <-> domain mappers for the Supabase cloud repositories.
+//
+// Conventions:
+//   * Rows use snake_case (Postgres), domain types use camelCase.
+//   * Optional domain fields map to nullable row columns; `undefined` -> null
+//     on the way out, and null columns are OMITTED from the domain object on
+//     the way back so round-trips are exact (toStrictEqual-safe).
+//   * These functions never touch the network — they exist so mapping logic
+//     is unit-testable without a live Supabase project.
+
+export interface PhraseRow {
+  id: string;
+  user_id: string;
+  original: string;
+  dialect: string;
+  pronunciation: string;
+  is_bookmarked: boolean;
+  context: string;
+  audio_data_url: string | null;
+  audio_data_urls: string[] | null;
+  tags: string[] | null;
+  created_at: string | null;
+}
+
+export interface SessionRow {
+  id: string;
+  user_id: string;
+  title: string | null;
+  date_display: string;
+  messages: Message[];
+  persona: PersonaType | null;
+  tags: string[] | null;
+  created_at: string | null;
+}
+
+export interface ProfileRow {
+  user_id: string;
+  name: string;
+  preferred_dialect: string;
+  preferred_tone: Tone;
+  tone_override_enabled: boolean;
+  personality_notes: string;
+  conversation_count: number;
+  persona_summary: string | null;
+  characteristic_phrases: string[] | null;
+  active_persona: PersonaType | null;
+  persona_profiles: Partial<Record<PersonaType, PersonaProfile>> | null;
+  preferred_voice_id: string | null;
+  custom_voice_id: string | null;
+  suggested_replies_enabled: boolean | null;
+  tour_completed: Partial<Record<TourPageId, boolean>> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TagRow {
+  id: string;
+  user_id: string;
+  name: string;
+  type: TagType;
+  created_at: string;
+}
+
+export interface ConversationLessonRow {
+  id: string;
+  user_id: string;
+  session_id: string;
+  title: string;
+  vocabulary: VocabItem[];
+  exam_best_score: number | null;
+  exam_completed: boolean;
+  exam_attempts: number;
+  persona: PersonaType | null;
+  current_phase: "listen" | "flashcard" | "done" | null;
+  created_at: string;
+}
+
+export interface LessonProgressRow {
+  user_id: string;
+  lesson_id: string;
+  completed_levels: number;
+  total_levels: number;
+  last_accessed_at: string;
+}
+
+export function phraseToRow(phrase: Phrase, userId: string): PhraseRow {
+  return {
+    id: phrase.id,
+    user_id: userId,
+    original: phrase.original,
+    dialect: phrase.dialect,
+    pronunciation: phrase.pronunciation,
+    is_bookmarked: phrase.isBookmarked,
+    context: phrase.context,
+    audio_data_url: phrase.audioDataUrl ?? null,
+    audio_data_urls: phrase.audioDataUrls ?? null,
+    tags: phrase.tags ?? null,
+    created_at: phrase.createdAt ?? null,
+  };
+}
+
+export function rowToPhrase(row: PhraseRow): Phrase {
+  return {
+    id: row.id,
+    original: row.original,
+    dialect: row.dialect,
+    pronunciation: row.pronunciation,
+    isBookmarked: row.is_bookmarked,
+    context: row.context,
+    ...(row.audio_data_url !== null ? { audioDataUrl: row.audio_data_url } : {}),
+    ...(row.audio_data_urls !== null ? { audioDataUrls: row.audio_data_urls } : {}),
+    ...(row.tags !== null ? { tags: row.tags } : {}),
+    ...(row.created_at !== null ? { createdAt: row.created_at } : {}),
+  };
+}
+
+export function sessionToRow(session: Session, userId: string): SessionRow {
+  return {
+    id: session.id,
+    user_id: userId,
+    title: session.title ?? null,
+    date_display: session.date,
+    messages: session.messages,
+    persona: session.persona ?? null,
+    tags: session.tags ?? null,
+    created_at: session.createdAt ?? null,
+  };
+}
+
+export function rowToSession(row: SessionRow): Session {
+  return {
+    id: row.id,
+    date: row.date_display,
+    messages: row.messages,
+    ...(row.title !== null ? { title: row.title } : {}),
+    ...(row.created_at !== null ? { createdAt: row.created_at } : {}),
+    ...(row.persona !== null ? { persona: row.persona } : {}),
+    ...(row.tags !== null ? { tags: row.tags } : {}),
+  };
+}
+
+// In cloud mode the domain UserProfile.id IS the auth user id (profiles has
+// user_id as its primary key — no separate id column).
+export function profileToRow(profile: UserProfile, userId: string): ProfileRow {
+  return {
+    user_id: userId,
+    name: profile.name,
+    preferred_dialect: profile.preferredDialect,
+    preferred_tone: profile.preferredTone,
+    tone_override_enabled: profile.toneOverrideEnabled,
+    personality_notes: profile.personalityNotes,
+    conversation_count: profile.conversationCount,
+    persona_summary: profile.personaSummary ?? null,
+    characteristic_phrases: profile.characteristicPhrases ?? null,
+    active_persona: profile.activePersona ?? null,
+    persona_profiles: profile.personaProfiles ?? null,
+    preferred_voice_id: profile.preferredVoiceId ?? null,
+    custom_voice_id: profile.customVoiceId ?? null,
+    suggested_replies_enabled: profile.suggestedRepliesEnabled ?? null,
+    tour_completed: profile.tourCompleted ?? null,
+    created_at: profile.createdAt,
+    updated_at: profile.updatedAt,
+  };
+}
+
+export function rowToProfile(row: ProfileRow): UserProfile {
+  return {
+    id: row.user_id,
+    name: row.name,
+    preferredDialect: row.preferred_dialect,
+    preferredTone: row.preferred_tone,
+    toneOverrideEnabled: row.tone_override_enabled,
+    personalityNotes: row.personality_notes,
+    conversationCount: row.conversation_count,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    ...(row.persona_summary !== null ? { personaSummary: row.persona_summary } : {}),
+    ...(row.characteristic_phrases !== null ? { characteristicPhrases: row.characteristic_phrases } : {}),
+    ...(row.active_persona !== null ? { activePersona: row.active_persona } : {}),
+    ...(row.persona_profiles !== null ? { personaProfiles: row.persona_profiles } : {}),
+    ...(row.preferred_voice_id !== null ? { preferredVoiceId: row.preferred_voice_id } : {}),
+    ...(row.custom_voice_id !== null ? { customVoiceId: row.custom_voice_id } : {}),
+    ...(row.suggested_replies_enabled !== null
+      ? { suggestedRepliesEnabled: row.suggested_replies_enabled }
+      : {}),
+    ...(row.tour_completed !== null ? { tourCompleted: row.tour_completed } : {}),
+  };
+}
+
+export function tagToRow(tag: Tag, userId: string): TagRow {
+  return {
+    id: tag.id,
+    user_id: userId,
+    name: tag.name,
+    type: tag.type,
+    created_at: tag.createdAt,
+  };
+}
+
+export function rowToTag(row: TagRow): Tag {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    createdAt: row.created_at,
+  };
+}
+
+export function conversationLessonToRow(lesson: ConversationLesson, userId: string): ConversationLessonRow {
+  return {
+    id: lesson.id,
+    user_id: userId,
+    session_id: lesson.sessionId,
+    title: lesson.title,
+    vocabulary: lesson.vocabulary,
+    exam_best_score: lesson.examBestScore ?? null,
+    exam_completed: lesson.examCompleted,
+    exam_attempts: lesson.examAttempts,
+    persona: lesson.persona ?? null,
+    current_phase: lesson.currentPhase ?? null,
+    created_at: lesson.createdAt,
+  };
+}
+
+export function rowToConversationLesson(row: ConversationLessonRow): ConversationLesson {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    title: row.title,
+    createdAt: row.created_at,
+    vocabulary: row.vocabulary,
+    examCompleted: row.exam_completed,
+    examAttempts: row.exam_attempts,
+    ...(row.exam_best_score !== null ? { examBestScore: row.exam_best_score } : {}),
+    ...(row.persona !== null ? { persona: row.persona } : {}),
+    ...(row.current_phase !== null ? { currentPhase: row.current_phase } : {}),
+  };
+}
+
+export function lessonProgressToRow(progress: LessonProgress, userId: string): LessonProgressRow {
+  return {
+    user_id: userId,
+    lesson_id: progress.lessonId,
+    completed_levels: progress.completedLevels,
+    total_levels: progress.totalLevels,
+    last_accessed_at: progress.lastAccessedAt,
+  };
+}
+
+export function rowToLessonProgress(row: LessonProgressRow): LessonProgress {
+  return {
+    lessonId: row.lesson_id,
+    completedLevels: row.completed_levels,
+    totalLevels: row.total_levels,
+    lastAccessedAt: row.last_accessed_at,
+  };
+}

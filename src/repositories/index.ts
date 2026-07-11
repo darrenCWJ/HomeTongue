@@ -15,9 +15,12 @@ import {
   CloudConversationLessonRepository,
   CloudTagRepository,
 } from "./cloud/CloudRepositories";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 function createRepositories(mode: string): Repositories {
-  if (mode === "cloud") {
+  // Cloud mode requires BOTH the mode flag and a configured Supabase project;
+  // otherwise the app silently keeps working on local IndexedDB storage.
+  if (mode === "cloud" && isSupabaseConfigured) {
     return {
       phrases: new CloudPhraseRepository(),
       conversations: new CloudConversationRepository(),
@@ -26,6 +29,12 @@ function createRepositories(mode: string): Repositories {
       conversationLessons: new CloudConversationLessonRepository(),
       tags: new CloudTagRepository(),
     };
+  }
+  if (mode === "cloud") {
+    console.warn(
+      "VITE_STORAGE_MODE=cloud was requested but VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY " +
+        "are not set — falling back to local (IndexedDB) storage."
+    );
   }
   return {
     phrases: new LocalPhraseRepository(),
