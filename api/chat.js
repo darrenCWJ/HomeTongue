@@ -1,6 +1,10 @@
 import { isRateLimited, requestIp } from "./_lib/rateLimit.js";
 
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+// Model-provider switch (docs/ML_TRAINING_PLAN.md): point LLM_BASE_URL at any
+// OpenAI-compatible endpoint (vLLM on Modal, Together, etc.) to serve a
+// custom fine-tuned model. Defaults to OpenAI; the client never changes.
+const LLM_BASE_URL = (process.env.LLM_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
+const CHAT_URL = `${LLM_BASE_URL}/chat/completions`;
 
 const MAX_TOTAL_CHARS = 24_000;
 const MAX_TOKENS_CAP = 2_000;
@@ -19,7 +23,7 @@ export default async function handler(req, res) {
       return res.status(429).json({ error: "Too many requests. Try again shortly." });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY ?? process.env.VITE_OPENAI_API_KEY;
+    const apiKey = process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.VITE_OPENAI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "Translation service is not configured" });
     }
@@ -45,7 +49,7 @@ export default async function handler(req, res) {
 
     const model = process.env.OPENAI_MODEL ?? process.env.VITE_OPENAI_MODEL ?? DEFAULT_MODEL;
 
-    const upstream = await fetch(OPENAI_URL, {
+    const upstream = await fetch(CHAT_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

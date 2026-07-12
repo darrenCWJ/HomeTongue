@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY ?? process.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
+    if (!apiKey && !process.env.STT_BASE_URL) {
       return res.status(503).json({ error: "Transcription service is not configured" });
     }
 
@@ -58,17 +58,32 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Audio must be between 1 byte and 4MB" });
     }
 
-    const formData = new FormData();
-    formData.append("file", new Blob([audioBuffer], { type: "audio/wav" }), "recording.wav");
-    formData.append("model", model ?? "gpt-4o-transcribe");
-    if (language) formData.append("language", language);
-    if (prompt) formData.append("prompt", prompt);
-
-    const upstream = await fetch(OPENAI_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: formData,
-    });
+    // Custom STT provider switch (docs/ML_TRAINING_PLAN.md step 2): when
+    // STT_BASE_URL is set (e.g. a Modal endpoint serving fine-tuned Whisper),
+    // forward the JSON payload there and expect { text } back. Defaults to OpenAI.
+    const customSttUrl = process.env.STT_BASE_URL;
+    let upstream;
+    if (customSttUrl) {
+      upstream = await fetch(customSttUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.STT_API_KEY ? { Authorization: `Bearer ${process.env.STT_API_KEY}` } : {}),
+        },
+        body: JSON.stringify({ audio, language: language ?? null, prompt: prompt ?? null }),
+      });
+    } else {
+      const formData = new FormData();
+      formData.append("file", new Blob([audioBuffer], { type: "audio/wav" }), "recording.wav");
+      formData.append("model", model ?? "gpt-4o-transcribe");
+      if (language) formData.append("language", language);
+      if (prompt) formData.append("prompt", prompt);
+      upstream = await fetch(OPENAI_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: formData,
+      });
+    }
 
     if (!upstream.ok) {
       console.error("[api/transcribe] upstream error:", upstream.status, await upstream.text());

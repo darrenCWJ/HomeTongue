@@ -25,7 +25,15 @@ Goal: make every later decision measurable, and improve conversation quality imm
 3. **Synthetic dialogue generator** (`ml/data/`): frontier-model generation of HK-colloquial dialogues constrained by the language pack rules (particles, 唔/係/嘅/呢個 usage), auto-filtered by the scoring maps. Builds the SFT corpus for step 3 before user data reaches scale.
 4. **Grow the corpus**: consent prompts in-product; every exam attempt with consent ≈ 10s of labeled audio.
 
-**Exit criteria**: baseline CER report exists; ≥ 500 consented exam samples collected; retrieval prompting shipped and rated.
+**Status (2026-07-12)**: harness, generator, retrieval prompting, and both provider switches are SHIPPED (`ml/eval/`, `ml/data/`, suggestion personalization, `LLM_BASE_URL`/`STT_BASE_URL` in `api/`). Remaining exit criteria: run the first baseline report once ≥ 500 consented exam samples exist.
+
+Usage:
+```bash
+node ml/eval/build-normalization.mjs                 # regen after language-pack changes
+node scripts/export-training-data.mjs --out training-export   # needs SUPABASE_SERVICE_ROLE_KEY
+node ml/eval/evaluate_stt.mjs --in training-export/speech_samples.jsonl
+OPENAI_API_KEY=... node ml/data/generate-synthetic-dialogues.mjs --count 50
+```
 
 ## Step 2 — Whisper LoRA fine-tune (at ~1–2k samples / 5–15 h learner audio)
 

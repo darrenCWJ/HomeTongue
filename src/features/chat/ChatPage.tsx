@@ -142,7 +142,19 @@ export function ChatPage() {
     if (lastRecordRef.current) {
       lastRecordRef.current = { ...lastRecordRef.current, suggestionMsgId };
     }
-    getSuggestions(englishTranslation, messages, userProfile)
+    // Retrieval-lite personalization from the user's own data: bookmarked
+    // vocabulary + replies they rated up in this conversation history.
+    const personalization = {
+      savedPhrases: phrases
+        .filter((p) => p.isBookmarked)
+        .slice(-10)
+        .map((p) => `${p.original} — ${p.dialect}`),
+      likedReplies: messages
+        .filter((m) => m.rating === "up" && m.cantoneseText)
+        .slice(-5)
+        .map((m) => m.cantoneseText as string),
+    };
+    getSuggestions(englishTranslation, messages, userProfile, personalization)
       .then((chips) => {
         if (suggestionGenRef.current !== gen) return; // superseded by a newer fetch
         if (chips.length === 0) return;

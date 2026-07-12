@@ -26,10 +26,26 @@ interface SuggestionItem {
   context: string;
 }
 
+/**
+ * Retrieval-lite personalization: the user's own saved vocabulary and
+ * previously liked replies, injected as few-shot style context so
+ * suggestions match how this user actually speaks.
+ */
+export interface SuggestionPersonalization {
+  /** Bookmarked phrases, formatted "english — cantonese" (most recent first) */
+  savedPhrases?: string[];
+  /** Reply texts the user rated thumbs-up in past conversations */
+  likedReplies?: string[];
+}
+
+const MAX_SAVED_PHRASES = 10;
+const MAX_LIKED_REPLIES = 5;
+
 export async function getSuggestions(
   lastUserMessage: string,
   conversationHistory: Message[],
-  userProfile: UserProfile | null
+  userProfile: UserProfile | null,
+  personalization?: SuggestionPersonalization
 ): Promise<Phrase[]> {
   const activePersona = userProfile?.activePersona ?? "personal";
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
@@ -52,6 +68,18 @@ export async function getSuggestions(
       : "",
     jobTitle
       ? `The user is speaking in a work context as a ${jobTitle}. Keep suggestions professional and relevant to their role.`
+      : "",
+    personalization?.savedPhrases?.length
+      ? `Phrases the user has saved (their active vocabulary — prefer wording at this level):\n${personalization.savedPhrases
+          .slice(0, MAX_SAVED_PHRASES)
+          .map((p) => `- ${p}`)
+          .join("\n")}`
+      : "",
+    personalization?.likedReplies?.length
+      ? `Reply styles this user liked before (match this voice):\n${personalization.likedReplies
+          .slice(0, MAX_LIKED_REPLIES)
+          .map((p) => `- ${p}`)
+          .join("\n")}`
       : "",
     `Tone preference: ${tone}`,
     historyText ? `Recent conversation:\n${historyText}` : "",
