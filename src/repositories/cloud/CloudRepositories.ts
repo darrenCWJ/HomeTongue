@@ -45,7 +45,7 @@ interface AuthedContext {
   userId: string;
 }
 
-async function requireAuth(): Promise<AuthedContext> {
+export async function requireAuth(): Promise<AuthedContext> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.getSession();
   const userId = data.session?.user?.id;
@@ -55,7 +55,7 @@ async function requireAuth(): Promise<AuthedContext> {
   return { supabase, userId };
 }
 
-function assertNoError(error: { message: string } | null, action: string): void {
+export function assertNoError(error: { message: string } | null, action: string): void {
   if (error) {
     throw new Error(`Cloud storage error (${action}): ${error.message}`);
   }

@@ -1,14 +1,39 @@
-import { LocalReviewStateRepository } from "../local/ReviewStateRepository";
+import type { PhraseReviewState } from "../../types";
+import type { IReviewStateRepository } from "../interfaces";
+import { assertNoError, requireAuth } from "./CloudRepositories";
+import { reviewStateToRow, rowToReviewState, type ReviewStateRow } from "./mapping";
 
 /**
- * LOCAL-ONLY (intentional): spaced-repetition review schedules do NOT sync to
- * Supabase yet. A real cloud implementation needs a `review_states` Postgres
- * table + RLS policies (a new migration under supabase/migrations/), which is
- * out of scope for this change.
+ * Supabase-backed spaced-repetition schedule store (table `review_states`,
+ * composite PK (user_id, phrase_id) — see
+ * supabase/migrations/0003_srs_and_lesson_accuracy.sql).
  *
- * Until that migration exists, cloud mode transparently reuses the local
- * Dexie-backed store, so "Practice my phrases" keeps working in cloud mode —
- * schedules are simply per-device. This class imports nothing from
- * lib/supabase.ts, so the local-mode bundle-gating invariant is unaffected.
+ * Per-entity upserts only, mirroring CloudPhraseRepository: no list-based
+ * prune deletes, so a stale device can never wipe another device's schedules.
  */
-export class CloudReviewStateRepository extends LocalReviewStateRepository {}
+export class CloudReviewStateRepository implements IReviewStateRepository {
+  async getAll(): Promise<PhraseReviewState[]> {
+    const { supabase, userId } = await requireAuth();
+    const { data, error } = await supabase.from("review_states").select("*").eq("user_id", userId);
+    assertNoError(error, "load review schedules");
+    return ((data ?? []) as ReviewStateRow[]).map(rowToReviewState);
+  }
+
+  async put(state: PhraseReviewState): Promise<void> {
+    const { supabase, userId } = await requireAuth();
+    const { error } = await supabase
+      .from("review_states")
+      .upsert(reviewStateToRow(state, userId), { onConflict: "user_id,phrase_id" });
+    assertNoError(error, "save review schedule");
+  }
+
+  async delete(phraseId: string): Promise<void> {
+    const { supabase, userId } = await requireAuth();
+    const { error } = await supabase
+      .from("review_states")
+      .delete()
+      .eq("user_id", userId)
+      .eq("phrase_id", phraseId);
+    assertNoError(error, "delete review schedule");
+  }
+}

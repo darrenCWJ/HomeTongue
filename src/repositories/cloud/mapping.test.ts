@@ -1,14 +1,16 @@
 import { describe, expect, test } from "vitest";
-import type { ConversationLesson, LessonProgress, Phrase, Session, Tag, UserProfile } from "../../types";
+import type { ConversationLesson, LessonProgress, Phrase, PhraseReviewState, Session, Tag, UserProfile } from "../../types";
 import {
   conversationLessonToRow,
   lessonProgressToRow,
   phraseToRow,
   profileToRow,
+  reviewStateToRow,
   rowToConversationLesson,
   rowToLessonProgress,
   rowToPhrase,
   rowToProfile,
+  rowToReviewState,
   rowToSession,
   rowToTag,
   sessionToRow,
@@ -391,6 +393,50 @@ describe("lesson progress mapping", () => {
     // Assert
     expect(row.user_id).toBe(USER_ID);
     expect(row.lesson_id).toBe("greetings-basics");
+    expect(row.last_accuracy).toBeNull();
     expect(restored).toStrictEqual(progress);
+  });
+
+  test("round-trips lesson progress with lastAccuracy", () => {
+    // Arrange
+    const progress: LessonProgress = {
+      lessonId: "food-1",
+      completedLevels: 3,
+      totalLevels: 4,
+      lastAccessedAt: "2026-07-12T08:00:00.000Z",
+      lastAccuracy: 83,
+    };
+
+    // Act
+    const row = lessonProgressToRow(progress, USER_ID);
+    const restored = rowToLessonProgress(row);
+
+    // Assert
+    expect(row.last_accuracy).toBe(83);
+    expect(restored).toStrictEqual(progress);
+  });
+});
+
+describe("review state mapping", () => {
+  test("round-trips a review state", () => {
+    // Arrange
+    const state: PhraseReviewState = {
+      phraseId: "aaaa1111-0000-0000-0000-000000000001",
+      due: "2026-07-20T00:00:00.000Z",
+      intervalDays: 6,
+      ease: 2.36,
+      reps: 3,
+      lapses: 1,
+      updatedAt: "2026-07-14T09:30:00.000Z",
+    };
+
+    // Act
+    const row = reviewStateToRow(state, USER_ID);
+    const restored = rowToReviewState(row);
+
+    // Assert
+    expect(row.user_id).toBe(USER_ID);
+    expect(row.phrase_id).toBe(state.phraseId);
+    expect(restored).toStrictEqual(state);
   });
 });

@@ -5,6 +5,7 @@ import type {
   PersonaProfile,
   PersonaType,
   Phrase,
+  PhraseReviewState,
   Session,
   Tag,
   TagType,
@@ -103,6 +104,18 @@ export interface LessonProgressRow {
   completed_levels: number;
   total_levels: number;
   last_accessed_at: string;
+  last_accuracy: number | null;
+}
+
+export interface ReviewStateRow {
+  user_id: string;
+  phrase_id: string;
+  due: string;
+  interval_days: number;
+  ease: number;
+  reps: number;
+  lapses: number;
+  updated_at: string;
 }
 
 export function phraseToRow(phrase: Phrase, userId: string): PhraseRow {
@@ -272,6 +285,7 @@ export function lessonProgressToRow(progress: LessonProgress, userId: string): L
     completed_levels: progress.completedLevels,
     total_levels: progress.totalLevels,
     last_accessed_at: progress.lastAccessedAt,
+    last_accuracy: progress.lastAccuracy ?? null,
   };
 }
 
@@ -281,5 +295,31 @@ export function rowToLessonProgress(row: LessonProgressRow): LessonProgress {
     completedLevels: row.completed_levels,
     totalLevels: row.total_levels,
     lastAccessedAt: row.last_accessed_at,
+    ...(row.last_accuracy !== null ? { lastAccuracy: row.last_accuracy } : {}),
+  };
+}
+
+export function reviewStateToRow(state: PhraseReviewState, userId: string): ReviewStateRow {
+  return {
+    user_id: userId,
+    phrase_id: state.phraseId,
+    due: state.due,
+    interval_days: state.intervalDays,
+    ease: state.ease,
+    reps: state.reps,
+    lapses: state.lapses,
+    updated_at: state.updatedAt,
+  };
+}
+
+export function rowToReviewState(row: ReviewStateRow): PhraseReviewState {
+  return {
+    phraseId: row.phrase_id,
+    due: row.due,
+    intervalDays: row.interval_days,
+    ease: row.ease,
+    reps: row.reps,
+    lapses: row.lapses,
+    updatedAt: row.updated_at,
   };
 }

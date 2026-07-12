@@ -66,9 +66,9 @@ src/languages/                       ← LanguagePack contract + yue-HK pack (vo
 src/repositories/                   ← repository pattern for persistence
   interfaces.ts                     ← I*Repository interfaces
   index.ts                          ← factory: local vs cloud impl based on VITE_STORAGE_MODE
-  local/db.ts                       ← Dexie schema; DB name "hometongue", versions 1–5
+  local/db.ts                       ← Dexie schema; DB name "hometongue", versions 1–6
   local/LocalRepositories.ts        ← Dexie implementations
-  cloud/CloudRepositories.ts        ← stub cloud implementations (throw; not functional)
+  cloud/CloudRepositories.ts        ← Supabase implementations (per-entity upserts; active in cloud mode)
 src/services/
   translationService.ts             ← translation, transcription, scoring, word breakdown (all via /api proxies; offline mock fallback when server unconfigured)
   personaService.ts                 ← persona summary from chat history (via /api/chat)

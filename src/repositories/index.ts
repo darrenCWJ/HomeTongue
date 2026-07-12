@@ -41,8 +41,6 @@ function createRepositories(mode: string): Repositories {
       lessons: new CloudLessonRepository(),
       conversationLessons: new CloudConversationLessonRepository(),
       tags: new CloudTagRepository(),
-      // Device-local until a review_states migration lands — see the note in
-      // cloud/CloudReviewStateRepository.ts.
       reviewStates: new CloudReviewStateRepository(),
     };
   }
