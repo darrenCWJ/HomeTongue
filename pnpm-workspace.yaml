@@ -1,2 +1,7 @@
 packages:
   - '.'
+
+# sharp needs its postinstall script to fetch the prebuilt native binary —
+# it is a transitive dep of @capacitor/assets (app icon/splash generation).
+onlyBuiltDependencies:
+  - sharp

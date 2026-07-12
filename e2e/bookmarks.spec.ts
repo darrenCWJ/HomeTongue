@@ -32,7 +32,10 @@ test("saved conversation is listed and language-scoped", async ({ page }) => {
   await expect(page.getByText("No saved sessions")).toBeVisible();
 
   // Switching back restores it.
-  await page.getByRole("button", { name: /Hokkien/ }).first().click();
+  await page
+    .getByRole("button", { name: /Hokkien/ })
+    .first()
+    .click();
   await page.getByRole("button", { name: /Cantonese/ }).click();
   await expect(page.getByText("Thanks chat")).toBeVisible();
 });

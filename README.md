@@ -56,11 +56,19 @@ npx cap open android       # then run from Android Studio
 
 Native builds **must** set `VITE_API_BASE_URL` (e.g. `https://your-app.vercel.app`) at build time so the webview can reach the API. See `docs/MOBILE.md`.
 
+### Store prep
+
+- CI builds an unsigned release AAB on every push to `main` (`android-build` job in `.github/workflows/ci.yml`); iOS builds via `codemagic.yaml` once an Apple Developer account is wired into Codemagic.
+- App icons + splash screens regenerate from `public/logo.png`: `node scripts/generate-app-assets.mjs && npx capacitor-assets generate --android --ios`.
+- Privacy policy (both stores require a hosted URL): [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md), served at [home-tongue.vercel.app/privacy.html](https://home-tongue.vercel.app/privacy.html).
+- Full store checklists: [`docs/MOBILE.md`](docs/MOBILE.md).
+
 ## Documentation
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the pieces fit together
 - [`docs/SETUP.md`](docs/SETUP.md) — environment, keys, and provider setup in detail
-- [`docs/MOBILE.md`](docs/MOBILE.md) — Capacitor Android (and future iOS) guide
+- [`docs/MOBILE.md`](docs/MOBILE.md) — Capacitor Android + iOS guide and store checklists
+- [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md) — privacy policy (hosted at `/privacy.html`)
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — domain types and persistence schema
 - [`docs/ML_PIPELINE.md`](docs/ML_PIPELINE.md) — consent model and training-data pipeline
 - [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) — phased roadmap and status

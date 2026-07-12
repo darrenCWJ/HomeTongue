@@ -35,7 +35,10 @@ test("learn page is scoped to the selected language", async ({ page }) => {
   await expect(page.getByText("Rehearse a conversation")).toBeVisible();
 
   // And back: Cantonese categories return.
-  await page.getByRole("button", { name: /Hokkien/ }).first().click();
+  await page
+    .getByRole("button", { name: /Hokkien/ })
+    .first()
+    .click();
   await page.getByRole("button", { name: /Cantonese/ }).click();
   await expect(page.getByText("Ordering Food", { exact: true })).toBeVisible();
   await expect(page.getByText("Hokkien Basics", { exact: true })).toBeHidden();

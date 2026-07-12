@@ -16,6 +16,10 @@ out/
 *.png
 !public/**
 !src/assets/**
+# App icon/splash sources + generated native assets (scripts/generate-app-assets.mjs)
+!assets/**
+!android/app/src/main/res/**
+!ios/App/App/Assets.xcassets/**
 .playwright-mcp/
 
 # Playwright E2E artifacts

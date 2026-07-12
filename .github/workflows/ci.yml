@@ -82,3 +82,88 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Android release bundle — push-to-main only (skipped for PRs) so every
+  # mainline commit yields an installable artifact without slowing PR feedback.
+  # The AAB is UNSIGNED: Play Console upload requires signing (see the
+  # commented placeholder step below for wiring a keystore via secrets).
+  android-build:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Assumption (verified against the runner image docs): ubuntu-latest
+      # ships a preinstalled Android SDK at $ANDROID_HOME with build-tools and
+      # platforms, and Gradle auto-downloads any missing SDK components when
+      # licenses are accepted — so no android-actions/setup-android is needed.
+      # If the image ever drops the SDK, add android-actions/setup-android@v3
+      # before this comment.
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # VITE_API_BASE_URL must be baked in at build time: the Capacitor
+      # webview has no origin, so relative /api/* calls fail (docs/MOBILE.md).
+      - name: Build web assets + sync Capacitor project
+        run: pnpm android:sync
+        env:
+          VITE_API_BASE_URL: https://home-tongue.vercel.app
+
+      - name: Build unsigned release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Upload unsigned AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: hometongue-release-aab-unsigned
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+      # ── Signing placeholder ─────────────────────────────────────────────
+      # To produce a Play-uploadable signed AAB, create an upload keystore
+      # (keytool -genkeypair -v -keystore upload.jks -alias upload
+      #  -keyalg RSA -keysize 2048 -validity 10000), then add repo secrets:
+      #   KEYSTORE_BASE64    base64 of upload.jks (base64 -w0 upload.jks)
+      #   KEYSTORE_PASSWORD  keystore password
+      #   KEY_ALIAS          key alias (e.g. upload)
+      #   KEY_PASSWORD       key password
+      # and uncomment:
+      #
+      # - name: Decode keystore
+      #   run: echo "$KEYSTORE_BASE64" | base64 -d > android/upload.jks
+      #   env:
+      #     KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      #
+      # - name: Sign AAB
+      #   run: |
+      #     jarsigner -keystore android/upload.jks \
+      #       -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+      #       -signedjar android/app/build/outputs/bundle/release/app-release-signed.aab \
+      #       android/app/build/outputs/bundle/release/app-release.aab "$KEY_ALIAS"
+      #   env:
+      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      #
+      # - name: Upload signed AAB
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: hometongue-release-aab-signed
+      #     path: android/app/build/outputs/bundle/release/app-release-signed.aab
+      #     retention-days: 14
