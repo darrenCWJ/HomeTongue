@@ -9,7 +9,7 @@ import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import {
   transcribeDialect,
   transcribeEnglish,
-  translateCantoneseToEnglish,
+  translateDialectToEnglish,
 } from "../../services/translationService";
 import { prepareTranslation, type PreparedTranslation } from "./utils/prepareTranslation";
 import { getSuggestions } from "../../services/suggestionService";
@@ -247,7 +247,7 @@ export function ChatPage() {
           const prev = lastRecordRef.current!;
           const combinedText = `${prev.fullText} ${dialectText}`;
           const accumulatedUrls = [...prev.audioDataUrls, audioDataUrl];
-          const englishTranslation = await translateCantoneseToEnglish(combinedText);
+          const englishTranslation = await translateDialectToEnglish(combinedText);
           updateMessage(prev.msgId, {
             text: combinedText,
             englishTranslation,
@@ -275,7 +275,7 @@ export function ChatPage() {
           fetchSuggestions(englishTranslation, prevSuggestionMsgId);
           toast.info("Added to previous message");
         } else {
-          const englishTranslation = await translateCantoneseToEnglish(dialectText);
+          const englishTranslation = await translateDialectToEnglish(dialectText);
           // Message id and derived phrase id are deliberately the same value.
           const msgId = newId();
           addPhrase({

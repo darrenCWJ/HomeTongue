@@ -347,48 +347,50 @@ export function ProfilePage() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
-            {displayVoices.filter((v) => v.gender === voiceGenderTab).map((voice) => {
-              const selected = (userProfile?.preferredVoiceId ?? displayVoices[0].key) === voice.key;
-              return (
-                <label
-                  key={voice.key}
-                  className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
-                        {voice.label}
-                      </h3>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => handlePreview(e, voice.key)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
-                      previewingId === voice.key ? "bg-brand-blue/15" : "bg-zinc-100 hover:bg-brand-blue/15"
-                    }`}
+            {displayVoices
+              .filter((v) => v.gender === voiceGenderTab)
+              .map((voice) => {
+                const selected = (userProfile?.preferredVoiceId ?? displayVoices[0].key) === voice.key;
+                return (
+                  <label
+                    key={voice.key}
+                    className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
                   >
-                    {previewingId === voice.key ? (
-                      <Loader2 size={14} className="text-brand-blue animate-spin" />
-                    ) : (
-                      <Volume2 size={14} className="text-zinc-500" />
-                    )}
-                  </button>
-                  <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
-                    <input
-                      type="radio"
-                      name="voice"
-                      value={voice.key}
-                      checked={selected}
-                      onChange={() => updateUserProfile({ preferredVoiceId: voice.key })}
-                      className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-brand-blue transition-colors cursor-pointer"
-                    />
-                    {selected && (
-                      <div className="absolute w-2.5 h-2.5 bg-brand-blue rounded-full pointer-events-none" />
-                    )}
-                  </div>
-                </label>
-              );
-            })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
+                          {voice.label}
+                        </h3>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => handlePreview(e, voice.key)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
+                        previewingId === voice.key ? "bg-brand-blue/15" : "bg-zinc-100 hover:bg-brand-blue/15"
+                      }`}
+                    >
+                      {previewingId === voice.key ? (
+                        <Loader2 size={14} className="text-brand-blue animate-spin" />
+                      ) : (
+                        <Volume2 size={14} className="text-zinc-500" />
+                      )}
+                    </button>
+                    <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
+                      <input
+                        type="radio"
+                        name="voice"
+                        value={voice.key}
+                        checked={selected}
+                        onChange={() => updateUserProfile({ preferredVoiceId: voice.key })}
+                        className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-brand-blue transition-colors cursor-pointer"
+                      />
+                      {selected && (
+                        <div className="absolute w-2.5 h-2.5 bg-brand-blue rounded-full pointer-events-none" />
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
           </div>
         </section>
 

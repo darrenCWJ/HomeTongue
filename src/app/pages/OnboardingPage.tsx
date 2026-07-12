@@ -198,54 +198,56 @@ export function OnboardingPage() {
 
               {/* Voice cards */}
               <div className="space-y-2 mb-6">
-                {displayVoices.filter((v) => v.gender === voiceGenderTab).map((voice) => {
-                  const selected = voiceId === voice.key;
-                  return (
-                    <button
-                      key={voice.key}
-                      onClick={() => setVoiceId(voice.key)}
-                      className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
-                        selected
-                          ? "border-brand-blue bg-brand-blue/10"
-                          : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
-                      }`}
-                    >
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-zinc-200"}`}
-                      >
-                        <Volume2 size={16} className={selected ? "text-white" : "text-zinc-500"} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-zinc-800"}`}
-                          >
-                            {voice.label}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        onClick={(e) => handlePreview(e, voice.key)}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-                          previewingId === voice.key
-                            ? "bg-brand-blue/15"
-                            : "bg-zinc-100 hover:bg-brand-blue/15"
+                {displayVoices
+                  .filter((v) => v.gender === voiceGenderTab)
+                  .map((voice) => {
+                    const selected = voiceId === voice.key;
+                    return (
+                      <button
+                        key={voice.key}
+                        onClick={() => setVoiceId(voice.key)}
+                        className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
+                          selected
+                            ? "border-brand-blue bg-brand-blue/10"
+                            : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
                         }`}
                       >
-                        {previewingId === voice.key ? (
-                          <Loader2 size={14} className="text-brand-blue animate-spin" />
-                        ) : (
-                          <Volume2 size={14} className="text-zinc-500" />
-                        )}
-                      </div>
-                      {selected && (
-                        <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center shrink-0">
-                          <Check size={12} className="text-white" />
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-zinc-200"}`}
+                        >
+                          <Volume2 size={16} className={selected ? "text-white" : "text-zinc-500"} />
                         </div>
-                      )}
-                    </button>
-                  );
-                })}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-zinc-800"}`}
+                            >
+                              {voice.label}
+                            </span>
+                          </div>
+                        </div>
+                        <div
+                          onClick={(e) => handlePreview(e, voice.key)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                            previewingId === voice.key
+                              ? "bg-brand-blue/15"
+                              : "bg-zinc-100 hover:bg-brand-blue/15"
+                          }`}
+                        >
+                          {previewingId === voice.key ? (
+                            <Loader2 size={14} className="text-brand-blue animate-spin" />
+                          ) : (
+                            <Volume2 size={14} className="text-zinc-500" />
+                          )}
+                        </div>
+                        {selected && (
+                          <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center shrink-0">
+                            <Check size={12} className="text-white" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
               </div>
 
               <button

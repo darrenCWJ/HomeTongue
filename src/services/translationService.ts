@@ -174,7 +174,7 @@ export function transcribeAnyLanguage(blob: Blob): Promise<string> {
   return transcribeAudio(blob, null);
 }
 
-export async function translateCantoneseToEnglish(text: string): Promise<string> {
+export async function translateDialectToEnglish(text: string): Promise<string> {
   try {
     const content = await chatCompletion(
       [

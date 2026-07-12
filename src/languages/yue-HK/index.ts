@@ -48,13 +48,31 @@ const VOICES = {
 // scripts/generate-voice-previews.mjs mirrors these keys for static previews.
 const DISPLAY_VOICES = [
   // Female
-  { key: "zephyr",       label: "Jamie", gender: "female", style: "Bright",      description: "Bright, clear, natural" },
-  { key: "aoede",        label: "Sarah", gender: "female", style: "Breezy",      description: "Light, breezy, warm" },
-  { key: "vindemiatrix", label: "Lucy",  gender: "female", style: "Gentle",      description: "Mature, refined, composed" },
+  { key: "zephyr", label: "Jamie", gender: "female", style: "Bright", description: "Bright, clear, natural" },
+  { key: "aoede", label: "Sarah", gender: "female", style: "Breezy", description: "Light, breezy, warm" },
+  {
+    key: "vindemiatrix",
+    label: "Lucy",
+    gender: "female",
+    style: "Gentle",
+    description: "Mature, refined, composed",
+  },
   // Male
-  { key: "puck",   label: "Tom",   gender: "male", style: "Upbeat",      description: "Lively, fun, upbeat" },
-  { key: "charon", label: "John",  gender: "male", style: "Informative", description: "Clear, calm, informative" },
-  { key: "fenrir", label: "Harry", gender: "male", style: "Excitable",   description: "Mature, bold, expressive" },
+  { key: "puck", label: "Tom", gender: "male", style: "Upbeat", description: "Lively, fun, upbeat" },
+  {
+    key: "charon",
+    label: "John",
+    gender: "male",
+    style: "Informative",
+    description: "Clear, calm, informative",
+  },
+  {
+    key: "fenrir",
+    label: "Harry",
+    gender: "male",
+    style: "Excitable",
+    description: "Mature, bold, expressive",
+  },
 ] as const satisfies ReadonlyArray<DisplayVoice & { key: keyof typeof VOICES }>;
 
 const LEGACY_VOICE_MAP = {
