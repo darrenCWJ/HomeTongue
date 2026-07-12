@@ -492,7 +492,7 @@ export function ProfilePage() {
                   <p className="text-sm font-semibold text-zinc-800">Help improve dialect recognition</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Share your practice phrases, transcripts, corrections and scores to train better dialect
-                    models
+                    models — trained reviewers may review them to correct transcriptions
                   </p>
                 </div>
                 <button
@@ -515,7 +515,8 @@ export function ProfilePage() {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-zinc-800">Also keep my recordings</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Additionally store your practice recordings in private storage for model training
+                    Additionally, your recordings may be securely stored and reviewed by trained reviewers to
+                    improve speech recognition
                   </p>
                 </div>
                 <button

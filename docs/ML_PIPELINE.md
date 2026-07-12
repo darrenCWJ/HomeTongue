@@ -13,6 +13,8 @@ Two independent flags on the user's profile, both **default OFF**, toggled in Pr
 
 Enforcement is layered: the app never writes without the flag, **and** the database RLS insert policies re-check the profile flag server-side (`supabase/migrations/0002_ml_data_pipeline.sql`), so a buggy or malicious client cannot insert unconsented rows. Withdrawal of consent deletes the user's rows. All rows cascade-delete with the account.
 
+**Human review**: consented data — transcripts, corrections, scores and (with `audio_retention_consent`) the retained recordings — may be reviewed by trained human reviewers to correct transcriptions and improve the models. The in-app consent copy states this explicitly. Reviewer access requires the `profiles.is_admin` flag, which is granted manually via SQL/dashboard and can never be set through the client API; review verdicts are stored in `sample_reviews` (`supabase/migrations/0005_admin_review.sql`).
+
 ## What gets collected (when consented)
 
 | Source | Signal | Why it's valuable |
