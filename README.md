@@ -1,6 +1,6 @@
 # HomeTongue 粵
 
-**Learn to speak your family's dialect.** HomeTongue is a mobile-first web app (with a Capacitor Android build) for reconnecting with heritage languages — starting with Cantonese. Speak or type English, hear natural Cantonese back in three tones of formality, save phrases, and turn real conversations into personalized lessons with speaking exams.
+**Learn to speak your family's dialect.** HomeTongue is a mobile-first web app (with a Capacitor Android build) for reconnecting with heritage languages — starting with Cantonese as spoken by families in Singapore (`yue-HK` is the speech-service locale, not a content claim — see the locale note in `src/languages/yue-HK/index.ts`). Speak or type English, hear natural Cantonese back in three tones of formality, save phrases, and turn real conversations into personalized lessons with speaking exams.
 
 ## Features
 
@@ -82,4 +82,4 @@ Native builds **must** set `VITE_API_BASE_URL` (e.g. `https://your-app.vercel.ap
 
 ## Status
 
-Hackathon project under active rebuild. Cantonese is live; Hokkien, Hakka, and Teochew are planned via the language-pack architecture (see the improvement plan).
+Hackathon project under active rebuild. Cantonese (Singapore usage; `yue-HK` is the speech-service locale) is live and Hokkien (Singapore usage, text-first) is experimental; Hakka and Teochew are planned via the language-pack architecture (see the improvement plan). Lesson and roleplay content is AI-drafted and pending Singaporean native-speaker review (see `docs/LESSON_AUTHORING.md`).

@@ -21,7 +21,12 @@ const YUE_HK_LESSON_CATEGORIES: LessonCategory[] = [
     description: "Essential phrases for everyday use",
     icon: "👋",
   },
-  { id: "food", title: "Ordering Food", description: "Navigate restaurants with ease", icon: "🍜" },
+  {
+    id: "food",
+    title: "Ordering Food",
+    description: "Order like a local at the kopitiam and hawker centre",
+    icon: "🍜",
+  },
   { id: "transport", title: "Getting Around", description: "Navigate the city like a local", icon: "🚇" },
   { id: "slang", title: "Street Slang", description: "Sound like a true local", icon: "🤙" },
 ];

@@ -10,7 +10,7 @@ export const NAN_BASICS_LESSONS: Lesson[] = [
     id: "nan-greetings",
     categoryId: "nan-basics",
     title: "Greetings & Basics",
-    description: "Say hello and introduce yourself in Taiwanese Hokkien",
+    description: "Say hello and introduce yourself in Singapore Hokkien",
     difficulty: "beginner",
     tags: ["greeting", "polite", "daily", "introduction"],
     content: {
@@ -108,9 +108,9 @@ export const NAN_BASICS_LESSONS: Lesson[] = [
     id: "nan-food",
     categoryId: "nan-basics",
     title: "Eating Out",
-    description: "Order food and settle the bill at a Taiwanese eatery",
+    description: "Order food and settle the bill at the kopitiam",
     difficulty: "beginner",
-    tags: ["food", "restaurant", "money"],
+    tags: ["food", "kopitiam", "money"],
     content: {
       vocabulary: [
         {
@@ -121,9 +121,9 @@ export const NAN_BASICS_LESSONS: Lesson[] = [
         },
         {
           english: "How much?",
-          dialect: "偌濟錢？",
-          romanization: "guā-tsē tsînn?",
-          exampleSentence: "這个偌濟錢？",
+          dialect: "偌濟鐳？",
+          romanization: "guā-tsē lui?",
+          exampleSentence: "這个偌濟鐳？",
         },
         {
           english: "Delicious",
@@ -143,8 +143,13 @@ export const NAN_BASICS_LESSONS: Lesson[] = [
           romanization: "sǹg-siàu",
           exampleSentence: "頭家，算數！",
         },
-        { english: "Water", dialect: "水", romanization: "tsuí" },
-        { english: "Tea", dialect: "茶", romanization: "tê" },
+        {
+          english: "Kopi (coffee)",
+          dialect: "咖啡",
+          romanization: "ko-pi",
+          exampleSentence: "頭家，一杯咖啡。",
+        },
+        { english: "Teh (tea)", dialect: "茶", romanization: "tê" },
         {
           english: "I'm hungry",
           dialect: "我腹肚枵",
@@ -167,9 +172,9 @@ export const NAN_BASICS_LESSONS: Lesson[] = [
             },
             {
               english: "How much?",
-              dialect: "偌濟錢？",
-              romanization: "guā-tsē tsînn?",
-              exampleSentence: "這个偌濟錢？",
+              dialect: "偌濟鐳？",
+              romanization: "guā-tsē lui?",
+              exampleSentence: "這个偌濟鐳？",
             },
             {
               english: "Bill, please",
@@ -192,12 +197,17 @@ export const NAN_BASICS_LESSONS: Lesson[] = [
           exerciseType: "multiple-choice",
           vocabulary: [
             { english: "I want this", dialect: "我欲這个", romanization: "guá beh tsit-ê" },
-            { english: "How much?", dialect: "偌濟錢？", romanization: "guā-tsē tsînn?" },
+            { english: "How much?", dialect: "偌濟鐳？", romanization: "guā-tsē lui?" },
             { english: "Delicious", dialect: "好食", romanization: "hó-tsia̍h" },
             { english: "Boss / shopkeeper", dialect: "頭家", romanization: "thâu-ke" },
             { english: "Bill, please", dialect: "算數", romanization: "sǹg-siàu" },
-            { english: "Water", dialect: "水", romanization: "tsuí" },
-            { english: "Tea", dialect: "茶", romanization: "tê" },
+            {
+              english: "Kopi (coffee)",
+              dialect: "咖啡",
+              romanization: "ko-pi",
+              exampleSentence: "頭家，一杯咖啡。",
+            },
+            { english: "Teh (tea)", dialect: "茶", romanization: "tê" },
             { english: "I'm hungry", dialect: "我腹肚枵", romanization: "guá pak-tóo iau" },
           ],
         },

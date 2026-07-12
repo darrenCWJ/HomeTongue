@@ -3,6 +3,11 @@ import type { RoleplayLine, RoleplayPack, RoleplayScenario } from "../roleplay";
 /**
  * Roleplay rehearsal scenarios for Cantonese (yue-HK).
  *
+ * ⚠ AI-DRAFTED CONTENT — pending SINGAPOREAN native-speaker review. The
+ * scenarios target Cantonese as spoken by Cantonese families in Singapore
+ * (kopitiam, wet market, HDB flat) — see the locale note in ./index.ts for
+ * why the pack code stays "yue-HK".
+ *
  * Everything dialect-specific for the roleplay trainer lives here: the five
  * scenario definitions (bot persona, register, opening line, learner goals)
  * and the coach rubric. The shared shapes and prompt builders live in
@@ -16,7 +21,7 @@ function buildBotSystem(counterpart: string, setting: string, register: string):
   return `You are roleplaying as ${counterpart} in a spoken Cantonese rehearsal app for heritage learners. Setting: ${setting}. Stay fully in character for the whole conversation.
 
 Rules:
-- Speak natural conversational Hong Kong Cantonese in Traditional Chinese characters. Register: ${register}.
+- Speak natural conversational Cantonese as spoken by Cantonese families in SINGAPORE, in Traditional Chinese characters. Prefer Singapore terms (MRT, kopitiam 咖啡店, hawker centre, pasar malam) over Hong Kong ones (MTR, cha chaan teng); occasional English or Malay loanwords are natural in casual speech. Register: ${register}.
 - ONE short spoken line per turn (aim for under 20 characters) — real speech, never paragraphs or lists.
 - React naturally to the learner's last reply and keep the conversation moving, usually with a simple question.
 - The learner's replies come from speech recognition and may contain errors or English — stay in character, keep your Cantonese simple, and never switch to English dialogue.
@@ -49,7 +54,7 @@ const YUE_HK_ROLEPLAY_SCENARIOS: RoleplayScenario[] = [
     subtitle: "A cosy home dinner with 嫲嫲",
     emoji: "🍚",
     counterpart: "the learner's grandmother (嫲嫲), warm and doting",
-    setting: "a home-cooked family dinner at grandma's flat in Hong Kong",
+    setting: "a home-cooked family dinner at grandma's HDB flat in Singapore",
     register:
       "affectionate elder-to-grandchild family speech, soft particles like 呀/啦/囉, urging them to eat more",
     opening: openingLine(
@@ -64,22 +69,24 @@ const YUE_HK_ROLEPLAY_SCENARIOS: RoleplayScenario[] = [
     ],
   }),
   scenario({
+    // Historical id (scenario was a cha chaan teng order before the
+    // Singapore localization) — kept stable on purpose.
     id: "cha-chaan-teng",
-    title: "Cha Chaan Teng Order",
-    subtitle: "Order like a local at the diner",
+    title: "Kopitiam Breakfast",
+    subtitle: "Order kopi and breakfast like a local",
     emoji: "🍳",
-    counterpart: "a brisk but friendly cha chaan teng waiter (伙記)",
-    setting: "a busy Hong Kong cha chaan teng at lunchtime",
+    counterpart: "a brisk but friendly kopitiam drinks-stall uncle",
+    setting: "a busy Singapore kopitiam at breakfast time",
     register:
       "fast, clipped service Cantonese — short efficient questions, casual and a little impatient but good-natured",
     opening: openingLine(
-      "你好，想食啲咩呀？今日常餐好抵呀。",
-      "nei5 hou2, soeng2 sik6 di1 me1 aa3? gam1 jat6 soeng4 caan1 hou2 dai2 aa3.",
-      "Hi, what would you like? Today's set meal is a good deal."
+      "早晨！飲咩呀？咖啡定茶？",
+      "zou2 san4! jam2 me1 aa3? gaa3 fe1 ding6 caa4?",
+      "Morning! What are you drinking? Kopi or teh?"
     ),
     goalHints: [
-      "Order a drink and a main dish",
-      "Ask what the waiter recommends",
+      "Order a drink and something to eat",
+      "Ask what the uncle recommends",
       "Ask for the bill (唔該埋單)",
     ],
   }),
@@ -89,7 +96,7 @@ const YUE_HK_ROLEPLAY_SCENARIOS: RoleplayScenario[] = [
     subtitle: "Buy veggies and haggle at the 街市",
     emoji: "🥬",
     counterpart: "a chatty wet market vegetable stall owner (檔主)",
-    setting: "a lively Hong Kong wet market vegetable stall in the morning",
+    setting: "a lively Singapore wet market vegetable stall in the morning",
     register: "lively street-vendor Cantonese — friendly hawking, playful bargaining banter",
     opening: openingLine(
       "今日啲菜心好靚呀，啱啱返嚟㗎，要唔要睇吓？",
@@ -143,7 +150,7 @@ const YUE_HK_ROLEPLAY_SCENARIOS: RoleplayScenario[] = [
   }),
 ];
 
-const COACH_SYSTEM_PROMPT = `You are a supportive Cantonese conversation coach reviewing ONE turn of a rehearsal roleplay. Given the scenario, what the counterpart just said, and the learner's reply, judge how appropriate and accurate the reply is in context.
+const COACH_SYSTEM_PROMPT = `You are a supportive Cantonese conversation coach reviewing ONE turn of a rehearsal roleplay. The learner speaks Cantonese as used by Cantonese families in Singapore. Given the scenario, what the counterpart just said, and the learner's reply, judge how appropriate and accurate the reply is in context.
 
 Scoring guide (0-100):
 - 85-100: natural, appropriate Cantonese for the relationship and situation.
@@ -151,6 +158,7 @@ Scoring guide (0-100):
 - 35-59: partially appropriate — wrong register (e.g. too abrupt for an elder), or mostly English mixed with some Cantonese.
 - 0-34: does not respond to the situation, or entirely English with no attempt at Cantonese.
 - The reply comes from speech recognition: be LENIENT about homophones, Mandarin-character substitutions (的↔嘅, 是↔係, 不↔唔, 了↔咗), and missing sentence-final particles.
+- Singapore usage is CORRECT here: English/Malay loanwords and Singapore terms (kopitiam, MRT, pasar) in an otherwise Cantonese sentence are natural, not errors.
 
 The tip must be ONE concrete, actionable suggestion (max 20 words), ideally including a short Cantonese phrase they could use next time.
 

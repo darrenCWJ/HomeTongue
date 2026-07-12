@@ -1,5 +1,21 @@
 import type { DisplayVoice, GoogleTTSVoice, LanguagePack } from "../types";
 
+// ── Locale note: code "yue-HK", content Singapore ───────────────────────────
+//
+// The pack code stays "yue-HK" because it is the closest SUPPORTED
+// speech-service locale, not a content claim: it is baked into stored rows
+// (language-scoped phrases/sessions), Google TTS voice names
+// (yue-HK-Chirp3-HD-*), the server manifest (api/_lib/languageManifest.js),
+// and lesson ids — renaming it would be a breaking migration for zero user
+// value. All CONTENT (lessons, roleplay, prompts) targets Cantonese as spoken
+// by Cantonese families in SINGAPORE. Google's yue-HK voices carry a Hong
+// Kong accent — no Singapore-Cantonese voice exists in any vendor catalogue —
+// which is an accepted, documented limitation.
+//
+// ⚠ Prompt/content wording is AI-drafted and pending SINGAPOREAN
+// native-speaker review (lesson rows carry the `reviewed` CSV column —
+// see docs/LESSON_AUTHORING.md).
+
 // Single source of truth for the names woven into the prompt templates below
 // AND exposed on the pack (label / romanization.name / script.name). A second
 // pack only has to swap these constants and its prompts stay consistent.
@@ -87,11 +103,12 @@ const TRANSLATE_SYSTEM_PROMPT = `You are a dialect translation assistant. When g
   "predictedResponse": "<A likely reply a native speaker would give, in ${SCRIPT_NAME}>",
   "context": "<3-5 word usage context in English>"
 }
-Use ${SCRIPT_NAME} characters (not Mandarin simplified). Provide ${ROMANIZATION_NAME} romanization with tone numbers.`;
+Use ${SCRIPT_NAME} characters (not Mandarin simplified). Provide ${ROMANIZATION_NAME} romanization with tone numbers.
+Use ${DIALECT_LABEL} as spoken by ${DIALECT_LABEL} families in SINGAPORE: prefer Singapore terms (MRT, kopitiam 咖啡店, hawker centre, EZ-Link, pasar malam) over Hong Kong ones (MTR, cha chaan teng 茶餐廳, Octopus). English and Malay loanwords are natural in the casual and slang registers.`;
 
-const BREAKDOWN_SYSTEM_PROMPT = `You are a ${DIALECT_LABEL} language teacher. For each ${DIALECT_LABEL} segment given, provide its ${ROMANIZATION_NAME} pronunciation and a short English meaning. Return ONLY a JSON object with this exact structure: {"chunks":[{"characters":"幾時輪到我呀","pronunciation":"gei2 si4 lun4 dou3 ngo5 aa3","meaning":"when is it my turn"}]}. Preserve the order and exact characters of each segment.`;
+const BREAKDOWN_SYSTEM_PROMPT = `You are a ${DIALECT_LABEL} language teacher (Singapore usage — the ${DIALECT_LABEL} spoken by ${DIALECT_LABEL} families in Singapore). For each ${DIALECT_LABEL} segment given, provide its ${ROMANIZATION_NAME} pronunciation and a short English meaning. Return ONLY a JSON object with this exact structure: {"chunks":[{"characters":"幾時輪到我呀","pronunciation":"gei2 si4 lun4 dou3 ngo5 aa3","meaning":"when is it my turn"}]}. Preserve the order and exact characters of each segment.`;
 
-const EXAMPLE_META_SYSTEM_PROMPT = `Given a ${DIALECT_LABEL} sentence, return JSON with exactly two fields: "translation" (natural English meaning) and "pronunciation" (full ${ROMANIZATION_NAME} romanization with tone numbers). Return ONLY valid JSON, no other text.`;
+const EXAMPLE_META_SYSTEM_PROMPT = `Given a ${DIALECT_LABEL} sentence (Singapore usage — may contain Singapore terms or English/Malay loanwords), return JSON with exactly two fields: "translation" (natural English meaning) and "pronunciation" (full ${ROMANIZATION_NAME} romanization with tone numbers). Return ONLY valid JSON, no other text.`;
 
 function buildScoringSystemPrompt(charCount: number): string {
   return `You are a fair ${DIALECT_LABEL} language examiner. Given an expected ${DIALECT_LABEL} phrase and what the student actually said (transcribed by speech recognition), score their accuracy from 0 to 100.
@@ -107,6 +124,7 @@ Scoring rules:
 - Award 20–49 if the student captured the general topic but missed significant portions.
 - Award 0–19 only if the student said something completely unrelated to the expected phrase.
 - Ignore punctuation differences entirely.
+- The student speaks the ${DIALECT_LABEL} of ${DIALECT_LABEL} families in Singapore: English/Malay loanwords and Singapore terms embedded in the phrase are valid vocabulary, not mistakes.
 - Be generous — this is a language learner using speech recognition which may introduce transcription errors.
 - Return ONLY a JSON object: {"score": 75}`;
 }

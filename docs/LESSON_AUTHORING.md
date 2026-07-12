@@ -41,7 +41,7 @@ Every lesson has:
 | `language` | The language code, exactly as given to you | `nan-TW` |
 | `category_id` | Short id of the category (group of lessons). Never rename an existing id | `nan-basics` |
 | `category_title` | Category name shown in the app | `Hokkien Basics` |
-| `category_description` | One-line description of the category | `Everyday Taiwanese Hokkien, from hello to the bill` |
+| `category_description` | One-line description of the category | `Everyday Singapore Hokkien, from hello to the bill` |
 | `category_icon` | One emoji for the category | `🏮` |
 | `lesson_id` | Short id of the lesson. Never rename an existing id (learner progress is attached to it) | `nan-greetings` |
 | `lesson_title` | Lesson name shown in the app | `Greetings & Basics` |
@@ -97,6 +97,14 @@ native speaker has checked the row. Rows without `yes` still import, but the
 developer sees a **warning for each unreviewed row** — so the column doubles
 as a to-do list for the review pass. If your sheet doesn't have the column
 at all, no warnings are produced.
+
+> **Current content status**: the shipped Cantonese (`yue-HK`) and Hokkien
+> (`nan-TW`) lessons were AI-drafted for **Singapore usage** (kopitiam, MRT,
+> EZ-Link, pasar malam; Malay loanwords in Hokkien) and are **pending
+> Singaporean native-speaker review**. The generated lesson modules cannot
+> carry per-row notes, so this `reviewed` column IS the review mechanism:
+> export the language, have a Singaporean native speaker check each row, mark
+> `yes`, and re-import.
 
 ## Google Sheets tips
 

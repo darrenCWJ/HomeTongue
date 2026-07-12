@@ -51,6 +51,10 @@ async function translateWithProxy(text: string): Promise<TranslationResult> {
   }
 }
 
+// Deterministic offline fallback (keyless server -> /api/chat 503). Canned
+// responses use Singapore-usage Cantonese (kopitiam 咖啡店, MRT). The e2e
+// suite asserts these EXACT strings (e2e/helpers.ts MOCK_HELLO,
+// e2e/bookmarks.spec.ts "唔該晒！") — keep specs and mock in lockstep.
 function translateWithMock(text: string): TranslationResult {
   const lower = text.toLowerCase();
 
@@ -94,13 +98,13 @@ function translateWithMock(text: string): TranslationResult {
     };
   }
 
-  if (lower.includes("station") || lower.includes("train") || lower.includes("mtr")) {
+  if (lower.includes("station") || lower.includes("train") || lower.includes("mrt")) {
     return {
       formal: { text: "請問地鐵站在哪裡？", pronunciation: "cing2 man6 dei6 tit3 zaam6 hai2 bin1 dou6?" },
       casual: { text: "地鐵站喺邊度呀？", pronunciation: "dei6 tit3 zaam6 hai2 bin1 dou6 aa3?" },
       slang: { text: "地鐵站去邊？", pronunciation: "dei6 tit3 zaam6 heoi3 bin1?" },
       predictedResponse: "直行，向左轉就係喇。",
-      context: "Finding the MTR",
+      context: "Finding the MRT",
     };
   }
 
@@ -114,7 +118,7 @@ function translateWithMock(text: string): TranslationResult {
       formal: { text: "我想用餐。", pronunciation: "ngo5 soeng2 jung6 caan1." },
       casual: { text: "我想食嘢。", pronunciation: "ngo5 soeng2 sik6 je5." },
       slang: { text: "食嘢先！", pronunciation: "sik6 je5 sin1!" },
-      predictedResponse: "去附近間茶餐廳啦！",
+      predictedResponse: "去附近間咖啡店啦！",
       context: "Wanting to eat",
     };
   }

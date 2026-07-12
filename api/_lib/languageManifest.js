@@ -44,8 +44,10 @@ const RAW_MANIFEST = [
     ttsVoicePattern: /^yue-HK-Chirp3-HD-[A-Za-z]+$/,
   },
   {
-    // EXPERIMENTAL text-first language (Taiwanese Hokkien): no vendor speech
-    // models yet. Empty sttLanguages makes transcribeCore refuse /api/transcribe
+    // EXPERIMENTAL text-first language (Hokkien — Singapore usage; the code
+    // names the Min Nan speech-locale family, see src/languages/nan-TW/
+    // index.ts): no vendor speech models yet. Empty sttLanguages makes
+    // transcribeCore refuse /api/transcribe
     // for this code with a clear error, and the never-matching voice pattern
     // ((?!) fails on every input, including "") makes ttsCore reject every
     // voice name — no request for this language can reach Google TTS.

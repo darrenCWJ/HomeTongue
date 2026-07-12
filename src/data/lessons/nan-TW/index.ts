@@ -16,7 +16,7 @@ const NAN_TW_LESSON_CATEGORIES: LessonCategory[] = [
   {
     id: "nan-basics",
     title: "Hokkien Basics",
-    description: "Everyday Taiwanese Hokkien, from hello to the bill",
+    description: "Everyday Singapore Hokkien, from hello to the bill",
     icon: "🏮",
   },
 ];

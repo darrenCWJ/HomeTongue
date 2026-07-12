@@ -83,9 +83,13 @@ export const GREETINGS_LESSONS: Lesson[] = [
           english: "Where are you from?",
           dialect: "你係邊度人？",
           romanization: "nei5 hai6 bin1 dou6 jan4?",
-          exampleSentence: "你係邊度人？香港人？",
+          exampleSentence: "你係邊度人？新加坡人？",
         },
-        { english: "I'm from Hong Kong", dialect: "我係香港人", romanization: "ngo5 hai6 hoeng1 gong2 jan4" },
+        {
+          english: "I'm from Singapore",
+          dialect: "我係新加坡人",
+          romanization: "ngo5 hai6 san1 gaa3 bo1 jan4",
+        },
         {
           english: "Do you speak Cantonese?",
           dialect: "你識唔識講廣東話？",
@@ -222,12 +226,12 @@ export const GREETINGS_LESSONS: Lesson[] = [
               english: "Where are you from?",
               dialect: "你係邊度人？",
               romanization: "nei5 hai6 bin1 dou6 jan4?",
-              exampleSentence: "你係邊度人？香港人？",
+              exampleSentence: "你係邊度人？新加坡人？",
             },
             {
-              english: "I'm from Hong Kong",
-              dialect: "我係香港人",
-              romanization: "ngo5 hai6 hoeng1 gong2 jan4",
+              english: "I'm from Singapore",
+              dialect: "我係新加坡人",
+              romanization: "ngo5 hai6 san1 gaa3 bo1 jan4",
             },
             {
               english: "Do you speak Cantonese?",
@@ -327,9 +331,9 @@ export const GREETINGS_LESSONS: Lesson[] = [
             },
             {
               speaker: "user",
-              english: "I'm from Hong Kong. Do you speak Cantonese?",
-              dialect: "我係香港人。你識唔識講廣東話？",
-              romanization: "ngo5 hai6 hoeng1 gong2 jan4. nei5 sik1 m4 sik1 gong2 gwong2 dung1 waa2?",
+              english: "I'm from Singapore. Do you speak Cantonese?",
+              dialect: "我係新加坡人。你識唔識講廣東話？",
+              romanization: "ngo5 hai6 san1 gaa3 bo1 jan4. nei5 sik1 m4 sik1 gong2 gwong2 dung1 waa2?",
               hint: "Say where you're from + ask about Cantonese",
             },
             {
