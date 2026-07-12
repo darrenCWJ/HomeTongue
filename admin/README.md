@@ -2,7 +2,7 @@
 
 Standalone data-labeling and oversight app for HomeTongue. Non-technical admins use it to
 review consented speech samples (expected text vs. STT transcript, with audio playback),
-record a verdict per sample, and watch dataset stats grow.
+record a verdict per sample, and watch product usage on the analytics dashboard.
 
 It is deliberately a **separate Vite app** in `admin/` — not part of the main bundle — so
 admin-only code never ships to end users. It talks directly to the **same Supabase project**
@@ -76,8 +76,23 @@ Then sign in at the admin app with that email + password.
 
   Submitting upserts into `sample_reviews` and removes the card ("reviewed this session"
   counter). A toggle shows the already-reviewed list read-only.
-- **Stats** — total samples, reviewed count/% by verdict, correction events, and a
-  per-language breakdown.
+- **Dashboard** — product analytics for the owner, backed by the `admin_dashboard_stats`
+  RPC (**requires `supabase/migrations/0007`**) plus the review-pipeline queries:
+  - **Overview** — total/new/active users, consent rates, users by dialect.
+  - **Content by language** — phrases, sessions, conversation lessons, and speech
+    samples per language pack.
+  - **Activity** — daily new users / sessions / speech samples over a selectable
+    7/30/90-day window.
+  - **Engagement** — phrases (total/bookmarked), sessions, lessons started vs.
+    completed, SRS activity, exam attempts and average score.
+  - **Improvement signals** — hardest lessons (low average accuracy flagged), speech
+    recognition quality per language, transcript edits, suggestion ratings.
+  - **Speech review pipeline** — total samples, reviewed count/% by verdict,
+    correction events, per-language breakdown (the former Stats page).
+
+  Everything is **aggregate-only by design** — the RPC returns counts and averages, so
+  admins never see conversation content. Stats cover cloud-mode signed-in users only;
+  local-mode (IndexedDB) usage never reaches Supabase.
 
 ## Deploying (Vercel)
 

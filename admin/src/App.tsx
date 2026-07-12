@@ -6,7 +6,7 @@ import { SignInScreen } from "./components/SignInScreen";
 import { NotAdminScreen } from "./components/NotAdminScreen";
 import { AppHeader, type AdminTab } from "./components/AppHeader";
 import { ReviewQueuePage } from "./pages/ReviewQueuePage";
-import { StatsPage } from "./pages/StatsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 
 export default function App() {
   const [tab, setTab] = useState<AdminTab>("review");
@@ -21,7 +21,7 @@ export default function App() {
       <div className="app-shell">
         <AppHeader tab={tab} onTabChange={setTab} email={userEmail} onSignOut={signOut} />
         <main className="app-main">
-          {tab === "review" ? <ReviewQueuePage reviewerId={userId} /> : <StatsPage />}
+          {tab === "review" ? <ReviewQueuePage reviewerId={userId} /> : <DashboardPage />}
         </main>
       </div>
     );

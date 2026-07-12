@@ -74,7 +74,7 @@ describe("parseCsv", () => {
   });
 
   test("stringifyCsv -> parseCsv round-trips tricky fields", () => {
-    const record = ['comma, here', 'quote " here', "newline\nhere", "早晨！", "plain"];
+    const record = ["comma, here", 'quote " here', "newline\nhere", "早晨！", "plain"];
     expect(parseCsv(stringifyCsv([record]))).toEqual([record]);
   });
 });
@@ -130,7 +130,14 @@ describe("validation", () => {
   test("non-contiguous levels are an error listing what was found", () => {
     const { errors } = errorsOf([
       BASE_ROW,
-      { ...BASE_ROW, level: "3", level_title: "Level Three", dialect_text: "多謝", romanization: "to-siā", english: "Thanks" },
+      {
+        ...BASE_ROW,
+        level: "3",
+        level_title: "Level Three",
+        dialect_text: "多謝",
+        romanization: "to-siā",
+        english: "Thanks",
+      },
     ]);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain("levels must run 1, 2, 3");
@@ -140,7 +147,13 @@ describe("validation", () => {
   test("an inconsistent filled-down lesson_title names both rows", () => {
     const { errors } = errorsOf([
       BASE_ROW,
-      { ...BASE_ROW, lesson_title: "Test Lessons", dialect_text: "多謝", romanization: "to-siā", english: "Thanks" },
+      {
+        ...BASE_ROW,
+        lesson_title: "Test Lessons",
+        dialect_text: "多謝",
+        romanization: "to-siā",
+        english: "Thanks",
+      },
     ]);
     expect(errors).toHaveLength(1);
     expect(errors[0].row).toBe(3);
@@ -166,16 +179,16 @@ describe("validation", () => {
 
   test("an unprefixed nan-TW lesson id is an error", () => {
     const { errors } = errorsOf([{ ...BASE_ROW, lesson_id: "greetings" }]);
-    expect(errors.some((e) => e.row === 2 && e.message.includes('lesson_id "greetings" must start with "nan-"'))).toBe(
-      true
-    );
+    expect(
+      errors.some((e) => e.row === 2 && e.message.includes('lesson_id "greetings" must start with "nan-"'))
+    ).toBe(true);
   });
 
   test("an unprefixed nan-TW category id is an error", () => {
     const { errors } = errorsOf([{ ...BASE_ROW, category_id: "basics" }]);
-    expect(errors.some((e) => e.row === 2 && e.message.includes('category_id "basics" must start with "nan-"'))).toBe(
-      true
-    );
+    expect(
+      errors.some((e) => e.row === 2 && e.message.includes('category_id "basics" must start with "nan-"'))
+    ).toBe(true);
   });
 
   test("yue-HK ids are exempt from the prefix rule", () => {
@@ -197,7 +210,13 @@ describe("validation", () => {
   test("a fill-blank level passes when one word has a ___ sentence (others act as distractors)", () => {
     const { errors } = errorsOf([
       { ...BASE_ROW, exercise_type: "fill-blank", example_sentence: "___，我是誰。" },
-      { ...BASE_ROW, exercise_type: "fill-blank", dialect_text: "多謝", romanization: "to-siā", english: "Thanks" },
+      {
+        ...BASE_ROW,
+        exercise_type: "fill-blank",
+        dialect_text: "多謝",
+        romanization: "to-siā",
+        english: "Thanks",
+      },
     ]);
     expect(errors).toEqual([]);
   });
@@ -221,7 +240,9 @@ describe("validation", () => {
       ["reviewed"]
     );
     expect(errors).toEqual([]);
-    const reviewWarnings = warnings.filter((w: { message: string }) => w.message.includes("not marked as reviewed"));
+    const reviewWarnings = warnings.filter((w: { message: string }) =>
+      w.message.includes("not marked as reviewed")
+    );
     expect(reviewWarnings).toHaveLength(1);
     expect(reviewWarnings[0].row).toBe(2);
   });
@@ -251,7 +272,11 @@ describe("validation", () => {
 
   test("blank rows are skipped without errors", () => {
     const records = toRecords([BASE_ROW]);
-    records.splice(1, 0, EXPORT_COLUMNS.map(() => ""));
+    records.splice(
+      1,
+      0,
+      EXPORT_COLUMNS.map(() => "")
+    );
     const { errors } = rowsToContent(records);
     expect(errors).toEqual([]);
   });
@@ -273,9 +298,17 @@ describe("generateModules", () => {
 
   test("yue-HK: category file names and const names match the historical layout", () => {
     const files = generateModules("yue-HK", getLessonContent("yue-HK"));
-    expect(Object.keys(files).sort()).toEqual(["food.ts", "greetings.ts", "index.ts", "slang.ts", "transport.ts"]);
+    expect(Object.keys(files).sort()).toEqual([
+      "food.ts",
+      "greetings.ts",
+      "index.ts",
+      "slang.ts",
+      "transport.ts",
+    ]);
     expect(files["greetings.ts"]).toContain("export const GREETINGS_LESSONS: Lesson[] = [");
-    expect(files["index.ts"]).toContain("...GREETINGS_LESSONS, ...FOOD_LESSONS, ...TRANSPORT_LESSONS, ...SLANG_LESSONS");
+    expect(files["index.ts"]).toContain(
+      "...GREETINGS_LESSONS, ...FOOD_LESSONS, ...TRANSPORT_LESSONS, ...SLANG_LESSONS"
+    );
   });
 
   test("an oversized category is chunked into numbered files", () => {

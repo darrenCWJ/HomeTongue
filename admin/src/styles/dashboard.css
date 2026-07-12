@@ -1,0 +1,191 @@
+/* HomeTongue Admin — dashboard: analytics toolbar, bar rows, daily activity
+   chart, note banner. Base tokens/shell live in base.css; generic cards,
+   badges, and stat tiles live in components.css. */
+
+:root {
+  /* Brand blue family shared with the main app (src/styles/theme.css --primary),
+     so charts in both apps feel related. */
+  --brand-blue: #1985ff;
+  --brand-blue-deep: #0d5fce;
+  --brand-blue-light: #8ec2ff;
+  --brand-blue-soft: #e8f2ff;
+}
+
+/* ---------- Section titles ---------- */
+
+/* The .page flex gap already separates blocks; pull the following card a
+   touch closer so the title reads as its header. */
+.section-title {
+  margin: 0.5rem 0 -0.35rem;
+}
+
+/* ---------- Toolbar: days-window selector ---------- */
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.range-toggle {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.range-btn {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+  padding: 0.22rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.range-btn:hover {
+  color: var(--text);
+}
+
+.range-btn-active,
+.range-btn-active:hover {
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue);
+  font-weight: 600;
+}
+
+/* ---------- Note banner (empty-state honesty) ---------- */
+
+.note-banner {
+  background: var(--brand-blue-soft);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ---------- Horizontal bar rows ---------- */
+
+.bar-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 9rem 1fr auto;
+  align-items: center;
+  gap: 0.15rem 0.6rem;
+}
+
+.bar-row-label {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.bar-row-track {
+  height: 10px;
+  background: var(--brand-blue-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-row-fill {
+  height: 100%;
+  background: var(--brand-blue);
+  border-radius: 999px;
+}
+
+.bar-row-value {
+  min-width: 2.5rem;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bar-row-detail {
+  grid-column: 1 / -1;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+}
+
+/* ---------- Daily activity chart ---------- */
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.chart-columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 130px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chart-day {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 100%;
+  min-width: 0;
+}
+
+.chart-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+}
+
+.series-new-users {
+  background: var(--brand-blue-deep);
+}
+
+.series-sessions {
+  background: var(--brand-blue);
+}
+
+.series-samples {
+  background: var(--brand-blue-light);
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px) {
+  .bar-row {
+    grid-template-columns: 6rem 1fr auto;
+  }
+}

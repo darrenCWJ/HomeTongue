@@ -1,4 +1,4 @@
-export type AdminTab = "review" | "stats";
+export type AdminTab = "review" | "dashboard";
 
 interface AppHeaderProps {
   tab: AdminTab;
@@ -20,10 +20,10 @@ export function AppHeader({ tab, onTabChange, email, onSignOut }: AppHeaderProps
             Review queue
           </button>
           <button
-            className={`tab${tab === "stats" ? " tab-active" : ""}`}
-            onClick={() => onTabChange("stats")}
+            className={`tab${tab === "dashboard" ? " tab-active" : ""}`}
+            onClick={() => onTabChange("dashboard")}
           >
-            Stats
+            Dashboard
           </button>
         </nav>
       </div>
