@@ -23,9 +23,18 @@ export function playDataUrl(dataUrl: string): Promise<void> {
     const objectUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
     const audio = new Audio(objectUrl);
     const cleanup = () => URL.revokeObjectURL(objectUrl);
-    audio.onended = () => { cleanup(); resolve(); };
-    audio.onerror = () => { cleanup(); reject(new Error("Audio playback failed")); };
-    audio.play().catch((err) => { cleanup(); reject(err); });
+    audio.onended = () => {
+      cleanup();
+      resolve();
+    };
+    audio.onerror = () => {
+      cleanup();
+      reject(new Error("Audio playback failed"));
+    };
+    audio.play().catch((err) => {
+      cleanup();
+      reject(err);
+    });
   });
 }
 
@@ -49,12 +58,24 @@ export function useAudioRecorder() {
   }, []);
 
   const startRecording = async (): Promise<void> => {
+    // Guard against re-entrant calls (e.g. a rapid double-tap firing both
+    // touch and mouse events): stop and fully release any recorder that is
+    // still active so its mic stream is never orphaned (mic light stuck on).
+    const existing = mediaRecorderRef.current;
+    if (existing && existing.state !== "inactive") {
+      try {
+        existing.stop();
+      } catch {
+        // recorder already stopped
+      }
+      existing.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const preferredTypes = ["audio/webm", "audio/mp4", "audio/ogg", "audio/wav"];
     const mimeType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t));
-    const mediaRecorder = mimeType
-      ? new MediaRecorder(stream, { mimeType })
-      : new MediaRecorder(stream);
+    const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
     mediaRecorderRef.current = mediaRecorder;
     chunksRef.current = [];
 
@@ -101,9 +122,16 @@ const WAV_SAMPLE_RATE = 16_000;
 
 export async function blobToWav(blob: Blob): Promise<Blob> {
   const arrayBuffer = await blob.arrayBuffer();
+  // Browsers cap concurrent AudioContexts (~4-6); always close, even when
+  // decodeAudioData rejects, or repeated failures exhaust the pool and
+  // `new AudioContext()` starts throwing.
   const audioCtx = new AudioContext();
-  const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-  await audioCtx.close();
+  let decoded: AudioBuffer;
+  try {
+    decoded = await audioCtx.decodeAudioData(arrayBuffer);
+  } finally {
+    await audioCtx.close().catch(() => {});
+  }
 
   // Resample to 16 kHz mono (OfflineAudioContext downmixes channels)
   const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * WAV_SAMPLE_RATE), WAV_SAMPLE_RATE);
@@ -118,7 +146,9 @@ export async function blobToWav(blob: Blob): Promise<Blob> {
   const samples = rendered.getChannelData(0);
   const buffer = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buffer);
-  const writeStr = (offset: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i)); };
+  const writeStr = (offset: number, s: string) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+  };
   writeStr(0, "RIFF");
   view.setUint32(4, 36 + samples.length * 2, true);
   writeStr(8, "WAVE");
@@ -134,7 +164,7 @@ export async function blobToWav(blob: Blob): Promise<Blob> {
   view.setUint32(40, samples.length * 2, true);
   for (let i = 0; i < samples.length; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]));
-    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
   }
   return new Blob([buffer], { type: "audio/wav" });
 }

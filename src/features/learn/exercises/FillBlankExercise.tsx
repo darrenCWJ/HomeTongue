@@ -12,7 +12,11 @@ export function FillBlankExercise({
   onComplete,
 }: {
   level: LessonLevel;
-  onComplete: () => void;
+  /**
+   * Called after the last card with the attempt accuracy (0–100). Called with
+   * no argument (ungraded) when the level has no fill-in-the-blank items.
+   */
+  onComplete: (accuracy?: number) => void;
   onBack: () => void;
 }) {
   const { userProfile } = useProfile();
@@ -20,6 +24,7 @@ export function FillBlankExercise({
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
 
   // Must run before the empty-state early return — hooks cannot be conditional
   const current = itemsWithSentences[index];
@@ -35,7 +40,10 @@ export function FillBlankExercise({
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-4">
         <p className="text-zinc-500">No fill-in-the-blank items available.</p>
-        <button onClick={onComplete} className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold">
+        <button
+          onClick={() => onComplete()}
+          className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold"
+        >
           Complete Level
         </button>
       </div>
@@ -46,13 +54,15 @@ export function FillBlankExercise({
 
   const handleSelect = (cantonese: string) => {
     if (selected !== null) return;
+    const correct = cantonese === current.cantonese;
     setSelected(cantonese);
-    setIsCorrect(cantonese === current.cantonese);
+    setIsCorrect(correct);
+    if (correct) setCorrectCount((c) => c + 1);
   };
 
   const handleNext = () => {
     if (index + 1 >= itemsWithSentences.length) {
-      onComplete();
+      onComplete(Math.round((correctCount / itemsWithSentences.length) * 100));
       return;
     }
     setIndex((i) => i + 1);

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, RotateCcw } from "lucide-react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
 import { motion } from "motion/react";
-import { LESSONS } from "../../../data/lessons";
-import type { LessonLevel } from "../../../types";
+import { LESSONS, getLessonLevels } from "../../../data/lessons";
+import type { LessonLevel, LessonProgress } from "../../../types";
 import { FlashcardExercise } from "../exercises/FlashcardExercise";
 import { MatchingExercise } from "../exercises/MatchingExercise";
 import { MultipleChoiceExercise } from "../exercises/MultipleChoiceExercise";
@@ -11,6 +11,15 @@ import { FillBlankExercise } from "../exercises/FillBlankExercise";
 import { ConversationExercise } from "../exercises/ConversationExercise";
 
 // ─── LevelView ────────────────────────────────────────────────────────────────
+
+/** Same pass bar as ExamView: graded exercises need ≥ 60% to complete. */
+const PASS_THRESHOLD = 60;
+
+interface AttemptResult {
+  /** null when the exercise is ungraded (flashcards, matching, conversation). */
+  accuracy: number | null;
+  passed: boolean;
+}
 
 export function LevelView({
   level,
@@ -22,21 +31,45 @@ export function LevelView({
   onBack: () => void;
 }) {
   const { lessonProgress, updateLessonProgress } = useLibrary();
-  const [completed, setCompleted] = useState(false);
+  const [result, setResult] = useState<AttemptResult | null>(null);
+  // Bumped on retry so the active exercise remounts with fresh state.
+  const [attemptKey, setAttemptKey] = useState(0);
 
-  const handleComplete = () => {
+  // Graded exercises (multiple-choice, fill-blank) report accuracy; ungraded
+  // ones (flashcards are self-paced with no knew/didn't-know signal, matching
+  // and conversation always end correct) call with no argument and are exempt
+  // from the gate.
+  const handleComplete = (accuracy?: number) => {
+    const graded = typeof accuracy === "number";
+    const passed = !graded || accuracy >= PASS_THRESHOLD;
     const prev = lessonProgress[lessonId];
     const lesson = LESSONS.find((l) => l.id === lessonId);
-    updateLessonProgress({
+    const previousCompleted = prev?.completedLevels ?? 0;
+    const progress: LessonProgress = {
       lessonId,
-      completedLevels: Math.max(level.level, prev?.completedLevels ?? 0),
-      totalLevels: lesson?.content.levels?.length ?? level.level,
+      // Only a passing attempt can mark this level complete; a failed attempt
+      // never regresses previously completed levels either.
+      completedLevels: passed ? Math.max(level.level, previousCompleted) : previousCompleted,
+      totalLevels: lesson ? getLessonLevels(lesson).length : level.level,
       lastAccessedAt: new Date().toISOString(),
-    });
-    setCompleted(true);
+      // Persist the latest graded accuracy (pass OR fail — honest stats),
+      // carrying the previous value forward for ungraded exercises.
+      ...(graded
+        ? { lastAccuracy: accuracy }
+        : prev?.lastAccuracy !== undefined
+          ? { lastAccuracy: prev.lastAccuracy }
+          : {}),
+    };
+    updateLessonProgress(progress);
+    setResult({ accuracy: graded ? accuracy : null, passed });
   };
 
-  if (completed) {
+  const handleRetry = () => {
+    setResult(null);
+    setAttemptKey((k) => k + 1);
+  };
+
+  if (result?.passed) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -47,6 +80,9 @@ export function LevelView({
           <CheckCircle size={48} className="text-brand-blue" />
         </div>
         <h2 className="text-2xl font-extrabold text-zinc-800 mb-2">Level Complete!</h2>
+        {result.accuracy !== null && (
+          <p className="text-lg font-bold text-brand-blue mb-1">{result.accuracy}% correct</p>
+        )}
         <p className="text-zinc-500 mb-8">{level.title} — well done!</p>
         <button
           onClick={onBack}
@@ -54,6 +90,40 @@ export function LevelView({
         >
           Back to Roadmap
         </button>
+      </motion.div>
+    );
+  }
+
+  if (result && !result.passed) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center"
+      >
+        <div className="w-24 h-24 rounded-full bg-orange-100 flex items-center justify-center mb-6">
+          <RotateCcw size={44} className="text-orange-500" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-zinc-800 mb-2">Almost there!</h2>
+        <p className="text-lg font-bold text-orange-500 mb-1">{result.accuracy}% correct</p>
+        <p className="text-zinc-500 mb-8 max-w-xs">
+          You need {PASS_THRESHOLD}% to complete {level.title}. Give it another go — repetition is how it
+          sticks!
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={handleRetry}
+            className="bg-brand-blue/100 text-white font-bold px-8 py-3 rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={onBack}
+            className="border border-zinc-200 text-zinc-600 font-semibold px-8 py-3 rounded-2xl hover:bg-zinc-50 active:scale-95 transition-all"
+          >
+            Back to Roadmap
+          </button>
+        </div>
       </motion.div>
     );
   }
@@ -81,7 +151,7 @@ export function LevelView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-none pb-nav">
+      <div key={attemptKey} className="flex-1 overflow-y-auto scrollbar-none pb-nav">
         {level.exerciseType === "flashcard" && <FlashcardExercise {...sharedProps} />}
         {level.exerciseType === "matching" && <MatchingExercise {...sharedProps} />}
         {level.exerciseType === "multiple-choice" && <MultipleChoiceExercise {...sharedProps} />}

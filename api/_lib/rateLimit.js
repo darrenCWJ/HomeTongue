@@ -10,8 +10,29 @@
 
 const memoryLog = new Map();
 
+// Cheap periodic sweep so memoryLog does not grow forever on long-lived
+// instances: at most once per SWEEP_INTERVAL_MS, drop entries whose newest
+// timestamp is already outside the largest window seen (i.e. entries whose
+// filtered timestamp array would be empty).
+const SWEEP_INTERVAL_MS = 60_000;
+let lastSweepAtMs = 0;
+let maxWindowSeenMs = 0;
+
+function sweepMemoryLog(now) {
+  if (now - lastSweepAtMs < SWEEP_INTERVAL_MS) return;
+  lastSweepAtMs = now;
+  for (const [key, timestamps] of memoryLog) {
+    const newest = timestamps[timestamps.length - 1];
+    if (newest === undefined || now - newest >= maxWindowSeenMs) {
+      memoryLog.delete(key);
+    }
+  }
+}
+
 function isMemoryLimited(key, maxRequests, windowMs) {
   const now = Date.now();
+  if (windowMs > maxWindowSeenMs) maxWindowSeenMs = windowMs;
+  sweepMemoryLog(now);
   const timestamps = (memoryLog.get(key) ?? []).filter((t) => now - t < windowMs);
   if (timestamps.length >= maxRequests) {
     memoryLog.set(key, timestamps);

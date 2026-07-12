@@ -69,49 +69,23 @@ export class CloudPhraseRepository implements IPhraseRepository {
     return ((data ?? []) as PhraseRow[]).map(rowToPhrase);
   }
 
-  // saveAll mirrors the local repository's replace-all semantics (clear +
-  // bulkPut) as: upsert every provided phrase, then delete the user's rows
-  // that are no longer in the list. Tradeoff: simple and interface-compatible,
-  // but not concurrency-safe across devices and re-writes unchanged rows.
-  // Per-entity CRUD refinement is planned (docs/IMPROVEMENT_PLAN.md Phase 3).
-  async saveAll(phrases: Phrase[]): Promise<void> {
+  // Per-entity upserts only. The old replace-all saveAll (upsert list + prune
+  // everything else) was a cross-device data-loss engine and has been removed:
+  // no code path here ever issues a list-based prune delete.
+  async put(phrase: Phrase): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const rows = phrases.map((phrase) => phraseToRow(phrase, userId));
-
-    if (rows.length > 0) {
-      const { error: upsertError } = await supabase.from("phrases").upsert(rows, { onConflict: "user_id,id" });
-      assertNoError(upsertError, "save phrases");
-    }
-
-    let deleteQuery = supabase.from("phrases").delete().eq("user_id", userId);
-    if (rows.length > 0) {
-      const keptIds = rows.map((row) => row.id).join(",");
-      deleteQuery = deleteQuery.not("id", "in", `(${keptIds})`);
-    }
-    const { error: deleteError } = await deleteQuery;
-    assertNoError(deleteError, "prune phrases");
+    const { error } = await supabase
+      .from("phrases")
+      .upsert(phraseToRow(phrase, userId), { onConflict: "user_id,id" });
+    assertNoError(error, "save phrase");
   }
 
-  async toggleBookmark(id: string): Promise<Phrase[]> {
+  async putMany(phrases: Phrase[]): Promise<void> {
+    if (phrases.length === 0) return;
     const { supabase, userId } = await requireAuth();
-    const { data, error } = await supabase
-      .from("phrases")
-      .select("is_bookmarked")
-      .eq("user_id", userId)
-      .eq("id", id)
-      .maybeSingle();
-    assertNoError(error, "load phrase");
-
-    const current = (data ?? null) as Pick<PhraseRow, "is_bookmarked"> | null;
-    if (current) {
-      const { error: updateError } = await supabase
-        .from("phrases")
-        .update({ is_bookmarked: !current.is_bookmarked })
-        .eq("user_id", userId)
-        .eq("id", id);
-      assertNoError(updateError, "toggle bookmark");
-    }
-    return this.getAll();
+    const rows = phrases.map((phrase) => phraseToRow(phrase, userId));
+    const { error } = await supabase.from("phrases").upsert(rows, { onConflict: "user_id,id" });
+    assertNoError(error, "save phrases");
   }
 }
 
@@ -128,13 +102,17 @@ export class CloudConversationRepository implements IConversationRepository {
 
   async addSession(session: Session): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const { error } = await supabase.from("sessions").upsert(sessionToRow(session, userId), { onConflict: "user_id,id" });
+    const { error } = await supabase
+      .from("sessions")
+      .upsert(sessionToRow(session, userId), { onConflict: "user_id,id" });
     assertNoError(error, "add session");
   }
 
   async updateSession(session: Session): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const { error } = await supabase.from("sessions").upsert(sessionToRow(session, userId), { onConflict: "user_id,id" });
+    const { error } = await supabase
+      .from("sessions")
+      .upsert(sessionToRow(session, userId), { onConflict: "user_id,id" });
     assertNoError(error, "update session");
   }
 
@@ -207,11 +185,7 @@ export class CloudConversationLessonRepository implements IConversationLessonRep
 
   async delete(id: string): Promise<void> {
     const { supabase, userId } = await requireAuth();
-    const { error } = await supabase
-      .from("conversation_lessons")
-      .delete()
-      .eq("user_id", userId)
-      .eq("id", id);
+    const { error } = await supabase.from("conversation_lessons").delete().eq("user_id", userId).eq("id", id);
     assertNoError(error, "delete conversation lesson");
   }
 }
@@ -224,9 +198,10 @@ export class CloudTagRepository implements ITagRepository {
     const tags = ((data ?? []) as TagRow[]).map(rowToTag);
     if (tags.length === 0) {
       // Mirror the local repository: seed the default tag set on first use.
-      const { error: seedError } = await supabase
-        .from("tags")
-        .upsert(DEFAULT_TAGS.map((tag) => tagToRow(tag, userId)), { onConflict: "user_id,id" });
+      const { error: seedError } = await supabase.from("tags").upsert(
+        DEFAULT_TAGS.map((tag) => tagToRow(tag, userId)),
+        { onConflict: "user_id,id" }
+      );
       assertNoError(seedError, "seed default tags");
       return DEFAULT_TAGS;
     }

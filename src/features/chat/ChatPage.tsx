@@ -2,17 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { useLibrary } from "../../app/context/LibraryProvider";
 import { useChat } from "../../app/context/ChatProvider";
-import type { Phrase, Message } from "../../types";
+import type { Phrase, Message, TranslationVariant } from "../../types";
 import { toast } from "sonner";
 import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/audio";
 import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import {
-  translate,
   transcribeCantonese,
   transcribeEnglish,
   translateCantoneseToEnglish,
 } from "../../services/translationService";
+import { prepareTranslation, type PreparedTranslation } from "./utils/prepareTranslation";
 import { getSuggestions } from "../../services/suggestionService";
+import { newId } from "../../utils/id";
 import { recordCorrection, consentFromProfile } from "../../services/speechSampleService";
 import { useTour } from "../../app/components/tour/TourProvider";
 import { useBubbleLongPress } from "./hooks/useBubbleLongPress";
@@ -66,14 +67,13 @@ export function ChatPage() {
   const [typedReply, setTypedReply] = useState("");
   const [pendingEnglish, setPendingEnglish] = useState<{
     text: string;
-    resultPromise: Promise<{ phrase: Phrase; audioDataUrl: string; play: () => Promise<void> }>;
+    resultPromise: Promise<PreparedTranslation>;
   } | null>(null);
 
   const { startRecording, stopRecording } = useAudioRecorder();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  type PrefetchResult = { phrase: Phrase; audioDataUrl: string; play: () => Promise<void> };
-  const prefetchCacheRef = useRef<Map<string, Promise<PrefetchResult>>>(new Map());
+  const prefetchCacheRef = useRef<Map<string, Promise<PreparedTranslation>>>(new Map());
 
   type RecordRef = {
     msgId: string;
@@ -137,7 +137,7 @@ export function ChatPage() {
   // After showing a Cantonese message, fetch suggestions, remove stale ones, and prefetch TTS
   const fetchSuggestions = (englishTranslation: string, prevSuggestionMsgId: string | null = null) => {
     const gen = ++suggestionGenRef.current;
-    const suggestionMsgId = `sug-${Date.now()}`;
+    const suggestionMsgId = `sug-${newId()}`;
     if (prevSuggestionMsgId) removeMessage(prevSuggestionMsgId);
     if (lastRecordRef.current) {
       lastRecordRef.current = { ...lastRecordRef.current, suggestionMsgId };
@@ -163,26 +163,10 @@ export function ChatPage() {
         chips.forEach((chip) => {
           const cacheKey = `${chip.original}:${tone}`;
           if (prefetchCacheRef.current.has(cacheKey)) return;
-          const promise: Promise<PrefetchResult> = translate({
-            text: chip.original,
-            preferredTone: tone,
-          }).then(async (result) => {
-            const variant = result[tone];
-            const { audioDataUrl, play } = await speakTextAndCapture(
-              variant.text,
-              userProfile?.preferredVoiceId
-            );
-            const phrase: Phrase = {
-              id: chip.id,
-              original: chip.original,
-              dialect: variant.text,
-              pronunciation: variant.pronunciation,
-              isBookmarked: false,
-              context: result.context,
-            };
-            return { phrase, audioDataUrl, play };
-          });
-          prefetchCacheRef.current.set(cacheKey, promise);
+          prefetchCacheRef.current.set(
+            cacheKey,
+            prepareTranslation(chip.original, tone, userProfile?.preferredVoiceId, chip.id)
+          );
         });
       })
       .catch(() => {});
@@ -295,7 +279,8 @@ export function ChatPage() {
           toast.info("Added to previous message");
         } else {
           const englishTranslation = await translateCantoneseToEnglish(cantoneseText);
-          const msgId = Date.now().toString();
+          // Message id and derived phrase id are deliberately the same value.
+          const msgId = newId();
           addPhrase({
             id: msgId,
             original: englishTranslation,
@@ -330,22 +315,7 @@ export function ChatPage() {
           return;
         }
         // Kick off translation + TTS immediately while user reviews the transcript
-        const resultPromise = translate({ text: englishText, preferredTone: tone }).then(async (result) => {
-          const variant = result[tone];
-          const { audioDataUrl, play } = await speakTextAndCapture(
-            variant.text,
-            userProfile?.preferredVoiceId
-          );
-          const phrase: Phrase = {
-            id: Date.now().toString(),
-            original: englishText,
-            dialect: variant.text,
-            pronunciation: variant.pronunciation,
-            isBookmarked: false,
-            context: result.context,
-          };
-          return { phrase, audioDataUrl, play };
-        });
+        const resultPromise = prepareTranslation(englishText, tone, userProfile?.preferredVoiceId);
         setPendingEnglish({ text: englishText, resultPromise });
         setPendingEditText(englishText);
         // setStage(null) runs in the finally block; user reviews transcript in the overlay
@@ -375,24 +345,10 @@ export function ChatPage() {
     setStageIsUserSide(true);
     setStage("translating");
     try {
-      let phrase: Phrase;
-      let audioDataUrl: string;
-      let play: () => Promise<void>;
-      if (finalText !== originalText) {
-        const result = await translate({ text: finalText, preferredTone: tone });
-        const variant = result[tone];
-        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId));
-        phrase = {
-          id: Date.now().toString(),
-          original: finalText,
-          dialect: variant.text,
-          pronunciation: variant.pronunciation,
-          isBookmarked: false,
-          context: result.context,
-        };
-      } else {
-        ({ phrase, audioDataUrl, play } = await resultPromise);
-      }
+      const { phrase, audioDataUrl, play, variants, predictedResponse } =
+        finalText !== originalText
+          ? await prepareTranslation(finalText, tone, userProfile?.preferredVoiceId)
+          : await resultPromise;
       addPhrase(phrase);
       addMessage({
         id: phrase.id,
@@ -401,6 +357,8 @@ export function ChatPage() {
         cantoneseText: phrase.dialect,
         pronunciation: phrase.pronunciation,
         audioDataUrl,
+        variants,
+        ...(predictedResponse ? { predictedResponse } : {}),
       });
       setStage(null);
       setPlayingId(phrase.id);
@@ -432,7 +390,7 @@ export function ChatPage() {
     const original = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
     const originalDialect = msg.sender === "bot" ? msg.text : (msg.cantoneseText ?? "");
     const wasEdited = dialectText !== originalDialect.trim();
-    const phraseId = Date.now().toString();
+    const phraseId = newId();
 
     try {
       if (!wasEdited) {
@@ -489,24 +447,9 @@ export function ChatPage() {
     try {
       const cacheKey = `${englishText}:${tone}`;
       const cached = prefetchCacheRef.current.get(cacheKey);
-      let phrase: Phrase;
-      let audioDataUrl: string;
-      let play: () => Promise<void>;
-      if (cached) {
-        ({ phrase, audioDataUrl, play } = await cached);
-      } else {
-        const result = await translate({ text: englishText, preferredTone: tone });
-        const variant = result[tone];
-        ({ audioDataUrl, play } = await speakTextAndCapture(variant.text, userProfile?.preferredVoiceId));
-        phrase = {
-          id: Date.now().toString(),
-          original: englishText,
-          dialect: variant.text,
-          pronunciation: variant.pronunciation,
-          isBookmarked: false,
-          context: result.context,
-        };
-      }
+      const { phrase, audioDataUrl, play, variants, predictedResponse } = cached
+        ? await cached
+        : await prepareTranslation(englishText, tone, userProfile?.preferredVoiceId);
       addPhrase(phrase);
       addMessage({
         id: phrase.id,
@@ -515,6 +458,8 @@ export function ChatPage() {
         cantoneseText: phrase.dialect,
         pronunciation: phrase.pronunciation,
         audioDataUrl,
+        variants,
+        ...(predictedResponse ? { predictedResponse } : {}),
       });
       setStage(null);
       setPlayingId(phrase.id);
@@ -546,7 +491,10 @@ export function ChatPage() {
     setPlayingId(id);
     try {
       const msg = messages.find((m) => m.id === id);
-      const urls = msg?.audioDataUrls ?? (msg?.audioDataUrl ? [msg.audioDataUrl] : []);
+      // Cached audio was captured for the original text; a switched register
+      // variant (different text) must fall through to fresh TTS instead.
+      const hasAudioForText = !!msg && text === (msg.cantoneseText ?? msg.text);
+      const urls = hasAudioForText ? (msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : [])) : [];
       if (urls.length > 0) {
         try {
           for (const url of urls) {
@@ -613,6 +561,25 @@ export function ChatPage() {
     updateMessage(id, updates);
   };
 
+  // Bookmarking on a translated bubble saves whichever register variant is
+  // currently displayed; cached audio is dropped when it no longer matches.
+  const handleToggleBookmark = (id: string, displayedVariant?: TranslationVariant) => {
+    const phrase = phrases.find((p) => p.id === id);
+    const isSwitchedVariant = !!phrase && !!displayedVariant && displayedVariant.text !== phrase.dialect;
+    if (!phrase || !isSwitchedVariant || phrase.isBookmarked) {
+      toggleBookmark(id);
+      return;
+    }
+    updatePhrase({
+      ...phrase,
+      dialect: displayedVariant.text,
+      pronunciation: displayedVariant.pronunciation,
+      isBookmarked: true,
+      audioDataUrl: undefined,
+      audioDataUrls: undefined,
+    });
+  };
+
   const handleNewChat = () => {
     if (messages.length === 0) return;
     suggestionGenRef.current++; // invalidate any in-flight suggestion fetches
@@ -651,6 +618,7 @@ export function ChatPage() {
         <MessageList
           messages={messages}
           phrases={phrases}
+          defaultTone={tone}
           playingId={playingId}
           stage={stage}
           stageIsUserSide={stageIsUserSide}
@@ -664,7 +632,7 @@ export function ChatPage() {
           }
           isBusy={isBusy}
           onReply={handleReply}
-          onToggleBookmark={toggleBookmark}
+          onToggleBookmark={handleToggleBookmark}
           onReplay={replayPhrase}
           onUpdateMessage={handleUpdateMessage}
           onBubblePointerDown={handleBubblePointerDown}

@@ -2,8 +2,14 @@ import type { Phrase, Session, UserProfile, LessonProgress, ConversationLesson, 
 
 export interface IPhraseRepository {
   getAll(): Promise<Phrase[]>;
-  saveAll(phrases: Phrase[]): Promise<void>;
-  toggleBookmark(id: string): Promise<Phrase[]>;
+  /** Insert or update a single phrase (upsert). Never deletes other rows. */
+  put(phrase: Phrase): Promise<void>;
+  /**
+   * Insert or update several phrases in one write (upsert-only).
+   * Unlike the removed replace-all saveAll, this NEVER prunes rows that are
+   * absent from the list — required for safe multi-device cloud sync.
+   */
+  putMany(phrases: Phrase[]): Promise<void>;
 }
 
 export interface IConversationRepository {
@@ -36,6 +42,18 @@ export interface ITagRepository {
   delete(id: string): Promise<void>;
 }
 
+// Separate import line (rather than extending the list above) to keep this
+// change purely additive alongside concurrent edits to this file.
+import type { PhraseReviewState } from "../types";
+
+/** Spaced-repetition schedules for saved phrases, keyed by phraseId. */
+export interface IReviewStateRepository {
+  getAll(): Promise<PhraseReviewState[]>;
+  /** Insert or update the schedule for one phrase (upsert). */
+  put(state: PhraseReviewState): Promise<void>;
+  delete(phraseId: string): Promise<void>;
+}
+
 export interface Repositories {
   phrases: IPhraseRepository;
   conversations: IConversationRepository;
@@ -43,4 +61,5 @@ export interface Repositories {
   lessons: ILessonRepository;
   conversationLessons: IConversationLessonRepository;
   tags: ITagRepository;
+  reviewStates: IReviewStateRepository;
 }

@@ -1,6 +1,7 @@
 import type { Message, UserProfile, Phrase } from "../types";
 import { postJson } from "../lib/api";
 import { newId } from "../utils/id";
+import { parseModelJson, truncateForLog } from "../utils/modelJson";
 
 const SYSTEM_PROMPT = `You are a conversation assistant helping someone reply to a native dialect speaker. Based on what the native speaker just said (given as an English translation) and the conversation history, suggest 3 natural English phrases the user might want to say in reply.
 
@@ -51,7 +52,8 @@ export async function getSuggestions(
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
   const tone = activePersonaProfile?.tone ?? userProfile?.preferredTone ?? "casual";
   const personaSummary = activePersonaProfile?.personaSummary ?? userProfile?.personaSummary;
-  const characteristicPhrases = activePersonaProfile?.characteristicPhrases ?? userProfile?.characteristicPhrases;
+  const characteristicPhrases =
+    activePersonaProfile?.characteristicPhrases ?? userProfile?.characteristicPhrases;
   const jobTitle = activePersona === "work" ? userProfile?.personaProfiles?.work?.jobTitle : undefined;
 
   const recentHistory = conversationHistory.slice(-6);
@@ -63,9 +65,7 @@ export async function getSuggestions(
   const userContent = [
     userProfile?.name ? `User name: ${userProfile.name}` : "",
     personaSummary ? `User persona: ${personaSummary}` : "",
-    characteristicPhrases?.length
-      ? `Phrases they commonly use: ${characteristicPhrases.join(", ")}`
-      : "",
+    characteristicPhrases?.length ? `Phrases they commonly use: ${characteristicPhrases.join(", ")}` : "",
     jobTitle
       ? `The user is speaking in a work context as a ${jobTitle}. Keep suggestions professional and relevant to their role.`
       : "",
@@ -89,27 +89,39 @@ export async function getSuggestions(
     .filter(Boolean)
     .join("\n\n");
 
+  let content: string;
   try {
-    const { content } = await postJson<{ content: string }>("/api/chat", {
+    ({ content } = await postJson<{ content: string }>("/api/chat", {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userContent },
       ],
       temperature: 0.7,
       max_tokens: 400,
-    });
-
-    const parsed: SuggestionItem[] = JSON.parse(content);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((item) => ({
-      id: `suggestion-${newId()}`,
-      original: item.english,
-      dialect: item.cantonese,
-      pronunciation: item.pronunciation,
-      isBookmarked: false,
-      context: item.context,
     }));
-  } catch {
+  } catch (error) {
+    console.error("Suggestion request failed:", error);
     return [];
   }
+
+  let parsed: SuggestionItem[];
+  try {
+    parsed = parseModelJson<SuggestionItem[]>(content);
+  } catch (error) {
+    console.error(
+      `Failed to parse suggestion response as JSON (content: "${truncateForLog(content)}"):`,
+      error
+    );
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((item) => ({
+    id: `suggestion-${newId()}`,
+    original: item.english,
+    dialect: item.cantonese,
+    pronunciation: item.pronunciation,
+    isBookmarked: false,
+    context: item.context,
+  }));
 }

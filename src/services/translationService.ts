@@ -1,6 +1,7 @@
 import type { Tone, TranslationResult, WordChunk } from "../types";
 import { blobToWav, blobToDataUrl } from "../hooks/audio";
 import { postJson, ApiError } from "../lib/api";
+import { parseModelJson } from "../utils/modelJson";
 import { getActiveLanguagePack, type LanguagePack } from "../languages";
 
 // The active pack is read at USE time (inside each function) rather than
@@ -25,14 +26,9 @@ async function chatCompletion(messages: ChatMessage[], options: ChatRequestOptio
   return content;
 }
 
-/** Strip markdown fences the model sometimes wraps around JSON output. */
-export function parseModelJson<T>(raw: string): T {
-  const cleaned = raw
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "");
-  return JSON.parse(cleaned) as T;
-}
+// Re-exported for backward compatibility — the implementation now lives in
+// src/utils/modelJson.ts so suggestionService/personaService can use it too.
+export { parseModelJson };
 
 async function translateWithProxy(text: string): Promise<TranslationResult> {
   const raw = await chatCompletion(

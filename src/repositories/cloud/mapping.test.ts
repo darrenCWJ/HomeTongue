@@ -75,7 +75,19 @@ describe("session mapping", () => {
       date: "7/1/2026",
       createdAt: "2026-07-01T18:30:00.000Z",
       messages: [
-        { id: "m1", sender: "user", text: "How do I say hello?" },
+        {
+          id: "m1",
+          sender: "user",
+          text: "How do I say hello?",
+          cantoneseText: "你好呀",
+          pronunciation: "nei5 hou2 aa3",
+          variants: {
+            formal: { text: "您好", pronunciation: "nei5 hou2" },
+            casual: { text: "你好呀", pronunciation: "nei5 hou2 aa3" },
+            slang: { text: "哈囉", pronunciation: "haa1 lo3" },
+          },
+          predictedResponse: "你好！你係邊位？",
+        },
         {
           id: "m2",
           sender: "bot",

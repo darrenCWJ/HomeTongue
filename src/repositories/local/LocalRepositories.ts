@@ -9,31 +9,18 @@ import type {
 } from "../interfaces";
 import { db } from "./db";
 
-const DEFAULT_PHRASES: Phrase[] = [];
-
 export class LocalPhraseRepository implements IPhraseRepository {
   async getAll(): Promise<Phrase[]> {
-    const phrases = await db.phrases.toArray();
-    if (phrases.length === 0) {
-      await db.phrases.bulkPut(DEFAULT_PHRASES);
-      return DEFAULT_PHRASES;
-    }
-    return phrases;
-  }
-
-  async saveAll(phrases: Phrase[]): Promise<void> {
-    await db.transaction("rw", db.phrases, async () => {
-      await db.phrases.clear();
-      await db.phrases.bulkPut(phrases);
-    });
-  }
-
-  async toggleBookmark(id: string): Promise<Phrase[]> {
-    const phrase = await db.phrases.get(id);
-    if (phrase) {
-      await db.phrases.put({ ...phrase, isBookmarked: !phrase.isBookmarked });
-    }
     return db.phrases.toArray();
+  }
+
+  async put(phrase: Phrase): Promise<void> {
+    await db.phrases.put(phrase);
+  }
+
+  async putMany(phrases: Phrase[]): Promise<void> {
+    if (phrases.length === 0) return;
+    await db.phrases.bulkPut(phrases);
   }
 }
 

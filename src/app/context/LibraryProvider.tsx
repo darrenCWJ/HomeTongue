@@ -1,4 +1,13 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  ReactNode,
+} from "react";
 import { repositories, isCloudStorageMode } from "../../repositories";
 import type { Phrase, Session, LessonProgress, ConversationLesson, Tag, TagType } from "../../types";
 import { newId } from "../../utils/id";
@@ -29,8 +38,6 @@ interface LibraryContextType {
   deleteConversationLesson: (id: string) => void;
   lessonProgress: Record<string, LessonProgress>;
   updateLessonProgress: (progress: LessonProgress) => void;
-  learnedCount: number;
-  incrementLearned: () => void;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -40,9 +47,16 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   const [phrases, setPhrases] = useState<Phrase[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [conversationLessons, setConversationLessons] = useState<ConversationLesson[]>([]);
-  const [learnedCount, setLearnedCount] = useState(12);
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
   const [tags, setTags] = useState<Tag[]>([]);
+
+  // Set when the initial load rejects. While true, mutations keep updating the
+  // in-memory state (so the UI stays usable) but are NOT persisted — writing
+  // from an empty/partial in-memory state could overwrite real stored data,
+  // which is catastrophic in cloud mode. A ref (not state) so the stable
+  // `persist` callback can read the latest value without re-creating every
+  // mutation callback on load-status changes.
+  const loadFailedRef = useRef(false);
 
   // In cloud storage mode the initial load must re-run when the auth session
   // changes (data is per-user); in local mode this stays a constant 0 so the
@@ -59,6 +73,7 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       repositories.tags.getAll(),
     ])
       .then(([p, s, lp, cl, t]) => {
+        loadFailedRef.current = false;
         setPhrases(p);
         setSessions(s);
         setLessonProgress(lp);
@@ -66,57 +81,89 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
         setTags(t);
       })
       .catch((err) => {
-        console.error("Failed to load saved data from local storage:", err);
+        loadFailedRef.current = true;
+        console.error("[library] initial load failed — persistence disabled to protect stored data:", err);
       });
   }, [reloadEpoch]);
 
-  const toggleBookmark = useCallback((id: string) => {
-    setPhrases((prev) => {
-      const updated = prev.map((p) => (p.id === id ? { ...p, isBookmarked: !p.isBookmarked } : p));
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
+  /**
+   * Run a single repository write with error handling. Skipped entirely when
+   * the initial load failed, so an unhydrated session can never clobber real
+   * local or cloud data.
+   */
+  const persist = useCallback((op: string, write: () => Promise<unknown>) => {
+    if (loadFailedRef.current) {
+      console.error(`[library] ${op} not persisted: initial load failed; change kept in memory only`);
+      return;
+    }
+    write().catch((err) => console.error(`[library] ${op} failed`, err));
   }, []);
 
-  const addPhrase = useCallback((phrase: Phrase) => {
-    setPhrases((prev) => {
-      if (prev.find((p) => p.id === phrase.id)) return prev;
-      const withTimestamp = { ...phrase, createdAt: phrase.createdAt ?? new Date().toISOString() };
-      const updated = [...prev, withTimestamp];
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
-  }, []);
-
-  const updatePhrase = useCallback((phrase: Phrase) => {
-    setPhrases((prev) => {
-      const updated = prev.map((p) => (p.id === phrase.id ? phrase : p));
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
-  }, []);
-
-  const mergeSuggestedPhrases = useCallback((suggestions: Phrase[]) => {
-    setPhrases((prev) => {
-      const updated = [...prev];
-      suggestions.forEach((s) => {
-        if (!updated.find((p) => p.id === s.id)) {
-          updated.push({ ...s, isBookmarked: false });
-        }
+  const toggleBookmark = useCallback(
+    (id: string) => {
+      setPhrases((prev) => {
+        const current = prev.find((p) => p.id === id);
+        if (!current) return prev;
+        const toggled = { ...current, isBookmarked: !current.isBookmarked };
+        persist("toggleBookmark", () => repositories.phrases.put(toggled));
+        return prev.map((p) => (p.id === id ? toggled : p));
       });
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
-  }, []);
+    },
+    [persist]
+  );
 
-  const addTranslationPhrase = useCallback((phrase: Phrase) => {
-    setPhrases((prev) => {
-      if (prev.find((p) => p.id === phrase.id)) return prev;
-      const updated = [...prev, { ...phrase, isBookmarked: false }];
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
-  }, []);
+  const addPhrase = useCallback(
+    (phrase: Phrase) => {
+      setPhrases((prev) => {
+        if (prev.find((p) => p.id === phrase.id)) return prev;
+        const withTimestamp = { ...phrase, createdAt: phrase.createdAt ?? new Date().toISOString() };
+        persist("addPhrase", () => repositories.phrases.put(withTimestamp));
+        return [...prev, withTimestamp];
+      });
+    },
+    [persist]
+  );
+
+  const updatePhrase = useCallback(
+    (phrase: Phrase) => {
+      setPhrases((prev) => {
+        if (!prev.some((p) => p.id === phrase.id)) return prev;
+        persist("updatePhrase", () => repositories.phrases.put(phrase));
+        return prev.map((p) => (p.id === phrase.id ? phrase : p));
+      });
+    },
+    [persist]
+  );
+
+  const mergeSuggestedPhrases = useCallback(
+    (suggestions: Phrase[]) => {
+      setPhrases((prev) => {
+        const seenIds = new Set(prev.map((p) => p.id));
+        const added: Phrase[] = [];
+        suggestions.forEach((s) => {
+          if (seenIds.has(s.id)) return;
+          seenIds.add(s.id);
+          added.push({ ...s, isBookmarked: false });
+        });
+        if (added.length === 0) return prev;
+        persist("mergeSuggestedPhrases", () => repositories.phrases.putMany(added));
+        return [...prev, ...added];
+      });
+    },
+    [persist]
+  );
+
+  const addTranslationPhrase = useCallback(
+    (phrase: Phrase) => {
+      setPhrases((prev) => {
+        if (prev.find((p) => p.id === phrase.id)) return prev;
+        const stored = { ...phrase, isBookmarked: false };
+        persist("addTranslationPhrase", () => repositories.phrases.put(stored));
+        return [...prev, stored];
+      });
+    },
+    [persist]
+  );
 
   const phraseTags = useMemo(() => tags.filter((t) => t.type === "phrase"), [tags]);
   const sessionTags = useMemo(() => tags.filter((t) => t.type === "session"), [tags]);
@@ -127,114 +174,152 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       if (existing) return existing;
       const tag: Tag = { id: newId(), name, type, createdAt: new Date().toISOString() };
       setTags((prev) => [...prev, tag]);
-      repositories.tags.create(tag);
+      persist("createTag", () => repositories.tags.create(tag));
       return tag;
     },
-    [tags]
+    [tags, persist]
   );
 
-  const deleteTag = useCallback((id: string) => {
-    setTags((prev) => prev.filter((t) => t.id !== id));
-    repositories.tags.delete(id);
-    setPhrases((prev) => {
-      const updated = prev.map((p) =>
-        p.tags?.includes(id) ? { ...p, tags: p.tags.filter((t) => t !== id) } : p
+  const deleteTag = useCallback(
+    (id: string) => {
+      setTags((prev) => prev.filter((t) => t.id !== id));
+      persist("deleteTag", () => repositories.tags.delete(id));
+      setPhrases((prev) => {
+        const changed: Phrase[] = [];
+        const updated = prev.map((p) => {
+          if (!p.tags?.includes(id)) return p;
+          const next = { ...p, tags: p.tags.filter((t) => t !== id) };
+          changed.push(next);
+          return next;
+        });
+        if (changed.length > 0) {
+          persist("deleteTag (detach from phrases)", () => repositories.phrases.putMany(changed));
+        }
+        return updated;
+      });
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (!s.tags?.includes(id)) return s;
+          const updated = { ...s, tags: s.tags.filter((t) => t !== id) };
+          persist("deleteTag (detach from session)", () => repositories.conversations.updateSession(updated));
+          return updated;
+        })
       );
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (!s.tags?.includes(id)) return s;
-        const updated = { ...s, tags: s.tags.filter((t) => t !== id) };
-        repositories.conversations.updateSession(updated);
-        return updated;
-      })
-    );
-  }, []);
+    },
+    [persist]
+  );
 
-  const setPhraseTags = useCallback((phraseId: string, tagIds: string[]) => {
-    setPhrases((prev) => {
-      const updated = prev.map((p) =>
-        p.id === phraseId ? { ...p, tags: tagIds, isBookmarked: tagIds.length > 0 || p.isBookmarked } : p
+  const setPhraseTags = useCallback(
+    (phraseId: string, tagIds: string[]) => {
+      setPhrases((prev) =>
+        prev.map((p) => {
+          if (p.id !== phraseId) return p;
+          const updated = { ...p, tags: tagIds, isBookmarked: tagIds.length > 0 || p.isBookmarked };
+          persist("setPhraseTags", () => repositories.phrases.put(updated));
+          return updated;
+        })
       );
-      repositories.phrases.saveAll(updated);
-      return updated;
-    });
-  }, []);
+    },
+    [persist]
+  );
 
-  const setSessionTags = useCallback((sessionId: string, tagIds: string[]) => {
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id !== sessionId) return s;
-        const updated = { ...s, tags: tagIds };
-        repositories.conversations.updateSession(updated);
-        return updated;
-      })
-    );
-  }, []);
+  const setSessionTags = useCallback(
+    (sessionId: string, tagIds: string[]) => {
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== sessionId) return s;
+          const updated = { ...s, tags: tagIds };
+          persist("setSessionTags", () => repositories.conversations.updateSession(updated));
+          return updated;
+        })
+      );
+    },
+    [persist]
+  );
 
-  const addSessionRecord = useCallback((session: Session) => {
-    setSessions((prev) => [session, ...prev]);
-    repositories.conversations.addSession(session);
-  }, []);
+  const addSessionRecord = useCallback(
+    (session: Session) => {
+      setSessions((prev) => [session, ...prev]);
+      persist("addSessionRecord", () => repositories.conversations.addSession(session));
+    },
+    [persist]
+  );
 
-  const renameSession = useCallback((id: string, title: string) => {
-    setSessions((prev) => {
-      const updated = prev.map((s) => (s.id === id ? { ...s, title } : s));
-      const session = updated.find((s) => s.id === id);
-      if (session) repositories.conversations.updateSession(session);
-      return updated;
-    });
-    setConversationLessons((prev) =>
-      prev.map((l) => {
-        if (l.sessionId !== id) return l;
-        const updated = { ...l, title };
-        repositories.conversationLessons.update(updated);
-        return updated;
-      })
-    );
-  }, []);
+  const renameSession = useCallback(
+    (id: string, title: string) => {
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== id) return s;
+          const updated = { ...s, title };
+          persist("renameSession", () => repositories.conversations.updateSession(updated));
+          return updated;
+        })
+      );
+      setConversationLessons((prev) =>
+        prev.map((l) => {
+          if (l.sessionId !== id) return l;
+          const updated = { ...l, title };
+          persist("renameSession (lesson title)", () => repositories.conversationLessons.update(updated));
+          return updated;
+        })
+      );
+    },
+    [persist]
+  );
 
-  const deleteSession = useCallback((id: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-    repositories.conversations.deleteSession(id);
-  }, []);
+  const deleteSession = useCallback(
+    (id: string) => {
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      persist("deleteSession", () => repositories.conversations.deleteSession(id));
+    },
+    [persist]
+  );
 
-  const deleteSessionMessage = useCallback((sessionId: string, messageId: string) => {
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id !== sessionId) return s;
-        const updated = { ...s, messages: s.messages.filter((m) => m.id !== messageId) };
-        repositories.conversations.updateSession(updated);
-        return updated;
-      })
-    );
-  }, []);
+  const deleteSessionMessage = useCallback(
+    (sessionId: string, messageId: string) => {
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== sessionId) return s;
+          const updated = { ...s, messages: s.messages.filter((m) => m.id !== messageId) };
+          persist("deleteSessionMessage", () => repositories.conversations.updateSession(updated));
+          return updated;
+        })
+      );
+    },
+    [persist]
+  );
 
-  const saveConversationLesson = useCallback((lesson: ConversationLesson) => {
-    setConversationLessons((prev) => [...prev, lesson]);
-    repositories.conversationLessons.save(lesson);
-  }, []);
+  const saveConversationLesson = useCallback(
+    (lesson: ConversationLesson) => {
+      setConversationLessons((prev) => [...prev, lesson]);
+      persist("saveConversationLesson", () => repositories.conversationLessons.save(lesson));
+    },
+    [persist]
+  );
 
-  const updateConversationLesson = useCallback((lesson: ConversationLesson) => {
-    setConversationLessons((prev) => prev.map((l) => (l.id === lesson.id ? lesson : l)));
-    repositories.conversationLessons.update(lesson);
-  }, []);
+  const updateConversationLesson = useCallback(
+    (lesson: ConversationLesson) => {
+      setConversationLessons((prev) => prev.map((l) => (l.id === lesson.id ? lesson : l)));
+      persist("updateConversationLesson", () => repositories.conversationLessons.update(lesson));
+    },
+    [persist]
+  );
 
-  const deleteConversationLesson = useCallback((id: string) => {
-    setConversationLessons((prev) => prev.filter((l) => l.id !== id));
-    repositories.conversationLessons.delete(id);
-  }, []);
+  const deleteConversationLesson = useCallback(
+    (id: string) => {
+      setConversationLessons((prev) => prev.filter((l) => l.id !== id));
+      persist("deleteConversationLesson", () => repositories.conversationLessons.delete(id));
+    },
+    [persist]
+  );
 
-  const updateLessonProgress = useCallback((progress: LessonProgress) => {
-    setLessonProgress((prev) => ({ ...prev, [progress.lessonId]: progress }));
-    repositories.lessons.updateProgress(progress);
-  }, []);
-
-  const incrementLearned = useCallback(() => {
-    setLearnedCount((prev) => prev + 1);
-  }, []);
+  const updateLessonProgress = useCallback(
+    (progress: LessonProgress) => {
+      setLessonProgress((prev) => ({ ...prev, [progress.lessonId]: progress }));
+      persist("updateLessonProgress", () => repositories.lessons.updateProgress(progress));
+    },
+    [persist]
+  );
 
   const value = useMemo(
     () => ({
@@ -262,8 +347,6 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       deleteConversationLesson,
       lessonProgress,
       updateLessonProgress,
-      learnedCount,
-      incrementLearned,
     }),
     [
       phrases,
@@ -290,8 +373,6 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       deleteConversationLesson,
       lessonProgress,
       updateLessonProgress,
-      learnedCount,
-      incrementLearned,
     ]
   );
 

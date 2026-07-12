@@ -1,5 +1,6 @@
 import type { Message, UserProfile } from "../types";
 import { postJson } from "../lib/api";
+import { parseModelJson, truncateForLog } from "../utils/modelJson";
 
 const BASE_SYSTEM_PROMPT = `You are building a user persona profile for a dialect learning app. The user is learning to communicate with native dialect speakers through an AI translation assistant.
 
@@ -38,9 +39,7 @@ export async function updatePersona(
     ? `The user works as a ${jobTitle}. Focus on professional communication style relevant to their role.`
     : "";
 
-  const systemPrompt = workContext
-    ? `${BASE_SYSTEM_PROMPT}\n\n${workContext}`
-    : BASE_SYSTEM_PROMPT;
+  const systemPrompt = workContext ? `${BASE_SYSTEM_PROMPT}\n\n${workContext}` : BASE_SYSTEM_PROMPT;
 
   const formattedReplies = userReplies.map((m) => `- "${m.text}"`).join("\n");
 
@@ -54,25 +53,34 @@ export async function updatePersona(
     .filter(Boolean)
     .join("\n\n");
 
+  let content: string;
   try {
-    const { content } = await postJson<{ content: string }>("/api/chat", {
+    ({ content } = await postJson<{ content: string }>("/api/chat", {
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent },
       ],
       temperature: 0.4,
       max_tokens: 300,
-    });
-
-    const parsed = JSON.parse(content) as PersonaResult;
-    if (!parsed.personaSummary) return null;
-    return {
-      personaSummary: parsed.personaSummary,
-      characteristicPhrases: Array.isArray(parsed.characteristicPhrases)
-        ? parsed.characteristicPhrases.slice(0, 6)
-        : [],
-    };
-  } catch {
+    }));
+  } catch (error) {
+    console.error("Persona update request failed:", error);
     return null;
   }
+
+  let parsed: PersonaResult | null;
+  try {
+    parsed = parseModelJson<PersonaResult | null>(content);
+  } catch (error) {
+    console.error(`Failed to parse persona response as JSON (content: "${truncateForLog(content)}"):`, error);
+    return null;
+  }
+
+  if (!parsed?.personaSummary) return null;
+  return {
+    personaSummary: parsed.personaSummary,
+    characteristicPhrases: Array.isArray(parsed.characteristicPhrases)
+      ? parsed.characteristicPhrases.slice(0, 6)
+      : [],
+  };
 }

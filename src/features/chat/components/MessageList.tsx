@@ -1,17 +1,19 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import type { Message, Phrase } from "../../../types";
+import type { Message, Phrase, Tone, TranslationVariant } from "../../../types";
 import {
   IncomingCantoneseBubble,
   OutgoingReplyBubble,
   PlainBotBubble,
   type BubblePointerHandlers,
 } from "./MessageBubbles";
+import { PredictedReplyHint } from "./PredictedReplyHint";
 
 interface MessageListProps extends BubblePointerHandlers {
   messages: Message[];
   phrases: Phrase[];
+  defaultTone: Tone;
   playingId: string | null;
   stage: "transcribing" | "translating" | null;
   stageIsUserSide: boolean;
@@ -20,7 +22,7 @@ interface MessageListProps extends BubblePointerHandlers {
   showSuggestions: boolean;
   isBusy: boolean;
   onReply: (englishText: string) => void;
-  onToggleBookmark: (id: string) => void;
+  onToggleBookmark: (id: string, displayedVariant?: TranslationVariant) => void;
   onReplay: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
   messagesEndRef: React.RefObject<HTMLDivElement>;
@@ -29,6 +31,7 @@ interface MessageListProps extends BubblePointerHandlers {
 export function MessageList({
   messages,
   phrases,
+  defaultTone,
   playingId,
   stage,
   stageIsUserSide,
@@ -45,6 +48,11 @@ export function MessageList({
   onBubblePointerCancel,
   messagesEndRef,
 }: MessageListProps) {
+  // The predicted-reply hint only follows the newest translated message.
+  const newestPredictedId = [...messages]
+    .reverse()
+    .find((m) => m.sender === "user" && !!m.predictedResponse)?.id;
+
   return (
     <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3 scrollbar-none">
       {messages.map((msg, msgIndex) => {
@@ -80,20 +88,31 @@ export function MessageList({
         if (isSuggestionRow) return null;
 
         if (isOutgoingReply) {
+          const predictedResponse = msg.id === newestPredictedId ? msg.predictedResponse : undefined;
           return (
-            <OutgoingReplyBubble
-              key={msg.id}
-              msg={msg}
-              isPlaying={isPlaying}
-              playingId={playingId}
-              isBookmarked={isBookmarked}
-              onToggleBookmark={onToggleBookmark}
-              onReplay={onReplay}
-              onUpdateMessage={onUpdateMessage}
-              onBubblePointerDown={onBubblePointerDown}
-              onBubblePointerMove={onBubblePointerMove}
-              onBubblePointerCancel={onBubblePointerCancel}
-            />
+            <React.Fragment key={msg.id}>
+              <OutgoingReplyBubble
+                msg={msg}
+                defaultTone={defaultTone}
+                isPlaying={isPlaying}
+                playingId={playingId}
+                isBookmarked={isBookmarked}
+                onToggleBookmark={onToggleBookmark}
+                onReplay={onReplay}
+                onUpdateMessage={onUpdateMessage}
+                onBubblePointerDown={onBubblePointerDown}
+                onBubblePointerMove={onBubblePointerMove}
+                onBubblePointerCancel={onBubblePointerCancel}
+              />
+              {predictedResponse && (
+                <PredictedReplyHint
+                  text={predictedResponse}
+                  isPlaying={playingId === `predicted-${msg.id}`}
+                  playDisabled={!!playingId}
+                  onPlay={() => onReplay(`predicted-${msg.id}`, predictedResponse)}
+                />
+              )}
+            </React.Fragment>
           );
         }
 

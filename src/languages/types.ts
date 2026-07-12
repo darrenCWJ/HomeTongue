@@ -18,6 +18,8 @@ export interface LanguagePack {
   code: string;
   /** Human-readable dialect name, e.g. "Cantonese". */
   label: string;
+  /** Single-character glyph shown in the dialect picker, e.g. "粵". */
+  character: string;
 
   tts: {
     /** `languageCode` sent to /api/tts. */
@@ -39,6 +41,11 @@ export interface LanguagePack {
 
   romanization: {
     /** Romanization system named in the prompt templates, e.g. "Jyutping". */
+    name: string;
+  };
+
+  script: {
+    /** Writing-system name used in the prompt templates, e.g. "Traditional Chinese". */
     name: string;
   };
 

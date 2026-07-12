@@ -1,3 +1,5 @@
+import { LANGUAGE_PACKS } from "./languages";
+
 export type Tone = "formal" | "casual" | "slang";
 
 export interface DialectOption {
@@ -7,11 +9,25 @@ export interface DialectOption {
   available: boolean;
 }
 
-export const DIALECTS: DialectOption[] = [
-  { value: "Cantonese", label: "Cantonese", character: "粵", available: true },
+/** Dialects on the roadmap that do not have a language pack yet. */
+const UPCOMING_DIALECTS: DialectOption[] = [
   { value: "Hokkien", label: "Hokkien", character: "閩", available: false },
   { value: "Hakka", label: "Hakka", character: "客", available: false },
   { value: "Teochew", label: "Teochew", character: "潮", available: false },
+];
+
+// Available dialects are derived from the language pack registry: registering
+// a new pack in src/languages/index.ts surfaces it here (and in DialectSheet)
+// automatically. `value` matches the pack label — resolveLanguagePackByLabel
+// in src/languages/index.ts relies on that.
+export const DIALECTS: DialectOption[] = [
+  ...Object.values(LANGUAGE_PACKS).map((pack) => ({
+    value: pack.label,
+    label: pack.label,
+    character: pack.character,
+    available: true,
+  })),
+  ...UPCOMING_DIALECTS,
 ];
 
 export type PersonaType = "personal" | "work";
@@ -71,6 +87,10 @@ export interface Message {
   audioDataUrl?: string;
   audioDataUrls?: string[];
   rating?: "up" | "down";
+  /** All register variants returned by translation, so the UI can switch formal/casual/slang after the fact. */
+  variants?: MessageVariants;
+  /** Model-predicted likely reply from the other speaker, in the dialect. */
+  predictedResponse?: string;
 }
 
 export interface Session {
@@ -187,11 +207,24 @@ export interface LessonProgress {
   completedLevels: number;
   totalLevels: number;
   lastAccessedAt: string;
+  /**
+   * Accuracy (0–100) of the most recent GRADED level attempt for this lesson.
+   * Absent for lessons only practised through ungraded exercises (flashcards,
+   * matching, conversation). Feeds the "Dialect Fluency" stat on LearnPage.
+   */
+  lastAccuracy?: number;
 }
 
 export interface TranslationVariant {
   text: string;
   pronunciation: string;
+}
+
+/** Register variants stored on a translated Message (one per tone). */
+export interface MessageVariants {
+  formal: TranslationVariant;
+  casual: TranslationVariant;
+  slang: TranslationVariant;
 }
 
 export interface TranslationResult {
@@ -200,4 +233,28 @@ export interface TranslationResult {
   slang: TranslationVariant;
   predictedResponse: string;
   context: string;
+}
+
+/** Self-reported recall grade for a spaced-repetition review. */
+export type ReviewGrade = "again" | "hard" | "good" | "easy";
+
+/**
+ * Spaced-repetition scheduling state for one saved phrase (SM-2-lite).
+ * Persisted in the `reviewStates` Dexie table, keyed by phraseId.
+ * Pure scheduling logic lives in src/features/learn/srs/scheduler.ts.
+ */
+export interface PhraseReviewState {
+  phraseId: string;
+  /** ISO timestamp when the phrase is next due for review. */
+  due: string;
+  /** Current inter-review interval in whole days (0 = new / relearning). */
+  intervalDays: number;
+  /** SM-2 ease factor; higher = easier. Clamped to [1.3, 3.0]. */
+  ease: number;
+  /** Consecutive successful reviews ("again" resets to 0). */
+  reps: number;
+  /** Times the phrase was forgotten after at least one successful review. */
+  lapses: number;
+  /** ISO timestamp of the last grading. */
+  updatedAt: string;
 }

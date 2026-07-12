@@ -21,9 +21,10 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
+const DEFAULT_DIALECT = "Cantonese";
+
 export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   const { authEpoch } = useAuth();
-  const [dialect, setDialect] = useState("Cantonese");
   const [isSignedIn, setIsSignedInState] = useState(() => localStorage.getItem("ht_signed_in") === "true");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -35,13 +36,15 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.style.setProperty("--font-size", "18px");
   }, []);
 
-  // Keep the module-level active language pack in sync with the profile's
-  // preferred dialect (Phase 4). With one shipped pack this always resolves
-  // to Cantonese, so behavior is unchanged today.
-  const preferredDialect = userProfile?.preferredDialect ?? "Cantonese";
+  // Single source of truth for the dialect: the persisted profile. The
+  // context `dialect` is derived from it, and `setDialect` persists through
+  // the profile update path, so a selection in the chat DialectSheet flows
+  // into setActiveLanguage below. With one shipped pack this always resolves
+  // to Cantonese, so behavior is unchanged today (Phase 4).
+  const dialect = userProfile?.preferredDialect ?? DEFAULT_DIALECT;
   useEffect(() => {
-    setActiveLanguage(resolveLanguagePackByLabel(preferredDialect).code);
-  }, [preferredDialect]);
+    setActiveLanguage(resolveLanguagePackByLabel(dialect).code);
+  }, [dialect]);
 
   // In cloud storage mode the initial load must re-run when the auth session
   // changes (data is per-user); in local mode this stays a constant 0 so the
@@ -73,7 +76,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         : {
             id: newId(),
             name: "",
-            preferredDialect: "Cantonese",
+            preferredDialect: DEFAULT_DIALECT,
             preferredTone: "casual",
             toneOverrideEnabled: false,
             personalityNotes: "",
@@ -86,6 +89,13 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       return updated;
     });
   }, []);
+
+  const setDialect = useCallback(
+    (d: string) => {
+      updateUserProfile({ preferredDialect: d });
+    },
+    [updateUserProfile]
+  );
 
   const setTone = useCallback(
     (t: Tone) => {
@@ -106,7 +116,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       const effectiveProfile: UserProfile = userProfile ?? {
         id: newId(),
         name: "",
-        preferredDialect: "Cantonese",
+        preferredDialect: DEFAULT_DIALECT,
         preferredTone: "casual",
         toneOverrideEnabled: false,
         personalityNotes: "",

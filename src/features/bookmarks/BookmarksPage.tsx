@@ -7,6 +7,7 @@ import { playDataUrl } from "../../hooks/audio";
 import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 import { extractVocabFromMessages } from "../../utils/vocab";
+import { newId } from "../../utils/id";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
 import { useTour } from "../../app/components/tour/TourProvider";
 import { PhraseTagFilterBar } from "./components/PhraseTagFilterBar";
@@ -242,7 +243,7 @@ export function BookmarksPage() {
   const handleSaveSelectedPhrase = () => {
     if (!phraseSelectionData || !phraseSelectionText.trim()) return;
     addPhrase({
-      id: Date.now().toString(),
+      id: newId(),
       original: phraseSelectionData.original,
       dialect: phraseSelectionText.trim(),
       pronunciation: "",

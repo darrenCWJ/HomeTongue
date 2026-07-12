@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Bookmark, RotateCcw, ThumbsDown, ThumbsUp, Volume2 } from "lucide-react";
 import { motion } from "motion/react";
-import type { Message } from "../../../types";
+import type { Message, Tone, TranslationVariant } from "../../../types";
+import { RegisterChips } from "./RegisterChips";
 
 export interface BubblePointerHandlers {
   onBubblePointerDown: (e: React.PointerEvent, msg: Message) => void;
@@ -96,16 +97,18 @@ export function IncomingCantoneseBubble({
 
 interface OutgoingReplyBubbleProps extends BubblePointerHandlers {
   msg: Message;
+  defaultTone: Tone;
   isPlaying: boolean;
   playingId: string | null;
   isBookmarked: boolean;
-  onToggleBookmark: (id: string) => void;
+  onToggleBookmark: (id: string, displayedVariant?: TranslationVariant) => void;
   onReplay: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
 }
 
 export function OutgoingReplyBubble({
   msg,
+  defaultTone,
   isPlaying,
   playingId,
   isBookmarked,
@@ -116,6 +119,11 @@ export function OutgoingReplyBubble({
   onBubblePointerMove,
   onBubblePointerCancel,
 }: OutgoingReplyBubbleProps) {
+  const [selectedTone, setSelectedTone] = useState<Tone>(defaultTone);
+  const displayedVariant = msg.variants?.[selectedTone];
+  const dialectText = displayedVariant?.text ?? msg.cantoneseText;
+  const pronunciationText = displayedVariant?.pronunciation ?? msg.pronunciation;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 12 }}
@@ -132,20 +140,19 @@ export function OutgoingReplyBubble({
           onContextMenu={(e) => e.preventDefault()}
         >
           <button
-            onClick={() => onToggleBookmark(msg.id)}
+            onClick={() => onToggleBookmark(msg.id, displayedVariant)}
             onPointerDown={(e) => e.stopPropagation()}
             className="absolute top-2 right-2 text-white/40 hover:text-white transition-colors"
           >
             <Bookmark size={14} className={isBookmarked ? "fill-white text-white" : ""} />
           </button>
           <p className="text-sm font-medium leading-snug pr-5">{msg.text}</p>
-          {msg.cantoneseText && (
-            <p className="text-white/80 text-base font-semibold mt-1">{msg.cantoneseText}</p>
-          )}
-          {msg.pronunciation && <p className="text-white/50 text-xs font-mono mt-0.5">{msg.pronunciation}</p>}
+          {dialectText && <p className="text-white/80 text-base font-semibold mt-1">{dialectText}</p>}
+          {pronunciationText && <p className="text-white/50 text-xs font-mono mt-0.5">{pronunciationText}</p>}
+          {msg.variants && <RegisterChips selected={selectedTone} onSelect={setSelectedTone} />}
           <div className="mt-2 pt-2 border-t border-white/20">
             <button
-              onClick={() => msg.cantoneseText && onReplay(msg.id, msg.cantoneseText)}
+              onClick={() => dialectText && onReplay(msg.id, dialectText)}
               onPointerDown={(e) => e.stopPropagation()}
               disabled={!!playingId}
               className="flex items-center gap-1 text-xs text-white/60 hover:text-white disabled:opacity-50"

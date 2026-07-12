@@ -11,13 +11,15 @@ export function MultipleChoiceExercise({
   onComplete,
 }: {
   level: LessonLevel;
-  onComplete: () => void;
+  /** Called after the last card with the attempt accuracy (0–100). */
+  onComplete: (accuracy: number) => void;
   onBack: () => void;
 }) {
   const items = level.vocabulary;
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
 
   const current = items[index];
 
@@ -29,13 +31,17 @@ export function MultipleChoiceExercise({
 
   const handleSelect = (cantonese: string) => {
     if (selected !== null) return;
+    const correct = cantonese === current.cantonese;
     setSelected(cantonese);
-    setIsCorrect(cantonese === current.cantonese);
+    setIsCorrect(correct);
+    if (correct) setCorrectCount((c) => c + 1);
   };
 
   const handleNext = () => {
     if (index + 1 >= items.length) {
-      onComplete();
+      // correctCount is settled here: the last selection committed before the
+      // feedback panel (and this button) rendered.
+      onComplete(Math.round((correctCount / items.length) * 100));
       return;
     }
     setIndex((i) => i + 1);

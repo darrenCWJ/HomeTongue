@@ -15,6 +15,8 @@ import {
   CloudConversationLessonRepository,
   CloudTagRepository,
 } from "./cloud/CloudRepositories";
+import { LocalReviewStateRepository } from "./local/ReviewStateRepository";
+import { CloudReviewStateRepository } from "./cloud/CloudReviewStateRepository";
 const STORAGE_MODE: string = import.meta.env.VITE_STORAGE_MODE ?? "local";
 
 // Literal `!!(...)` on the statically-replaced env values (NOT the imported
@@ -39,6 +41,9 @@ function createRepositories(mode: string): Repositories {
       lessons: new CloudLessonRepository(),
       conversationLessons: new CloudConversationLessonRepository(),
       tags: new CloudTagRepository(),
+      // Device-local until a review_states migration lands — see the note in
+      // cloud/CloudReviewStateRepository.ts.
+      reviewStates: new CloudReviewStateRepository(),
     };
   }
   if (mode === "cloud") {
@@ -54,6 +59,7 @@ function createRepositories(mode: string): Repositories {
     lessons: new LocalLessonRepository(),
     conversationLessons: new LocalConversationLessonRepository(),
     tags: new LocalTagRepository(),
+    reviewStates: new LocalReviewStateRepository(),
   };
 }
 

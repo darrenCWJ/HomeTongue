@@ -48,13 +48,12 @@ function createCloudImporter(): Importer {
     // Idempotent-ish: entities whose id already exists in the cloud are
     // skipped, so re-running the import never duplicates data.
     const phraseRepo = new CloudPhraseRepository();
-    const cloudPhrases = await phraseRepo.getAll();
-    const cloudPhraseIds = new Set(cloudPhrases.map((p) => p.id));
+    const cloudPhraseIds = new Set((await phraseRepo.getAll()).map((p) => p.id));
     const newPhrases = (await db.phrases.toArray()).filter((p) => !cloudPhraseIds.has(p.id));
     if (newPhrases.length > 0) {
-      // saveAll has replace-all semantics; include the existing cloud phrases
-      // so nothing already synced gets pruned.
-      await phraseRepo.saveAll([...cloudPhrases, ...newPhrases]);
+      // putMany is upsert-only (never prunes), so only the genuinely new
+      // phrases need to be written — existing cloud rows are untouched.
+      await phraseRepo.putMany(newPhrases);
     }
     report("phrases");
 

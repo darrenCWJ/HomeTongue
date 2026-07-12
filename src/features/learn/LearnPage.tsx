@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Play, BookOpen, Star, Trophy } from "lucide-react";
+import { Play, BookOpen, Star, Trophy, Repeat, Drama } from "lucide-react";
 import { useLibrary } from "../../app/context/LibraryProvider";
 import { motion, AnimatePresence } from "motion/react";
-import { LESSON_CATEGORIES, LESSONS } from "../../data/lessons";
+import { LESSON_CATEGORIES, LESSONS, getLessonLevels } from "../../data/lessons";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
 import type { LessonLevel, VocabItem, ConversationLesson } from "../../types";
 import { getDailyVocab } from "./dailyVocab";
@@ -13,8 +13,14 @@ import { RoadmapView } from "./roadmap/RoadmapView";
 import { LevelView } from "./roadmap/LevelView";
 import { ConversationLessonView } from "./conversation-lesson/ConversationLessonView";
 import { ExamView } from "./exam/ExamView";
+import { PracticeView } from "./srs/PracticeView";
+import { useReviewQueue } from "./srs/useReviewQueue";
+import { ScenarioPicker } from "./roleplay/ScenarioPicker";
+import { RoleplayView } from "./roleplay/RoleplayView";
+import type { RoleplayScenario } from "../../services/roleplayService";
 
-type View = "main" | "roadmap" | "level" | "conversation-lesson" | "exam";
+type View =
+  "main" | "roadmap" | "level" | "conversation-lesson" | "exam" | "practice" | "roleplay-picker" | "roleplay";
 
 interface ActiveLevel {
   categoryId: string;
@@ -33,6 +39,11 @@ export function LearnPage() {
   const [activeLevel, setActiveLevel] = useState<ActiveLevel | null>(null);
   const [dailyCard, setDailyCard] = useState<VocabItem | null>(null);
   const [activeConversationLesson, setActiveConversationLesson] = useState<ConversationLesson | null>(null);
+  const [activeRoleplayScenario, setActiveRoleplayScenario] = useState<RoleplayScenario | null>(null);
+
+  // Single queue instance shared with PracticeView so the due-count badge on
+  // this page stays accurate as cards are graded.
+  const review = useReviewQueue();
 
   const activeCategoryTitle =
     LESSON_CATEGORIES.find((c) => c.id === activeCategoryId)?.title ?? activeCategoryId ?? "";
@@ -44,10 +55,19 @@ export function LearnPage() {
   }).length;
   const totalLessonsDone = completedConvLessons + completedStandardLessons;
 
-  const scoredLessons = personalLessons.filter((l) => l.examBestScore !== undefined);
+  // Honest fluency stat: average conversation-lesson exam scores AND the last
+  // graded accuracy of standard lessons, so users who only do standard
+  // lessons still see a real number instead of a permanent blank.
+  const convScores = personalLessons
+    .map((l) => l.examBestScore)
+    .filter((s): s is number => typeof s === "number");
+  const standardScores = Object.values(lessonProgress)
+    .map((p) => p.lastAccuracy)
+    .filter((a): a is number => typeof a === "number");
+  const allScores = [...convScores, ...standardScores];
   const avgScore =
-    scoredLessons.length > 0
-      ? Math.round(scoredLessons.reduce((sum, l) => sum + (l.examBestScore ?? 0), 0) / scoredLessons.length)
+    allScores.length > 0
+      ? Math.round(allScores.reduce((sum, score) => sum + score, 0) / allScores.length)
       : null;
 
   const handleSelectCategory = (categoryId: string) => {
@@ -55,10 +75,9 @@ export function LearnPage() {
     setView("roadmap");
   };
 
-  const handleSelectLevel = (level: LessonLevel) => {
+  const handleSelectLevel = (lessonId: string, level: LessonLevel) => {
     if (!activeCategoryId) return;
-    const lesson = LESSONS.find((l) => l.categoryId === activeCategoryId);
-    setActiveLevel({ categoryId: activeCategoryId, lessonId: lesson?.id ?? "", level });
+    setActiveLevel({ categoryId: activeCategoryId, lessonId, level });
     setView("level");
   };
 
@@ -71,7 +90,13 @@ export function LearnPage() {
     setActiveCategoryId(null);
     setActiveLevel(null);
     setActiveConversationLesson(null);
+    setActiveRoleplayScenario(null);
     setView("main");
+  };
+
+  const handleSelectRoleplayScenario = (scenario: RoleplayScenario) => {
+    setActiveRoleplayScenario(scenario);
+    setView("roleplay");
   };
 
   const handleSelectConversationLesson = (lesson: ConversationLesson) => {
@@ -153,6 +178,53 @@ export function LearnPage() {
                 </div>
               </div>
 
+              <button
+                data-tour="learn-practice-phrases"
+                onClick={() => setView("practice")}
+                className="w-full bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center justify-between mb-3 hover:border-brand-blue/40 active:scale-[0.99] transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-brand-blue/15 flex items-center justify-center flex-shrink-0">
+                    <Repeat size={18} className="text-brand-blue" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-zinc-800">Practice my phrases</p>
+                    <p className="text-xs text-zinc-500">
+                      {review.isLoading
+                        ? "Loading…"
+                        : review.dueCount > 0
+                          ? `${review.dueCount} phrase${review.dueCount === 1 ? "" : "s"} due for review`
+                          : review.totalBookmarked > 0
+                            ? "All caught up — nothing due"
+                            : "Bookmark phrases to start reviewing"}
+                    </p>
+                  </div>
+                </div>
+                {review.dueCount > 0 && (
+                  <span className="bg-brand-red text-white text-xs font-bold rounded-full px-2.5 py-1 flex-shrink-0">
+                    {review.dueCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                data-tour="learn-roleplay"
+                onClick={() => setView("roleplay-picker")}
+                className="w-full bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center justify-between mb-3 hover:border-brand-red/40 active:scale-[0.99] transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0">
+                    <Drama size={18} className="text-brand-red" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-zinc-800">Rehearse a conversation</p>
+                    <p className="text-xs text-zinc-500">
+                      Roleplay real-life scenarios before the real thing
+                    </p>
+                  </div>
+                </div>
+              </button>
+
               <div
                 data-tour="learn-word-of-day"
                 className="bg-gradient-to-br from-brand-blue to-brand-red rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3"
@@ -195,14 +267,17 @@ export function LearnPage() {
               </div>
               {mainTab === "standard" && (
                 <div data-tour="learn-lesson-cards" className="space-y-3">
-                  {LESSON_CATEGORIES.filter((cat) => {
-                    const lesson = LESSONS.find((l) => l.categoryId === cat.id);
-                    return (lesson?.content.levels?.length ?? 0) > 0;
-                  }).map((cat) => {
-                    const lesson = LESSONS.find((l) => l.categoryId === cat.id);
-                    const prog = lesson ? lessonProgress[lesson.id] : null;
-                    const totalLevels = lesson?.content.levels?.length ?? 5;
-                    const progressPct = prog ? Math.round((prog.completedLevels / totalLevels) * 100) : 0;
+                  {LESSON_CATEGORIES.filter((cat) =>
+                    LESSONS.some((l) => l.categoryId === cat.id && getLessonLevels(l).length > 0)
+                  ).map((cat) => {
+                    const catLessons = LESSONS.filter((l) => l.categoryId === cat.id);
+                    const totalLevels = catLessons.reduce((sum, l) => sum + getLessonLevels(l).length, 0);
+                    const completedLevels = catLessons.reduce((sum, l) => {
+                      const prog = lessonProgress[l.id];
+                      return sum + Math.min(prog?.completedLevels ?? 0, getLessonLevels(l).length);
+                    }, 0);
+                    const progressPct =
+                      totalLevels > 0 ? Math.round((completedLevels / totalLevels) * 100) : 0;
                     return (
                       <LessonCard
                         key={cat.id}
@@ -283,6 +358,27 @@ export function LearnPage() {
             lesson={activeConversationLesson}
             onBack={() => setView("conversation-lesson")}
             onComplete={handleExamComplete}
+          />
+        )}
+
+        {view === "practice" && <PracticeView key="practice" review={review} onBack={handleBackToMain} />}
+
+        {view === "roleplay-picker" && (
+          <ScenarioPicker
+            key="roleplay-picker"
+            onBack={handleBackToMain}
+            onSelect={handleSelectRoleplayScenario}
+          />
+        )}
+
+        {view === "roleplay" && activeRoleplayScenario && (
+          <RoleplayView
+            key={`roleplay-${activeRoleplayScenario.id}`}
+            scenario={activeRoleplayScenario}
+            onBack={() => {
+              setActiveRoleplayScenario(null);
+              setView("roleplay-picker");
+            }}
           />
         )}
       </AnimatePresence>

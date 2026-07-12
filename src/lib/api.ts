@@ -22,19 +22,39 @@ export class ApiError extends Error {
   }
 }
 
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
+/** Status used on ApiError when a request is aborted by the client-side timeout. */
+export const TIMEOUT_STATUS = 408;
+
+const DEFAULT_TIMEOUT_MS = 20_000;
+
+export interface PostJsonOptions {
+  /** Abort the request after this many milliseconds (default 20 000). */
+  timeoutMs?: number;
+}
+
+export async function postJson<T>(path: string, body: unknown, options: PostJsonOptions = {}): Promise<T> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   let res: Response;
   try {
     res = await fetch(apiUrl(path), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch (e) {
-    throw new ApiError(
-      `Request to ${path} failed: ${e instanceof Error ? e.message : String(e)}`,
-      0
-    );
+    if (controller.signal.aborted) {
+      throw new ApiError(
+        "The request took too long and was cancelled. Please check your connection and try again.",
+        TIMEOUT_STATUS
+      );
+    }
+    throw new ApiError(`Request to ${path} failed: ${e instanceof Error ? e.message : String(e)}`, 0);
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) {
     let message = `Request to ${path} failed (${res.status})`;
