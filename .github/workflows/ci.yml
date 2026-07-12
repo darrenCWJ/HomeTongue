@@ -102,10 +102,11 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      # Capacitor 8's android library compiles with source/target 21.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
 
       # Assumption (verified against the runner image docs): ubuntu-latest
       # ships a preinstalled Android SDK at $ANDROID_HOME with build-tools and
