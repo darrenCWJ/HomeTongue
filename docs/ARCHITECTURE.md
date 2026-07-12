@@ -38,6 +38,20 @@ Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless envir
 | Lib | `src/lib/api.ts` | The only module that knows the API base URL; `postJson` + typed `ApiError` |
 | Utils | `src/utils/` | `id.ts` (UUID `newId()`), `vocab.ts` (chat → vocab extraction), `voicePreviewCache.ts` |
 
+The layers compose like this. The repositories factory is the only seam that changes between storage modes — in cloud mode the Supabase repositories are wrapped by the outbox decorator (`src/repositories/outbox/`), which queues failed writes locally and replays them when connectivity/auth returns. Language packs feed the two stable façades, so nothing above them knows dialect specifics:
+
+```mermaid
+flowchart TD
+    FEAT["Features (src/features/chat, learn, bookmarks)"] --> CTX["Context providers (Profile > Library > Chat)"]
+    CTX --> REPO["Repositories factory (src/repositories/index.ts)"]
+    REPO -->|"local mode"| DEXIE["Dexie (IndexedDB)"]
+    REPO -->|"cloud mode"| OUTBOX["Outbox decorator — queues failed writes"]
+    OUTBOX --> SUPA["Supabase (Postgres + RLS)"]
+    FEAT --> FACADE["translationService / useGoogleTTS facades"]
+    PACKS["Language packs (src/languages/*)"] --> FACADE
+    FACADE --> APIP["/api/* serverless proxies"]
+```
+
 ## Request flows
 
 **Speak English → hear Cantonese** (ChatPage):
@@ -53,6 +67,20 @@ Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless envir
 
 **Session → conversation lesson** (BookmarksPage):
 `extractVocabFromMessages` pulls Cantonese/English pairs from a saved session into `ConversationLesson.vocabulary`, which LearnPage renders as flashcards + exam.
+
+**Roleplay rehearsal** (LearnPage → `src/features/learn/roleplay/`): scenarios and coach rubrics live in the active pack's `roleplay.ts`; `roleplayService` drives the turn loop over `/api/chat`. After each user reply, two calls fire in parallel — the counterpart's next line and a coach chip on the reply. Voice-less packs (no `tts`/`stt` capability, e.g. `nan-TW`) rehearse by typing: the mic is hidden and bot lines are not auto-spoken.
+
+```mermaid
+flowchart TD
+    PICK["Pick a scenario"] --> BOT["Bot line: dialect + romanization + English (auto-TTS when the pack supports it)"]
+    BOT --> REPLY["User reply (mic or type)"]
+    REPLY -->|"parallel"| NEXT["nextBotTurn — counterpart's next line"]
+    REPLY -->|"parallel"| COACH["coachUserTurn — coach chip (score + one tip)"]
+    NEXT --> BOT
+    REPLY -->|"End"| SUMMARY["Summary — turn count + average coach score"]
+    SUMMARY --> SAVE["Save bot phrases to bookmarks"]
+    SAVE --> SRS["SRS practice queue (src/features/learn/srs/)"]
+```
 
 ## API endpoint contracts
 

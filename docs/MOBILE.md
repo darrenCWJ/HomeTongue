@@ -80,6 +80,22 @@ Re-run both whenever the logo changes. Sources live in `assets/` (icon, adaptive
 - **Android**: `INTERNET`, `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` — nothing else. Keep it that way.
 - **iOS**: `NSMicrophoneUsageDescription` only.
 
+## Release pipeline
+
+How a commit becomes a store build. Solid arrows run today on every push to `main`; dashed steps are wired but waiting on the store accounts and signing secrets (the privacy policy is already live):
+
+```mermaid
+flowchart LR
+    PUSH["Push to main"] --> CI["CI android-build job (ci.yml)"]
+    CI --> AAB["Unsigned release AAB artifact"]
+    AAB -.->|"keystore secrets (commented step)"| SIGN["Signed AAB"]
+    SIGN -.->|"Play developer account"| PLAY["Google Play Console"]
+    CM["codemagic.yaml iOS workflow"] -.->|"Apple Developer + ASC API key"| IPA["IPA"]
+    IPA -.-> TF["TestFlight / App Store"]
+    POLICY["Privacy policy live at /privacy.html"] -.->|"required by"| PLAY
+    POLICY -.->|"required by"| TF
+```
+
 ## Store-readiness checklists
 
 Both stores require a hosted privacy policy: **https://home-tongue.vercel.app/privacy.html** (source: [`docs/PRIVACY_POLICY.md`](PRIVACY_POLICY.md)).

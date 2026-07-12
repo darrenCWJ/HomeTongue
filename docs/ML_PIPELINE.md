@@ -42,3 +42,18 @@ Produces `speech_samples.jsonl` + `corrections.jsonl` with user ids replaced by 
 3. **Serving**: swap models behind the existing `/api/chat` + `/api/transcribe` contracts — the client never changes.
 
 The run scaffolding for these steps lives in [`ml/train/`](../ml/train/README.md): dataset preparation (tested against checked-in fixtures), Whisper-LoRA and SLM SFT/DPO training scripts with `--dry-run` plumbing checks, an STT serving stub matching the `transcribeCore` contract, and the pronunciation-scorer design. Note the corpus currently has **zero samples** — the training scripts are documented scaffolds that cannot run against real data yet; `ml/train/README.md` lists the per-step data gates, costs, and the export → prepare → train → eval-gate → env-flip sequence (companion plan: `docs/ML_TRAINING_PLAN.md`).
+
+End to end it is a loop — a better model improves the app, which drives more consented usage and more data. Review verdicts flow into the export (`review_verdict` / `review_corrected_text`; rejected samples are excluded by default), so admin labeling directly improves the training corpus.
+
+```mermaid
+flowchart TD
+    USAGE["Consented usage (exam attempts, transcript edits, ratings)"] --> TABLES["speech_samples / corrections in Supabase"]
+    TABLES --> REVIEW["Admin review queue (sample_reviews verdicts)"]
+    TABLES --> EXPORT["Anonymized JSONL export (scripts/export-training-data.mjs)"]
+    REVIEW -->|"verdicts joined; rejected excluded"| EXPORT
+    EXPORT --> TRAIN["ml/train — prepare + fine-tune (Whisper LoRA / SLM)"]
+    TRAIN --> GATE["Eval gate (ml/eval CER benchmark)"]
+    GATE --> FLIP["Per-language env flip (STT_BASE_URL_YUE_HK)"]
+    FLIP --> BETTER["Better model behind the same /api contracts"]
+    BETTER --> USAGE
+```

@@ -20,6 +20,51 @@ React 18 + TypeScript (strict) · Vite 6 · Tailwind CSS v4 · Dexie (IndexedDB)
 
 All AI provider keys live **server-side only** — the client talks to `/api/chat`, `/api/transcribe`, and `/api/tts`.
 
+## Architecture at a glance
+
+The web and Android clients only ever talk to the serverless proxies, which hold the provider keys. Per-language model routing (`LLM_BASE_URL_*` / `STT_BASE_URL_*`, see `api/_lib/languageManifest.js`) lets each dialect point at its own fine-tuned endpoint later without a client change. A separate admin app (`admin/`) for speech-sample review and lesson publishing talks to the same Supabase project.
+
+```mermaid
+flowchart LR
+    subgraph CLIENT["Client"]
+        WEB["Browser app (React + Vite)"]
+        DROID["Android app (Capacitor webview)"]
+    end
+    subgraph API["Vercel serverless functions (api/)"]
+        CHAT["/api/chat"]
+        STT["/api/transcribe"]
+        TTS["/api/tts"]
+    end
+    WEB --> API
+    DROID -->|"VITE_API_BASE_URL"| API
+    CHAT -->|"default, or LLM_BASE_URL_* per language"| OPENAI["OpenAI (chat + STT)"]
+    STT -->|"default, or STT_BASE_URL_* per language"| OPENAI
+    TTS --> GOOGLE["Google Cloud TTS (Chirp 3 HD)"]
+    CLIENT -.->|"cloud mode only"| SUPA["Supabase (auth + Postgres RLS)"]
+    ADMIN["Admin app (admin/)"] --> SUPA
+```
+
+## Storage modes
+
+Where your data lives is a build-time choice (`VITE_STORAGE_MODE`, resolved in `src/repositories/index.ts`). Local mode is the default and needs zero accounts or config; cloud mode adds real sign-in and cross-device sync. The AI features are identical either way — both modes call the same `/api/*` proxies.
+
+```mermaid
+flowchart TB
+    subgraph LOCAL["Local mode (default)"]
+        direction TB
+        L1["No account — open and go"] --> L2["All data in the browser's IndexedDB (Dexie)"]
+        L2 --> L3["Device-only: nothing syncs, nothing leaves the device"]
+    end
+    subgraph CLOUD["Cloud mode (VITE_STORAGE_MODE=cloud + Supabase)"]
+        direction TB
+        C1["Supabase email sign-in"] --> C2["Per-user Postgres rows behind RLS"]
+        C2 --> C3["Sync across devices"]
+        C3 --> C4["Offline outbox queues failed writes for replay"]
+    end
+    LOCAL --> AI["AI features identical in both — everything via /api/* proxies"]
+    CLOUD --> AI
+```
+
 ## Getting started
 
 ```bash

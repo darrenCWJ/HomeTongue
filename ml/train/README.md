@@ -47,10 +47,11 @@ STT model actually better".
 2. **Collect** — consented exam attempts and chat edits accumulate in
    `speech_samples` / `corrections` (audio only with `audio_retention_consent`).
 3. **Review in the admin app** — reviewers (`profiles.is_admin`) verify/correct
-   samples into `sample_reviews` (migration 0005). *Follow-up:*
-   `scripts/export-training-data.mjs` does not yet join `sample_reviews`;
-   `prepare_data.py` already understands the optional `review_verdict` /
-   `review_corrected_text` columns for when it does.
+   samples into `sample_reviews` (migration 0005).
+   `scripts/export-training-data.mjs` joins those verdicts into the export
+   (`review_verdict` / `review_corrected_text`; rejected samples are excluded
+   by default, `--include-rejected` keeps them), and `prepare_data.py`
+   prefers review-corrected text when selecting references.
 4. **Export** — `node scripts/export-training-data.mjs --language yue-HK --out
    training-export/` (service-role key; trusted machine only), plus a mirror of
    the `recordings` bucket for audio.
