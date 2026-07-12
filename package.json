@@ -13,6 +13,8 @@
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"api/**/*.js\"",
     "generate:previews": "node scripts/generate-voice-previews.mjs",
+    "lessons:export": "node scripts/export-lessons.mjs",
+    "lessons:import": "node scripts/import-lessons.mjs",
     "android:sync": "vite build && npx cap sync android"
   },
   "dependencies": {
