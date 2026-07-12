@@ -1,6 +1,6 @@
 # Data model
 
-All domain types live in `src/types.ts`. Persistence is Dexie (IndexedDB), DB name `hometongue`, schema versions 1–5 in `src/repositories/local/db.ts`.
+All domain types live in `src/types.ts`. Persistence is Dexie (IndexedDB), DB name `hometongue`, schema versions 1–7 in `src/repositories/local/db.ts`.
 
 ## Tables
 
@@ -35,7 +35,7 @@ interface Message {
   sender: "user" | "bot";
   text: string;
   suggestions?: Phrase[];       // AI reply chips
-  cantoneseText?: string;
+  dialectText?: string;         // dialect-neutral; legacy records stored this as `cantoneseText` (migrated in Dexie v7 / normalized in cloud mapping)
   pronunciation?: string;
   englishTranslation?: string;
   audioDataUrl?: string;

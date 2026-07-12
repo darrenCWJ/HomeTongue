@@ -64,16 +64,16 @@ export function SessionViewer({
           <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-none">
             {session.messages
               .filter((m) => !pendingMsgDeletions.has(m.id))
-              .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.cantoneseText)
+              .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
               .map((msg, i) => {
                 const isBot = msg.sender === "bot";
-                const displayText = isBot ? msg.text : (msg.cantoneseText ?? msg.text);
+                const displayText = isBot ? msg.text : (msg.dialectText ?? msg.text);
                 const subText = isBot ? msg.englishTranslation : msg.text;
                 const audioKey = `view-${session.id}-${i}`;
                 const isPlaying = playingId === audioKey;
                 const hasAudioForMsg =
                   !!msg.audioDataUrl || (msg.audioDataUrls && msg.audioDataUrls.length > 0);
-                const fallback = isBot ? msg.text : (msg.cantoneseText ?? msg.text);
+                const fallback = isBot ? msg.text : (msg.dialectText ?? msg.text);
                 const isBookmarked = phrases.find((p) => p.id === msg.id)?.isBookmarked ?? false;
 
                 return (
@@ -106,7 +106,7 @@ export function SessionViewer({
                       <div
                         className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-brand-blue/100 text-white"}`}
                         onPointerDown={(e) => {
-                          const dialectText = isBot ? (msg.text ?? "") : (msg.cantoneseText ?? "");
+                          const dialectText = isBot ? (msg.text ?? "") : (msg.dialectText ?? "");
                           const originalText = isBot ? (msg.englishTranslation ?? "") : (msg.text ?? "");
                           onBubblePointerDown(e, dialectText, originalText);
                         }}

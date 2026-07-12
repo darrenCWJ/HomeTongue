@@ -22,6 +22,8 @@ const TTS_BASE_URL = "https://texttospeech.googleapis.com/v1";
 const SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
+// Keys mirror the pack's curated DISPLAY_VOICES in src/languages/yue-HK/index.ts
+// (the source of truth) — keep in sync when that list changes.
 const VOICES = [
   // Female
   { key: "zephyr",       name: "yue-HK-Chirp3-HD-Zephyr"       },

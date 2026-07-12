@@ -51,6 +51,12 @@ export interface IReviewStateRepository {
   getAll(): Promise<PhraseReviewState[]>;
   /** Insert or update the schedule for one phrase (upsert). */
   put(state: PhraseReviewState): Promise<void>;
+  /**
+   * Insert or update several schedules in one write (upsert-only).
+   * Like IPhraseRepository.putMany, this NEVER prunes rows absent from the
+   * list — required for the safe local → cloud import.
+   */
+  putMany(states: PhraseReviewState[]): Promise<void>;
   delete(phraseId: string): Promise<void>;
 }
 

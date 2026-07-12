@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
 import { useProfile } from "../context/ProfileProvider";
-import { VOICES } from "../../constants/voices";
+import { getDisplayVoices } from "../../hooks/useGoogleTTS";
 import { previewVoice } from "../../utils/voicePreviewCache";
 import type { WorkJobTitle, PersonaType } from "../../types";
 
@@ -13,9 +13,10 @@ const STEPS: Step[] = ["name", "voice", "persona", "video"];
 
 export function OnboardingPage() {
   const { updateUserProfile } = useProfile();
+  const displayVoices = getDisplayVoices();
   const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
-  const [voiceId, setVoiceId] = useState(VOICES[0].id);
+  const [voiceId, setVoiceId] = useState(displayVoices[0].key);
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>("personal");
@@ -197,12 +198,12 @@ export function OnboardingPage() {
 
               {/* Voice cards */}
               <div className="space-y-2 mb-6">
-                {VOICES.filter((v) => v.gender === voiceGenderTab).map((voice) => {
-                  const selected = voiceId === voice.id;
+                {displayVoices.filter((v) => v.gender === voiceGenderTab).map((voice) => {
+                  const selected = voiceId === voice.key;
                   return (
                     <button
-                      key={voice.id}
-                      onClick={() => setVoiceId(voice.id)}
+                      key={voice.key}
+                      onClick={() => setVoiceId(voice.key)}
                       className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
                         selected
                           ? "border-brand-blue bg-brand-blue/10"
@@ -219,19 +220,19 @@ export function OnboardingPage() {
                           <span
                             className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-zinc-800"}`}
                           >
-                            {voice.name}
+                            {voice.label}
                           </span>
                         </div>
                       </div>
                       <div
-                        onClick={(e) => handlePreview(e, voice.id)}
+                        onClick={(e) => handlePreview(e, voice.key)}
                         className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-                          previewingId === voice.id
+                          previewingId === voice.key
                             ? "bg-brand-blue/15"
                             : "bg-zinc-100 hover:bg-brand-blue/15"
                         }`}
                       >
-                        {previewingId === voice.id ? (
+                        {previewingId === voice.key ? (
                           <Loader2 size={14} className="text-brand-blue animate-spin" />
                         ) : (
                           <Volume2 size={14} className="text-zinc-500" />

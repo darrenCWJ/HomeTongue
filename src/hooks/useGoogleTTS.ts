@@ -1,12 +1,12 @@
 import { blobToDataUrl } from "./audio";
 import { apiUrl } from "../lib/api";
 import { DEFAULT_LANGUAGE, LANGUAGE_PACKS, getActiveLanguagePack } from "../languages";
-import type { GoogleTTSVoice } from "../languages";
+import type { DisplayVoice, GoogleTTSVoice } from "../languages";
 
-export type { GoogleTTSVoice } from "../languages";
+export type { DisplayVoice, GoogleTTSVoice } from "../languages";
 
-// Stable façade over the voice registry: components, constants/voices.ts, and
-// tests import it from here, not from src/languages/. VoiceKey is a
+// Stable façade over the voice registry: components and tests import it from
+// here, not from src/languages/. VoiceKey is a
 // runtime-validated string (asVoiceKey resolves it against the ACTIVE pack's
 // voice registry at call time), not a compile-time literal union — a literal
 // union derived from one pack's const-asserted map would make a second pack's
@@ -26,6 +26,14 @@ export const DEFAULT_VOICE: VoiceKey = LANGUAGE_PACKS[DEFAULT_LANGUAGE].tts.defa
 /** Voice registry of the currently active language pack. */
 export function getActiveVoices(): Readonly<Record<string, GoogleTTSVoice>> {
   return getActiveLanguagePack().tts.voices;
+}
+
+/**
+ * Curated voice-picker list (friendly names) of the currently active pack,
+ * in display order. Resolved at call time so a language switch is live.
+ */
+export function getDisplayVoices(): ReadonlyArray<DisplayVoice> {
+  return getActiveLanguagePack().tts.displayVoices;
 }
 
 export function mapElevenLabsVoice(elevenLabsId: string): VoiceKey {

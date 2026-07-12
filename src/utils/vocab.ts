@@ -22,8 +22,8 @@ export function extractVocabFromMessages(
         });
       }
     }
-    if (msg.sender === "user" && msg.cantoneseText) {
-      const cantonese = msg.cantoneseText.trim();
+    if (msg.sender === "user" && msg.dialectText) {
+      const cantonese = msg.dialectText.trim();
       if (hasTwoChinese(cantonese) && !seen.has(cantonese)) {
         seen.add(cantonese);
         items.push({

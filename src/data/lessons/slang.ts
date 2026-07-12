@@ -1,0 +1,273 @@
+import type { Lesson } from "../../types";
+
+// Street Slang lessons — extracted from lessons.ts to stay under the 800-line file cap
+// (scripts/check-file-sizes.mjs). Aggregated in src/data/lessons.ts.
+export const SLANG_LESSONS: Lesson[] = [
+  {
+    id: "slang-1",
+    categoryId: "slang",
+    title: "Everyday Slang",
+    description: "Talk like a local Hongkonger",
+    difficulty: "intermediate",
+    tags: ["casual", "informal", "youth"],
+    content: {
+      vocabulary: [
+        {
+          english: "Wait a moment",
+          cantonese: "等陣",
+          pronunciation: "dang2 zan6",
+          exampleSentence: "等陣先，我準備緊。",
+        },
+        { english: "Really?", cantonese: "係咩？", pronunciation: "hai6 me3?" },
+        {
+          english: "Very nice / Awesome",
+          cantonese: "好正",
+          pronunciation: "hou2 zing3",
+          exampleSentence: "呢間餐廳好正！",
+        },
+        { english: "Cool / Beautiful", cantonese: "靚", pronunciation: "leng3" },
+        {
+          english: "Hurry up",
+          cantonese: "快啲",
+          pronunciation: "faai3 di1",
+          exampleSentence: "快啲！要遲到喇。",
+        },
+        { english: "No big deal", cantonese: "冇所謂", pronunciation: "mou5 so2 wai6" },
+        { english: "Very busy", cantonese: "好忙", pronunciation: "hou2 mong4" },
+        { english: "Very tired", cantonese: "好攰", pronunciation: "hou2 gui6" },
+      ],
+      levels: [
+        {
+          level: 1,
+          title: "Sound Natural",
+          description: "The everyday reactions locals use constantly",
+          exerciseType: "flashcard",
+          vocabulary: [
+            {
+              english: "Wait a moment",
+              cantonese: "等陣",
+              pronunciation: "dang2 zan6",
+              exampleSentence: "等陣先，我準備緊。",
+            },
+            { english: "Really?", cantonese: "係咩？", pronunciation: "hai6 me3?" },
+            {
+              english: "Very nice / Awesome",
+              cantonese: "好正",
+              pronunciation: "hou2 zing3",
+              exampleSentence: "呢間餐廳好正！",
+            },
+            { english: "Cool / Beautiful", cantonese: "靚", pronunciation: "leng3" },
+          ],
+        },
+        {
+          level: 2,
+          title: "Keep It Moving",
+          description: "Match the slang for busy city life",
+          exerciseType: "matching",
+          vocabulary: [
+            {
+              english: "Hurry up",
+              cantonese: "快啲",
+              pronunciation: "faai3 di1",
+              exampleSentence: "快啲！要遲到喇。",
+            },
+            { english: "No big deal", cantonese: "冇所謂", pronunciation: "mou5 so2 wai6" },
+            { english: "Very busy", cantonese: "好忙", pronunciation: "hou2 mong4" },
+            { english: "Very tired", cantonese: "好攰", pronunciation: "hou2 gui6" },
+          ],
+        },
+        {
+          level: 3,
+          title: "Slang Check",
+          description: "Quiz yourself on all eight slang phrases",
+          exerciseType: "multiple-choice",
+          vocabulary: [
+            {
+              english: "Wait a moment",
+              cantonese: "等陣",
+              pronunciation: "dang2 zan6",
+              exampleSentence: "等陣先，我準備緊。",
+            },
+            { english: "Really?", cantonese: "係咩？", pronunciation: "hai6 me3?" },
+            {
+              english: "Very nice / Awesome",
+              cantonese: "好正",
+              pronunciation: "hou2 zing3",
+              exampleSentence: "呢間餐廳好正！",
+            },
+            { english: "Cool / Beautiful", cantonese: "靚", pronunciation: "leng3" },
+            {
+              english: "Hurry up",
+              cantonese: "快啲",
+              pronunciation: "faai3 di1",
+              exampleSentence: "快啲！要遲到喇。",
+            },
+            { english: "No big deal", cantonese: "冇所謂", pronunciation: "mou5 so2 wai6" },
+            { english: "Very busy", cantonese: "好忙", pronunciation: "hou2 mong4" },
+            { english: "Very tired", cantonese: "好攰", pronunciation: "hou2 gui6" },
+          ],
+        },
+        {
+          level: 4,
+          title: "Use It in a Sentence",
+          description: "Drop the right slang into real sentences",
+          exerciseType: "fill-blank",
+          vocabulary: [
+            {
+              english: "Wait a moment",
+              cantonese: "等陣",
+              pronunciation: "dang2 zan6",
+              exampleSentence: "___先，我準備緊。",
+            },
+            {
+              english: "Very nice / Awesome",
+              cantonese: "好正",
+              pronunciation: "hou2 zing3",
+              exampleSentence: "呢間餐廳___！",
+            },
+            {
+              english: "Hurry up",
+              cantonese: "快啲",
+              pronunciation: "faai3 di1",
+              exampleSentence: "___！要遲到喇。",
+            },
+            { english: "Really?", cantonese: "係咩？", pronunciation: "hai6 me3?" },
+            { english: "Cool / Beautiful", cantonese: "靚", pronunciation: "leng3" },
+            { english: "No big deal", cantonese: "冇所謂", pronunciation: "mou5 so2 wai6" },
+            { english: "Very busy", cantonese: "好忙", pronunciation: "hou2 mong4" },
+            { english: "Very tired", cantonese: "好攰", pronunciation: "hou2 gui6" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "slang-2",
+    categoryId: "slang",
+    title: "Expressing Feelings",
+    description: "Share how you feel in Cantonese",
+    difficulty: "intermediate",
+    tags: ["emotions", "expressive"],
+    content: {
+      vocabulary: [
+        { english: "Happy", cantonese: "開心", pronunciation: "hoi1 sam1", exampleSentence: "今日好開心！" },
+        { english: "Sad", cantonese: "唔開心", pronunciation: "m4 hoi1 sam1" },
+        { english: "Scared", cantonese: "驚", pronunciation: "geng1" },
+        {
+          english: "Hungry",
+          cantonese: "肚餓",
+          pronunciation: "tou5 ngo6",
+          exampleSentence: "我好肚餓，食乜好？",
+        },
+        { english: "Bored", cantonese: "悶", pronunciation: "mun6" },
+        { english: "Surprised", cantonese: "好驚訝", pronunciation: "hou2 geng1 ngaa6" },
+        {
+          english: "Love it",
+          cantonese: "好鍾意",
+          pronunciation: "hou2 zung1 ji3",
+          exampleSentence: "我好鍾意食港式點心。",
+        },
+      ],
+      levels: [
+        {
+          level: 1,
+          title: "Core Feelings",
+          description: "Say how you feel — happy, sad, scared, or hungry",
+          exerciseType: "flashcard",
+          vocabulary: [
+            {
+              english: "Happy",
+              cantonese: "開心",
+              pronunciation: "hoi1 sam1",
+              exampleSentence: "今日好開心！",
+            },
+            { english: "Sad", cantonese: "唔開心", pronunciation: "m4 hoi1 sam1" },
+            { english: "Scared", cantonese: "驚", pronunciation: "geng1" },
+            {
+              english: "Hungry",
+              cantonese: "肚餓",
+              pronunciation: "tou5 ngo6",
+              exampleSentence: "我好肚餓，食乜好？",
+            },
+          ],
+        },
+        {
+          level: 2,
+          title: "More Moods",
+          description: "Match the feelings you share every day",
+          exerciseType: "matching",
+          vocabulary: [
+            { english: "Bored", cantonese: "悶", pronunciation: "mun6" },
+            { english: "Surprised", cantonese: "好驚訝", pronunciation: "hou2 geng1 ngaa6" },
+            {
+              english: "Love it",
+              cantonese: "好鍾意",
+              pronunciation: "hou2 zung1 ji3",
+              exampleSentence: "我好鍾意食港式點心。",
+            },
+          ],
+        },
+        {
+          level: 3,
+          title: "How Do You Feel?",
+          description: "Quiz yourself on every feeling word",
+          exerciseType: "multiple-choice",
+          vocabulary: [
+            {
+              english: "Happy",
+              cantonese: "開心",
+              pronunciation: "hoi1 sam1",
+              exampleSentence: "今日好開心！",
+            },
+            { english: "Sad", cantonese: "唔開心", pronunciation: "m4 hoi1 sam1" },
+            { english: "Scared", cantonese: "驚", pronunciation: "geng1" },
+            {
+              english: "Hungry",
+              cantonese: "肚餓",
+              pronunciation: "tou5 ngo6",
+              exampleSentence: "我好肚餓，食乜好？",
+            },
+            { english: "Bored", cantonese: "悶", pronunciation: "mun6" },
+            { english: "Surprised", cantonese: "好驚訝", pronunciation: "hou2 geng1 ngaa6" },
+            {
+              english: "Love it",
+              cantonese: "好鍾意",
+              pronunciation: "hou2 zung1 ji3",
+              exampleSentence: "我好鍾意食港式點心。",
+            },
+          ],
+        },
+        {
+          level: 4,
+          title: "Feelings in Context",
+          description: "Complete real sentences about how you feel",
+          exerciseType: "fill-blank",
+          vocabulary: [
+            {
+              english: "Happy",
+              cantonese: "開心",
+              pronunciation: "hoi1 sam1",
+              exampleSentence: "今日好___！",
+            },
+            {
+              english: "Hungry",
+              cantonese: "肚餓",
+              pronunciation: "tou5 ngo6",
+              exampleSentence: "我好___，食乜好？",
+            },
+            {
+              english: "Love it",
+              cantonese: "好鍾意",
+              pronunciation: "hou2 zung1 ji3",
+              exampleSentence: "我___食港式點心。",
+            },
+            { english: "Sad", cantonese: "唔開心", pronunciation: "m4 hoi1 sam1" },
+            { english: "Scared", cantonese: "驚", pronunciation: "geng1" },
+            { english: "Bored", cantonese: "悶", pronunciation: "mun6" },
+            { english: "Surprised", cantonese: "好驚訝", pronunciation: "hou2 geng1 ngaa6" },
+          ],
+        },
+      ],
+    },
+  },
+];

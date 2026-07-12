@@ -2,9 +2,9 @@ import { useState, useRef } from "react";
 import { ArrowLeft, X, Loader2, Mic, MicOff, Trophy } from "lucide-react";
 import { useAudioRecorder } from "../../../hooks/audio";
 import {
-  transcribeCantonese,
+  transcribeDialect,
   transcribeAnyLanguage,
-  scoreCantoneseAccuracy,
+  scoreDialectAccuracy,
 } from "../../../services/translationService";
 import { recordSpeechSample, consentFromProfile } from "../../../services/speechSampleService";
 import { useProfile } from "../../../app/context/ProfileProvider";
@@ -70,7 +70,7 @@ export function ExamView({
         toast.error("No audio captured — please try again.");
         return;
       }
-      let result = await transcribeCantonese(blob);
+      let result = await transcribeDialect(blob);
       if (!result || result.trim().length === 0) {
         result = await transcribeAnyLanguage(blob);
       }
@@ -78,7 +78,7 @@ export function ExamView({
         toast.error("Could not detect speech — please speak louder or closer to the mic.");
         return;
       }
-      const score = await scoreCantoneseAccuracy(current.cantonese, result);
+      const score = await scoreDialectAccuracy(current.cantonese, result);
       // ML data capture (consent-gated, fire-and-forget — never blocks the exam)
       recordSpeechSample(
         { source: "exam", expectedText: current.cantonese, transcript: result, score, audioBlob: blob },

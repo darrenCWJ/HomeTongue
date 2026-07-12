@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useProfile } from "../../../app/context/ProfileProvider";
 import { useAudioRecorder } from "../../../hooks/audio";
 import { speakText, asVoiceKey } from "../../../hooks/useGoogleTTS";
-import { transcribeCantonese, transcribeAnyLanguage } from "../../../services/translationService";
+import { transcribeDialect, transcribeAnyLanguage } from "../../../services/translationService";
 import {
   nextBotTurn,
   coachUserTurn,
@@ -167,7 +167,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
         toast.error("No audio captured — please try again.");
         return;
       }
-      let transcript = await transcribeCantonese(blob);
+      let transcript = await transcribeDialect(blob);
       if (!transcript || transcript.trim().length === 0) {
         transcript = await transcribeAnyLanguage(blob);
       }

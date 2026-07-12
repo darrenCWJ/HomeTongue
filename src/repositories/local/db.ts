@@ -64,6 +64,38 @@ class HomeTongueDB extends Dexie {
     this.version(6).stores({
       reviewStates: "phraseId, due",
     });
+    // v7: dialect-neutral domain rename — Message.cantoneseText became
+    // Message.dialectText. Rewrites the message arrays persisted in `sessions`
+    // and `draftMessages`. Idempotent: messages that never had the legacy key
+    // (or were already migrated) pass through untouched, and an existing
+    // dialectText is never overwritten.
+    this.version(7).upgrade((tx) => {
+      const migrateMessages = (messages: unknown): void => {
+        if (!Array.isArray(messages)) return;
+        for (const message of messages) {
+          if (!message || typeof message !== "object" || !("cantoneseText" in message)) continue;
+          const legacy = message as { cantoneseText?: unknown; dialectText?: unknown };
+          if (legacy.dialectText === undefined && typeof legacy.cantoneseText === "string") {
+            legacy.dialectText = legacy.cantoneseText;
+          }
+          delete legacy.cantoneseText;
+        }
+      };
+      return Promise.all([
+        tx
+          .table("sessions")
+          .toCollection()
+          .modify((session) => {
+            migrateMessages(session.messages);
+          }),
+        tx
+          .table("draftMessages")
+          .toCollection()
+          .modify((row) => {
+            migrateMessages(row.messages);
+          }),
+      ]).then(() => undefined);
+    });
   }
 }
 

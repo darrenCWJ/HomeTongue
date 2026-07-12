@@ -79,7 +79,8 @@ export interface Message {
   sender: "user" | "bot";
   text: string;
   suggestions?: Phrase[];
-  cantoneseText?: string;
+  /** The message rendered in the active dialect (persisted; legacy records stored this as `cantoneseText`). */
+  dialectText?: string;
   pronunciation?: string;
   context?: string;
   phraseId?: string;

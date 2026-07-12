@@ -66,7 +66,7 @@ src/languages/                       ← LanguagePack contract + yue-HK pack (vo
 src/repositories/                   ← repository pattern for persistence
   interfaces.ts                     ← I*Repository interfaces
   index.ts                          ← factory: local vs cloud impl based on VITE_STORAGE_MODE
-  local/db.ts                       ← Dexie schema; DB name "hometongue", versions 1–6
+  local/db.ts                       ← Dexie schema; DB name "hometongue", versions 1–7
   local/LocalRepositories.ts        ← Dexie implementations
   cloud/CloudRepositories.ts        ← Supabase implementations (per-entity upserts; active in cloud mode)
 src/services/
@@ -91,7 +91,7 @@ src/data/lessons.ts                 ← static lesson content (Cantonese)
 ### TTS / STT split
 
 - **TTS** → `useGoogleTTS.ts` → `/api/tts`. Voices are `GOOGLE_TTS_VOICES` (Chirp 3 HD, yue-HK). `asVoiceKey()` safely resolves any stored voice ID (including legacy ElevenLabs IDs) to a valid `VoiceKey`. `DEFAULT_VOICE = "zephyr"`.
-- **STT** → `translationService.ts` (`transcribeCantonese` / `transcribeEnglish` / `transcribeAnyLanguage`) → `/api/transcribe`. Audio is converted to WAV client-side (`blobToWav`) and sent as base64. `transcribeCantonese` includes a prompt-hallucination guard.
+- **STT** → `translationService.ts` (`transcribeDialect` / `transcribeEnglish` / `transcribeAnyLanguage`) → `/api/transcribe`. Audio is converted to WAV client-side (`blobToWav`) and sent as base64. `transcribeDialect` includes a prompt-hallucination guard.
 - ElevenLabs is no longer used anywhere.
 
 ### Auth & gating (IMPORTANT: cosmetic only)

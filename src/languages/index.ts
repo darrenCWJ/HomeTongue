@@ -1,7 +1,7 @@
 import type { LanguagePack } from "./types";
 import { CANTONESE_PACK } from "./yue-HK";
 
-export type { GoogleTTSVoice, LanguagePack } from "./types";
+export type { DisplayVoice, GoogleTTSVoice, LanguagePack } from "./types";
 
 export const LANGUAGE_PACKS = {
   "yue-HK": CANTONESE_PACK,

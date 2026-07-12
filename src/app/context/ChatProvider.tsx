@@ -88,7 +88,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         id: newId(),
         sender: "bot",
         text: phrase.dialect,
-        cantoneseText: phrase.dialect,
+        dialectText: phrase.dialect,
         pronunciation: phrase.pronunciation,
         context: phrase.context,
         phraseId: phrase.id,

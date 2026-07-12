@@ -39,12 +39,20 @@ export interface PhraseRow {
   created_at: string | null;
 }
 
+/**
+ * Message as it may appear in the sessions.messages jsonb column: rows written
+ * before the dialect-neutral rename stored the dialect line under
+ * `cantoneseText`. rowToSession normalizes it to `dialectText`, and
+ * sessionToRow strips it so the legacy key is never written back.
+ */
+export type LegacyMessage = Message & { cantoneseText?: string };
+
 export interface SessionRow {
   id: string;
   user_id: string;
   title: string | null;
   date_display: string;
-  messages: Message[];
+  messages: LegacyMessage[];
   persona: PersonaType | null;
   tags: string[] | null;
   created_at: string | null;
@@ -149,13 +157,27 @@ export function rowToPhrase(row: PhraseRow): Phrase {
   };
 }
 
+/**
+ * Normalizes a persisted message to the current domain shape: a legacy
+ * `cantoneseText` value moves to `dialectText` (an already-present
+ * `dialectText` wins), and the legacy key is dropped. Messages without the
+ * legacy key are returned structurally unchanged.
+ */
+function normalizeMessage(message: LegacyMessage): Message {
+  const { cantoneseText, ...rest } = message;
+  if (cantoneseText === undefined) return rest;
+  return rest.dialectText !== undefined ? rest : { ...rest, dialectText: cantoneseText };
+}
+
 export function sessionToRow(session: Session, userId: string): SessionRow {
   return {
     id: session.id,
     user_id: userId,
     title: session.title ?? null,
     date_display: session.date,
-    messages: session.messages,
+    // Domain messages are already dialect-neutral, but normalize defensively
+    // so a legacy key can never be written back to the jsonb column.
+    messages: session.messages.map(normalizeMessage),
     persona: session.persona ?? null,
     tags: session.tags ?? null,
     created_at: session.createdAt ?? null,
@@ -166,7 +188,7 @@ export function rowToSession(row: SessionRow): Session {
   return {
     id: row.id,
     date: row.date_display,
-    messages: row.messages,
+    messages: row.messages.map(normalizeMessage),
     ...(row.title !== null ? { title: row.title } : {}),
     ...(row.created_at !== null ? { createdAt: row.created_at } : {}),
     ...(row.persona !== null ? { persona: row.persona } : {}),

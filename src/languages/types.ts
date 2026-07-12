@@ -13,6 +13,22 @@ export interface GoogleTTSVoice {
   style: string;
 }
 
+/**
+ * Curated voice entry surfaced in voice-picker UIs (onboarding, profile).
+ * `key` must exist in the pack's `tts.voices` registry.
+ */
+export interface DisplayVoice {
+  /** Voice key into the pack's `tts.voices` registry. */
+  key: string;
+  /** Friendly display name shown to the user, e.g. "Jamie". */
+  label: string;
+  gender: "female" | "male";
+  /** One-word style tag, e.g. "Bright". */
+  style: string;
+  /** Short blurb describing the voice. */
+  description: string;
+}
+
 export interface LanguagePack {
   /** BCP-47 language code, e.g. "yue-HK". */
   code: string;
@@ -26,6 +42,11 @@ export interface LanguagePack {
     languageCode: string;
     /** Available Google Cloud TTS voices, keyed by app-level voice key. */
     voices: Readonly<Record<string, GoogleTTSVoice>>;
+    /**
+     * Curated subset of `voices` shown in voice-picker UIs, in display order.
+     * Every `key` must exist in `voices` (asserted in src/languages/packs.test.ts).
+     */
+    displayVoices: ReadonlyArray<DisplayVoice>;
     /** Voice key used when none is selected or a stored key is invalid. */
     defaultVoice: string;
     /** Legacy provider voice IDs (ElevenLabs) → voice key, for old stored profiles. */

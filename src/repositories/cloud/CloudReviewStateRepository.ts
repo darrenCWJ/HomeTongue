@@ -27,6 +27,14 @@ export class CloudReviewStateRepository implements IReviewStateRepository {
     assertNoError(error, "save review schedule");
   }
 
+  async putMany(states: PhraseReviewState[]): Promise<void> {
+    if (states.length === 0) return;
+    const { supabase, userId } = await requireAuth();
+    const rows = states.map((state) => reviewStateToRow(state, userId));
+    const { error } = await supabase.from("review_states").upsert(rows, { onConflict: "user_id,phrase_id" });
+    assertNoError(error, "save review schedules");
+  }
+
   async delete(phraseId: string): Promise<void> {
     const { supabase, userId } = await requireAuth();
     const { error } = await supabase

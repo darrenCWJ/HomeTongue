@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileProvider";
 import { type PersonaType } from "../../types";
-import { VOICES } from "../../constants/voices";
+import { getDisplayVoices } from "../../hooks/useGoogleTTS";
 import { previewVoice } from "../../utils/voicePreviewCache";
 import { importLocalDataToCloud } from "../../services/cloudImportService";
 import { useTour } from "../components/tour/TourProvider";
@@ -31,6 +31,7 @@ const PREVIEW_TEXT = "你好，好高興認識你！";
 export function ProfilePage() {
   const { isCloudAuthEnabled, authUser, signOut } = useAuth();
   const { setIsSignedIn, userProfile, updateUserProfile, activePersona } = useProfile();
+  const displayVoices = getDisplayVoices();
   const { startTour } = useTour();
   const navigate = useNavigate();
 
@@ -105,7 +106,7 @@ export function ProfilePage() {
     }
   };
 
-  const handlePreview = async (e: React.MouseEvent, id: (typeof VOICES)[number]["id"]) => {
+  const handlePreview = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     if (previewingId) return;
     setPreviewingId(id);
@@ -346,27 +347,27 @@ export function ProfilePage() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
-            {VOICES.filter((v) => v.gender === voiceGenderTab).map((voice) => {
-              const selected = (userProfile?.preferredVoiceId ?? VOICES[0].id) === voice.id;
+            {displayVoices.filter((v) => v.gender === voiceGenderTab).map((voice) => {
+              const selected = (userProfile?.preferredVoiceId ?? displayVoices[0].key) === voice.key;
               return (
                 <label
-                  key={voice.id}
+                  key={voice.key}
                   className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
-                        {voice.name}
+                        {voice.label}
                       </h3>
                     </div>
                   </div>
                   <button
-                    onClick={(e) => handlePreview(e, voice.id)}
+                    onClick={(e) => handlePreview(e, voice.key)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
-                      previewingId === voice.id ? "bg-brand-blue/15" : "bg-zinc-100 hover:bg-brand-blue/15"
+                      previewingId === voice.key ? "bg-brand-blue/15" : "bg-zinc-100 hover:bg-brand-blue/15"
                     }`}
                   >
-                    {previewingId === voice.id ? (
+                    {previewingId === voice.key ? (
                       <Loader2 size={14} className="text-brand-blue animate-spin" />
                     ) : (
                       <Volume2 size={14} className="text-zinc-500" />
@@ -376,9 +377,9 @@ export function ProfilePage() {
                     <input
                       type="radio"
                       name="voice"
-                      value={voice.id}
+                      value={voice.key}
                       checked={selected}
-                      onChange={() => updateUserProfile({ preferredVoiceId: voice.id })}
+                      onChange={() => updateUserProfile({ preferredVoiceId: voice.key })}
                       className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-brand-blue transition-colors cursor-pointer"
                     />
                     {selected && (

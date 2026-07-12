@@ -18,6 +18,10 @@ export class LocalReviewStateRepository implements IReviewStateRepository {
     await db.reviewStates.put(state);
   }
 
+  async putMany(states: PhraseReviewState[]): Promise<void> {
+    await db.reviewStates.bulkPut(states);
+  }
+
   async delete(phraseId: string): Promise<void> {
     await db.reviewStates.delete(phraseId);
   }

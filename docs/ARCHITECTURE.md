@@ -48,8 +48,8 @@ Secrets (`OPENAI_API_KEY`, `GOOGLE_API_JSON`) exist only in the serverless envir
 5. background: `getSuggestions()` → `/api/chat`; suggestions render as tappable chips with prefetched TTS
 
 **Exam scoring** (LearnPage exam view):
-1. record → `transcribeCantonese` (with anti-hallucination prompt; falls back to `transcribeAnyLanguage` when no CJK is detected)
-2. `scoreCantoneseAccuracy(expected, actual)` → `/api/chat` grading rubric; offline fallback is a character-match score with Mandarin↔Cantonese equivalence maps
+1. record → `transcribeDialect` (with anti-hallucination prompt; falls back to `transcribeAnyLanguage` when no CJK is detected)
+2. `scoreDialectAccuracy(expected, actual)` → `/api/chat` grading rubric; offline fallback is a character-match score with Mandarin↔Cantonese equivalence maps
 
 **Session → conversation lesson** (BookmarksPage):
 `extractVocabFromMessages` pulls Cantonese/English pairs from a saved session into `ConversationLesson.vocabulary`, which LearnPage renders as flashcards + exam.

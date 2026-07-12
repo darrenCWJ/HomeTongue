@@ -10,11 +10,11 @@ const botMsg = (text: string, englishTranslation?: string, extra: Partial<Messag
   ...extra,
 });
 
-const userMsg = (text: string, cantoneseText?: string, extra: Partial<Message> = {}): Message => ({
+const userMsg = (text: string, dialectText?: string, extra: Partial<Message> = {}): Message => ({
   id: text,
   sender: "user",
   text,
-  cantoneseText,
+  dialectText,
   ...extra,
 });
 
@@ -30,7 +30,7 @@ describe("extractVocabFromMessages", () => {
     expect(extractVocabFromMessages([botMsg("你好嗎")])).toEqual([]);
   });
 
-  test("extracts user messages with cantoneseText and keeps pronunciation", () => {
+  test("extracts user messages with dialectText and keeps pronunciation", () => {
     const vocab = extractVocabFromMessages([
       userMsg("I want tea", "我想飲茶", { pronunciation: "ngo5 soeng2 jam2 caa4" }),
     ]);

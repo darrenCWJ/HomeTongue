@@ -260,11 +260,11 @@ export function SessionCard({
       {expandedSessionId === session.id && (
         <div className="border-t border-zinc-100 p-3 space-y-2 bg-zinc-50 max-h-48 overflow-y-auto">
           {session.messages
-            .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.cantoneseText)
+            .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
             .slice(0, 4)
             .map((msg, i) => {
               const isBot = msg.sender === "bot";
-              const displayText = isBot ? msg.text : (msg.cantoneseText ?? msg.text);
+              const displayText = isBot ? msg.text : (msg.dialectText ?? msg.text);
               const subText = isBot ? msg.englishTranslation : msg.text;
               return (
                 <div key={i} className={`flex items-end gap-2 ${isBot ? "justify-start" : "justify-end"}`}>
@@ -295,7 +295,7 @@ export function SessionCard({
                 </div>
               );
             })}
-          {session.messages.filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.cantoneseText)
+          {session.messages.filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
             .length > 4 && (
             <p className="text-center text-xs text-zinc-400 pt-1">Tap View to see full conversation</p>
           )}

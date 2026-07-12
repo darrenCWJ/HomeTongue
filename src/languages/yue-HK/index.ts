@@ -1,4 +1,4 @@
-import type { GoogleTTSVoice, LanguagePack } from "../types";
+import type { DisplayVoice, GoogleTTSVoice, LanguagePack } from "../types";
 
 // Single source of truth for the names woven into the prompt templates below
 // AND exposed on the pack (label / romanization.name / script.name). A second
@@ -41,6 +41,21 @@ const VOICES = {
   zubenelgenubi: { name: "yue-HK-Chirp3-HD-Zubenelgenubi", gender: "male", style: "Casual" },
   achird: { name: "yue-HK-Chirp3-HD-Achird", gender: "male", style: "Friendly" },
 } as const satisfies Record<string, GoogleTTSVoice>;
+
+// Curated subset of VOICES surfaced in the voice pickers (onboarding /
+// profile), with friendly English names. Display order is UI order. The
+// `keyof typeof VOICES` intersection makes an unknown key a compile error;
+// scripts/generate-voice-previews.mjs mirrors these keys for static previews.
+const DISPLAY_VOICES = [
+  // Female
+  { key: "zephyr",       label: "Jamie", gender: "female", style: "Bright",      description: "Bright, clear, natural" },
+  { key: "aoede",        label: "Sarah", gender: "female", style: "Breezy",      description: "Light, breezy, warm" },
+  { key: "vindemiatrix", label: "Lucy",  gender: "female", style: "Gentle",      description: "Mature, refined, composed" },
+  // Male
+  { key: "puck",   label: "Tom",   gender: "male", style: "Upbeat",      description: "Lively, fun, upbeat" },
+  { key: "charon", label: "John",  gender: "male", style: "Informative", description: "Clear, calm, informative" },
+  { key: "fenrir", label: "Harry", gender: "male", style: "Excitable",   description: "Mature, bold, expressive" },
+] as const satisfies ReadonlyArray<DisplayVoice & { key: keyof typeof VOICES }>;
 
 const LEGACY_VOICE_MAP = {
   "21m00Tcm4TlvDq8ikWAM": "zephyr",
@@ -122,10 +137,6 @@ const PARTICLE_GROUPS: string[][] = [
   ["喺", "系", "係"],
 ];
 
-// TODO(multi-language): dialect-specific identifiers elsewhere in the codebase
-// (`cantoneseText`, `transcribeCantonese`, `scoreCantoneseAccuracy`) should be
-// renamed to language-neutral names, but `cantoneseText` is a persisted field —
-// the rename needs a stored-data migration and is explicitly out of scope here.
 export const CANTONESE_PACK = {
   code: "yue-HK",
   label: DIALECT_LABEL,
@@ -133,6 +144,7 @@ export const CANTONESE_PACK = {
   tts: {
     languageCode: "yue-HK",
     voices: VOICES,
+    displayVoices: DISPLAY_VOICES,
     defaultVoice: "zephyr" as const,
     legacyVoiceMap: LEGACY_VOICE_MAP,
   },

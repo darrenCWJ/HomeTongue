@@ -15,7 +15,7 @@ export function useBubbleLongPress(onLongPress: (msg: Message, preText: string) 
   const handleBubblePointerDown = (e: React.PointerEvent, msg: Message) => {
     longPressStartPosRef.current = { x: e.clientX, y: e.clientY };
     longPressTimerRef.current = setTimeout(() => {
-      const preText = msg.sender === "bot" ? msg.text : (msg.cantoneseText ?? "");
+      const preText = msg.sender === "bot" ? msg.text : (msg.dialectText ?? "");
       if (!preText) return;
       onLongPress(msg, preText);
       longPressTimerRef.current = null;

@@ -164,7 +164,7 @@ export function isPromptHallucination(text: string, prompt: string): boolean {
   return matches / (textCJK.length - 1) > 0.6;
 }
 
-export async function transcribeCantonese(blob: Blob): Promise<string> {
+export async function transcribeDialect(blob: Blob): Promise<string> {
   const pack = getActiveLanguagePack();
   const result = await transcribeAudio(blob, pack.stt.language, pack.stt.prompt);
   return isPromptHallucination(result, pack.stt.prompt) ? "" : result;
@@ -253,7 +253,7 @@ export function charMatchScore(expected: string, actual: string): number {
   return Math.round((matched / expectedChars.length) * 100);
 }
 
-export async function scoreCantoneseAccuracy(expected: string, actual: string): Promise<number> {
+export async function scoreDialectAccuracy(expected: string, actual: string): Promise<number> {
   const charCount = [...expected.replace(/[，。！？、；：""''（）\s]/g, "")].length;
   try {
     const raw = await chatCompletion(

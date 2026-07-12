@@ -187,7 +187,7 @@ export function BookmarksPage() {
     id: string;
     sender: string;
     text?: string;
-    cantoneseText?: string;
+    dialectText?: string;
     englishTranslation?: string;
     audioDataUrl?: string;
     audioDataUrls?: string[];
@@ -196,7 +196,7 @@ export function BookmarksPage() {
     if (existing) {
       toggleBookmark(msg.id);
     } else {
-      const dialectText = msg.sender === "bot" ? (msg.text ?? "") : (msg.cantoneseText ?? "");
+      const dialectText = msg.sender === "bot" ? (msg.text ?? "") : (msg.dialectText ?? "");
       const originalText = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
       if (!dialectText) return;
       const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);

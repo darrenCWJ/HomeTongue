@@ -7,6 +7,7 @@ import {
   CloudTagRepository,
   CloudUserRepository,
 } from "../repositories/cloud/CloudRepositories";
+import { CloudReviewStateRepository } from "../repositories/cloud/CloudReviewStateRepository";
 
 // One-way local → cloud import (Phase 3c): copies this device's IndexedDB
 // data into the signed-in user's Supabase account through the cloud
@@ -22,6 +23,7 @@ const isCloudImportConfigured: boolean = !!(
 
 export interface CloudImportCounts {
   phrases: number;
+  reviewStates: number;
   sessions: number;
   tags: number;
   conversationLessons: number;
@@ -39,7 +41,7 @@ function createDisabledImporter(): Importer {
 }
 
 function createCloudImporter(): Importer {
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 7;
 
   return async function importLocalDataToCloud(onProgress?: CloudImportProgress) {
     let completed = 0;
@@ -56,6 +58,20 @@ function createCloudImporter(): Importer {
       await phraseRepo.putMany(newPhrases);
     }
     report("phrases");
+
+    // Spaced-repetition schedules ride along with their phrases. A schedule
+    // whose phrase was never saved to the cloud is harmless by design
+    // (orphaned rows are allowed — see migration 0003), so no phrase-id
+    // filtering is needed beyond the same idempotency check as above.
+    const reviewStateRepo = new CloudReviewStateRepository();
+    const cloudReviewPhraseIds = new Set((await reviewStateRepo.getAll()).map((s) => s.phraseId));
+    const newReviewStates = (await db.reviewStates.toArray()).filter(
+      (s) => !cloudReviewPhraseIds.has(s.phraseId)
+    );
+    if (newReviewStates.length > 0) {
+      await reviewStateRepo.putMany(newReviewStates);
+    }
+    report("review schedules");
 
     const sessionRepo = new CloudConversationRepository();
     const cloudSessionIds = new Set((await sessionRepo.getAll()).map((s) => s.id));
@@ -102,6 +118,7 @@ function createCloudImporter(): Importer {
 
     return {
       phrases: newPhrases.length,
+      reviewStates: newReviewStates.length,
       sessions: newSessions.length,
       tags: newTags.length,
       conversationLessons: newLessons.length,

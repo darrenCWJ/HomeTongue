@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest";
-import type { ConversationLesson, LessonProgress, Phrase, PhraseReviewState, Session, Tag, UserProfile } from "../../types";
+import type {
+  ConversationLesson,
+  LessonProgress,
+  Phrase,
+  PhraseReviewState,
+  Session,
+  Tag,
+  UserProfile,
+} from "../../types";
 import {
   conversationLessonToRow,
   lessonProgressToRow,
@@ -15,6 +23,7 @@ import {
   rowToTag,
   sessionToRow,
   tagToRow,
+  type SessionRow,
 } from "./mapping";
 
 const USER_ID = "11111111-2222-3333-4444-555555555555";
@@ -81,7 +90,7 @@ describe("session mapping", () => {
           id: "m1",
           sender: "user",
           text: "How do I say hello?",
-          cantoneseText: "你好呀",
+          dialectText: "你好呀",
           pronunciation: "nei5 hou2 aa3",
           variants: {
             formal: { text: "您好", pronunciation: "nei5 hou2" },
@@ -94,7 +103,7 @@ describe("session mapping", () => {
           id: "m2",
           sender: "bot",
           text: "你好",
-          cantoneseText: "你好",
+          dialectText: "你好",
           pronunciation: "nei5 hou2",
           rating: "up",
         },
@@ -108,6 +117,48 @@ describe("session mapping", () => {
 
     // Assert
     expect(restored).toStrictEqual(session);
+  });
+
+  test("normalizes a legacy row's cantoneseText into dialectText and never writes it back", () => {
+    // Arrange — jsonb rows written before the dialect-neutral rename stored
+    // the dialect line under `cantoneseText`
+    const legacyRow: SessionRow = {
+      id: "bbbb1111-0000-0000-0000-000000000003",
+      user_id: USER_ID,
+      title: "Old cloud session",
+      date_display: "6/1/2026",
+      messages: [
+        {
+          id: "m1",
+          sender: "user",
+          text: "How do I say hello?",
+          cantoneseText: "你好呀",
+          pronunciation: "nei5 hou2 aa3",
+        },
+        { id: "m2", sender: "bot", text: "你好", englishTranslation: "Hello" },
+      ],
+      persona: "personal",
+      tags: null,
+      created_at: "2026-06-01T10:00:00.000Z",
+    };
+
+    // Act
+    const restored = rowToSession(legacyRow);
+    const rewritten = sessionToRow(restored, USER_ID);
+
+    // Assert — legacy field round-trips into dialectText...
+    expect(restored.messages[0].dialectText).toBe("你好呀");
+    expect(restored.messages[0]).not.toHaveProperty("cantoneseText");
+    // ...untouched messages survive structurally unchanged...
+    expect(restored.messages[1]).toStrictEqual({
+      id: "m2",
+      sender: "bot",
+      text: "你好",
+      englishTranslation: "Hello",
+    });
+    // ...and the write path never re-emits the legacy key.
+    expect(rewritten.messages[0]).not.toHaveProperty("cantoneseText");
+    expect(rewritten.messages[0].dialectText).toBe("你好呀");
   });
 
   test("round-trips a legacy session without optional fields", () => {

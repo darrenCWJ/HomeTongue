@@ -1,0 +1,221 @@
+import type { Lesson } from "../../types";
+
+// Ordering Food lessons — extracted from lessons.ts to stay under the 800-line file cap
+// (scripts/check-file-sizes.mjs). Aggregated in src/data/lessons.ts.
+export const FOOD_LESSONS: Lesson[] = [
+  {
+    id: "food-1",
+    categoryId: "food",
+    title: "Ordering at a Restaurant",
+    description: "Order food and ask for the bill",
+    difficulty: "beginner",
+    tags: ["food", "restaurant", "money"],
+    content: {
+      vocabulary: [
+        {
+          english: "I want this",
+          cantonese: "我要呢個",
+          pronunciation: "ngo5 jiu3 ni1 go3",
+          exampleSentence: "我要呢個同埋一杯水。",
+        },
+        {
+          english: "How much?",
+          cantonese: "幾多錢？",
+          pronunciation: "gei2 do1 cin2?",
+          exampleSentence: "呢個幾多錢？",
+        },
+        {
+          english: "Bill please",
+          cantonese: "埋單",
+          pronunciation: "maai4 daan1",
+          exampleSentence: "唔該，埋單！",
+        },
+        { english: "Delicious", cantonese: "好好食", pronunciation: "hou2 hou2 sik6" },
+        { english: "Water", cantonese: "水", pronunciation: "seoi2", exampleSentence: "唔該比杯水我。" },
+        { english: "No spice", cantonese: "唔辣", pronunciation: "m4 laat6" },
+        { english: "Spicy", cantonese: "辣", pronunciation: "laat6" },
+        { english: "Take away", cantonese: "打包", pronunciation: "daa2 baau1" },
+      ],
+      levels: [
+        {
+          level: 1,
+          title: "Order Essentials",
+          description: "The core phrases for ordering and paying",
+          exerciseType: "flashcard",
+          vocabulary: [
+            {
+              english: "I want this",
+              cantonese: "我要呢個",
+              pronunciation: "ngo5 jiu3 ni1 go3",
+              exampleSentence: "我要呢個同埋一杯水。",
+            },
+            {
+              english: "How much?",
+              cantonese: "幾多錢？",
+              pronunciation: "gei2 do1 cin2?",
+              exampleSentence: "呢個幾多錢？",
+            },
+            {
+              english: "Bill please",
+              cantonese: "埋單",
+              pronunciation: "maai4 daan1",
+              exampleSentence: "唔該，埋單！",
+            },
+            { english: "Delicious", cantonese: "好好食", pronunciation: "hou2 hou2 sik6" },
+          ],
+        },
+        {
+          level: 2,
+          title: "Drinks & Preferences",
+          description: "Ask for water, set the spice level, or take away",
+          exerciseType: "matching",
+          vocabulary: [
+            { english: "Water", cantonese: "水", pronunciation: "seoi2", exampleSentence: "唔該比杯水我。" },
+            { english: "No spice", cantonese: "唔辣", pronunciation: "m4 laat6" },
+            { english: "Spicy", cantonese: "辣", pronunciation: "laat6" },
+            { english: "Take away", cantonese: "打包", pronunciation: "daa2 baau1" },
+          ],
+        },
+        {
+          level: 3,
+          title: "Order It Right",
+          description: "Quiz yourself on all eight restaurant phrases",
+          exerciseType: "multiple-choice",
+          vocabulary: [
+            {
+              english: "I want this",
+              cantonese: "我要呢個",
+              pronunciation: "ngo5 jiu3 ni1 go3",
+              exampleSentence: "我要呢個同埋一杯水。",
+            },
+            {
+              english: "How much?",
+              cantonese: "幾多錢？",
+              pronunciation: "gei2 do1 cin2?",
+              exampleSentence: "呢個幾多錢？",
+            },
+            {
+              english: "Bill please",
+              cantonese: "埋單",
+              pronunciation: "maai4 daan1",
+              exampleSentence: "唔該，埋單！",
+            },
+            { english: "Delicious", cantonese: "好好食", pronunciation: "hou2 hou2 sik6" },
+            { english: "Water", cantonese: "水", pronunciation: "seoi2", exampleSentence: "唔該比杯水我。" },
+            { english: "No spice", cantonese: "唔辣", pronunciation: "m4 laat6" },
+            { english: "Spicy", cantonese: "辣", pronunciation: "laat6" },
+            { english: "Take away", cantonese: "打包", pronunciation: "daa2 baau1" },
+          ],
+        },
+        {
+          level: 4,
+          title: "At the Table",
+          description: "Complete real restaurant sentences",
+          exerciseType: "fill-blank",
+          vocabulary: [
+            {
+              english: "I want this",
+              cantonese: "我要呢個",
+              pronunciation: "ngo5 jiu3 ni1 go3",
+              exampleSentence: "___同埋一杯水。",
+            },
+            {
+              english: "How much?",
+              cantonese: "幾多錢？",
+              pronunciation: "gei2 do1 cin2?",
+              exampleSentence: "呢個___？",
+            },
+            {
+              english: "Bill please",
+              cantonese: "埋單",
+              pronunciation: "maai4 daan1",
+              exampleSentence: "唔該，___！",
+            },
+            { english: "Water", cantonese: "水", pronunciation: "seoi2", exampleSentence: "唔該比杯___我。" },
+            { english: "Delicious", cantonese: "好好食", pronunciation: "hou2 hou2 sik6" },
+            { english: "No spice", cantonese: "唔辣", pronunciation: "m4 laat6" },
+            { english: "Spicy", cantonese: "辣", pronunciation: "laat6" },
+            { english: "Take away", cantonese: "打包", pronunciation: "daa2 baau1" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "food-2",
+    categoryId: "food",
+    title: "Dim Sum & Local Food",
+    description: "Order classic HK dishes",
+    difficulty: "intermediate",
+    tags: ["food", "dim sum", "local"],
+    content: {
+      vocabulary: [
+        { english: "Dim sum", cantonese: "點心", pronunciation: "dim2 sam1" },
+        {
+          english: "Milk tea",
+          cantonese: "奶茶",
+          pronunciation: "naai5 caa4",
+          exampleSentence: "一杯凍奶茶，少甜。",
+        },
+        { english: "Pineapple bun", cantonese: "菠蘿包", pronunciation: "bo1 lo4 baau1" },
+        { english: "Wonton noodles", cantonese: "雲吞麵", pronunciation: "wan4 tan1 min6" },
+        { english: "Rice", cantonese: "飯", pronunciation: "faan6" },
+        { english: "Noodles", cantonese: "麵", pronunciation: "min6" },
+        { english: "Hot / Cold", cantonese: "熱 / 凍", pronunciation: "jit6 / dung3" },
+        { english: "Less sweet", cantonese: "少甜", pronunciation: "siu2 tim4" },
+      ],
+      levels: [
+        {
+          level: 1,
+          title: "Teahouse Classics",
+          description: "The dishes every Hongkonger knows by heart",
+          exerciseType: "flashcard",
+          vocabulary: [
+            { english: "Dim sum", cantonese: "點心", pronunciation: "dim2 sam1" },
+            {
+              english: "Milk tea",
+              cantonese: "奶茶",
+              pronunciation: "naai5 caa4",
+              exampleSentence: "一杯凍奶茶，少甜。",
+            },
+            { english: "Pineapple bun", cantonese: "菠蘿包", pronunciation: "bo1 lo4 baau1" },
+            { english: "Wonton noodles", cantonese: "雲吞麵", pronunciation: "wan4 tan1 min6" },
+          ],
+        },
+        {
+          level: 2,
+          title: "Rice, Noodles & More",
+          description: "Match the staples and how you like them served",
+          exerciseType: "matching",
+          vocabulary: [
+            { english: "Rice", cantonese: "飯", pronunciation: "faan6" },
+            { english: "Noodles", cantonese: "麵", pronunciation: "min6" },
+            { english: "Hot / Cold", cantonese: "熱 / 凍", pronunciation: "jit6 / dung3" },
+            { english: "Less sweet", cantonese: "少甜", pronunciation: "siu2 tim4" },
+          ],
+        },
+        {
+          level: 3,
+          title: "Order Like a Local",
+          description: "Quiz yourself on all the local favourites",
+          exerciseType: "multiple-choice",
+          vocabulary: [
+            { english: "Dim sum", cantonese: "點心", pronunciation: "dim2 sam1" },
+            {
+              english: "Milk tea",
+              cantonese: "奶茶",
+              pronunciation: "naai5 caa4",
+              exampleSentence: "一杯凍奶茶，少甜。",
+            },
+            { english: "Pineapple bun", cantonese: "菠蘿包", pronunciation: "bo1 lo4 baau1" },
+            { english: "Wonton noodles", cantonese: "雲吞麵", pronunciation: "wan4 tan1 min6" },
+            { english: "Rice", cantonese: "飯", pronunciation: "faan6" },
+            { english: "Noodles", cantonese: "麵", pronunciation: "min6" },
+            { english: "Hot / Cold", cantonese: "熱 / 凍", pronunciation: "jit6 / dung3" },
+            { english: "Less sweet", cantonese: "少甜", pronunciation: "siu2 tim4" },
+          ],
+        },
+      ],
+    },
+  },
+];

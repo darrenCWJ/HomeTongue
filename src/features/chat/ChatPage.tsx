@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/audio";
 import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import {
-  transcribeCantonese,
+  transcribeDialect,
   transcribeEnglish,
   translateCantoneseToEnglish,
 } from "../../services/translationService";
@@ -150,9 +150,9 @@ export function ChatPage() {
         .slice(-10)
         .map((p) => `${p.original} — ${p.dialect}`),
       likedReplies: messages
-        .filter((m) => m.rating === "up" && m.cantoneseText)
+        .filter((m) => m.rating === "up" && m.dialectText)
         .slice(-5)
-        .map((m) => m.cantoneseText as string),
+        .map((m) => m.dialectText as string),
     };
     getSuggestions(englishTranslation, messages, userProfile, personalization)
       .then((chips) => {
@@ -234,11 +234,8 @@ export function ChatPage() {
     try {
       const blob = await stopRecording();
       if (mode === "cantonese") {
-        const [cantoneseText, audioDataUrl] = await Promise.all([
-          transcribeCantonese(blob),
-          blobToDataUrl(blob),
-        ]);
-        if (!cantoneseText) {
+        const [dialectText, audioDataUrl] = await Promise.all([transcribeDialect(blob), blobToDataUrl(blob)]);
+        if (!dialectText) {
           toast.error("No speech detected. Please try again.");
           return;
         }
@@ -248,7 +245,7 @@ export function ChatPage() {
           Date.now() - lastRecordRef.current.timestamp < 60_000;
         if (isAppend) {
           const prev = lastRecordRef.current!;
-          const combinedText = `${prev.fullText} ${cantoneseText}`;
+          const combinedText = `${prev.fullText} ${dialectText}`;
           const accumulatedUrls = [...prev.audioDataUrls, audioDataUrl];
           const englishTranslation = await translateCantoneseToEnglish(combinedText);
           updateMessage(prev.msgId, {
@@ -278,13 +275,13 @@ export function ChatPage() {
           fetchSuggestions(englishTranslation, prevSuggestionMsgId);
           toast.info("Added to previous message");
         } else {
-          const englishTranslation = await translateCantoneseToEnglish(cantoneseText);
+          const englishTranslation = await translateCantoneseToEnglish(dialectText);
           // Message id and derived phrase id are deliberately the same value.
           const msgId = newId();
           addPhrase({
             id: msgId,
             original: englishTranslation,
-            dialect: cantoneseText,
+            dialect: dialectText,
             pronunciation: "",
             isBookmarked: false,
             context: "",
@@ -294,7 +291,7 @@ export function ChatPage() {
           addMessage({
             id: msgId,
             sender: "bot",
-            text: cantoneseText,
+            text: dialectText,
             englishTranslation,
             audioDataUrls: [audioDataUrl],
           });
@@ -303,7 +300,7 @@ export function ChatPage() {
             suggestionMsgId: null,
             mode: "cantonese",
             timestamp: Date.now(),
-            fullText: cantoneseText,
+            fullText: dialectText,
             audioDataUrls: [audioDataUrl],
           };
           fetchSuggestions(englishTranslation, null);
@@ -354,7 +351,7 @@ export function ChatPage() {
         id: phrase.id,
         sender: "user",
         text: finalText,
-        cantoneseText: phrase.dialect,
+        dialectText: phrase.dialect,
         pronunciation: phrase.pronunciation,
         audioDataUrl,
         variants,
@@ -388,7 +385,7 @@ export function ChatPage() {
     const msg = phraseSelectionMsg;
     const dialectText = phraseSelectionText.trim();
     const original = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
-    const originalDialect = msg.sender === "bot" ? msg.text : (msg.cantoneseText ?? "");
+    const originalDialect = msg.sender === "bot" ? msg.text : (msg.dialectText ?? "");
     const wasEdited = dialectText !== originalDialect.trim();
     const phraseId = newId();
 
@@ -455,7 +452,7 @@ export function ChatPage() {
         id: phrase.id,
         sender: "user",
         text: englishText,
-        cantoneseText: phrase.dialect,
+        dialectText: phrase.dialect,
         pronunciation: phrase.pronunciation,
         audioDataUrl,
         variants,
@@ -493,7 +490,7 @@ export function ChatPage() {
       const msg = messages.find((m) => m.id === id);
       // Cached audio was captured for the original text; a switched register
       // variant (different text) must fall through to fresh TTS instead.
-      const hasAudioForText = !!msg && text === (msg.cantoneseText ?? msg.text);
+      const hasAudioForText = !!msg && text === (msg.dialectText ?? msg.text);
       const urls = hasAudioForText ? (msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : [])) : [];
       if (urls.length > 0) {
         try {

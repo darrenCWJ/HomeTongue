@@ -121,7 +121,7 @@ export function OutgoingReplyBubble({
 }: OutgoingReplyBubbleProps) {
   const [selectedTone, setSelectedTone] = useState<Tone>(defaultTone);
   const displayedVariant = msg.variants?.[selectedTone];
-  const dialectText = displayedVariant?.text ?? msg.cantoneseText;
+  const dialectText = displayedVariant?.text ?? msg.dialectText;
   const pronunciationText = displayedVariant?.pronunciation ?? msg.pronunciation;
 
   return (
