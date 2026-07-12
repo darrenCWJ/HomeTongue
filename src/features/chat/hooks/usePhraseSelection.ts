@@ -1,0 +1,114 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import type { Message, Phrase, UserProfile } from "../../../types";
+import { playDataUrl } from "../../../hooks/audio";
+import { speakTextAndCapture } from "../../../hooks/useGoogleTTS";
+import { newId } from "../../../utils/id";
+import { useBubbleLongPress } from "./useBubbleLongPress";
+
+interface PhraseSelectionParams {
+  addPhrase: (phrase: Phrase) => void;
+  activeLanguageCode: string;
+  userProfile: UserProfile | null;
+}
+
+/**
+ * Long-press phrase selection and save: opens the phrase-save sheet with the
+ * pressed bubble's dialect text, tracks the edited selection + tag picks, and
+ * saves (replaying original audio for unedited text, fresh TTS for edits).
+ */
+export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile }: PhraseSelectionParams) {
+  const [phraseSelectionMsg, setPhraseSelectionMsg] = useState<Message | null>(null);
+  const [phraseSelectionText, setPhraseSelectionText] = useState("");
+  const [phraseTagSelection, setPhraseTagSelection] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [isCreatingPhraseTag, setIsCreatingPhraseTag] = useState(false);
+
+  const { handleBubblePointerDown, cancelBubbleLongPress, handleBubblePointerMove } = useBubbleLongPress(
+    (msg, preText) => {
+      setPhraseSelectionMsg(msg);
+      setPhraseSelectionText(preText);
+    }
+  );
+
+  const handleSaveSelectedPhrase = async () => {
+    if (!phraseSelectionMsg || !phraseSelectionText.trim()) return;
+    const msg = phraseSelectionMsg;
+    const dialectText = phraseSelectionText.trim();
+    const original = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
+    const originalDialect = msg.sender === "bot" ? msg.text : (msg.dialectText ?? "");
+    const wasEdited = dialectText !== originalDialect.trim();
+    const phraseId = newId();
+
+    try {
+      if (!wasEdited) {
+        const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
+        addPhrase({
+          id: phraseId,
+          original,
+          dialect: dialectText,
+          pronunciation: "",
+          isBookmarked: true,
+          context: "",
+          audioDataUrl: urls[0],
+          audioDataUrls: urls.length > 1 ? urls : undefined,
+          tags: phraseTagSelection,
+          languageCode: activeLanguageCode,
+        });
+        for (const url of urls) {
+          try {
+            await playDataUrl(url);
+          } catch {
+            /* skip failed clip */
+          }
+        }
+      } else {
+        const { audioDataUrl, play } = await speakTextAndCapture(dialectText, userProfile?.preferredVoiceId);
+        addPhrase({
+          id: phraseId,
+          original,
+          dialect: dialectText,
+          pronunciation: "",
+          isBookmarked: true,
+          context: "",
+          audioDataUrl,
+          tags: phraseTagSelection,
+          languageCode: activeLanguageCode,
+        });
+        await play();
+      }
+      toast.success("Phrase saved!");
+    } catch {
+      toast.error("Failed to save phrase.");
+    }
+
+    setPhraseSelectionMsg(null);
+    setPhraseSelectionText("");
+    setPhraseTagSelection([]);
+  };
+
+  const cancelPhraseSelection = () => {
+    setPhraseSelectionMsg(null);
+    setPhraseSelectionText("");
+    setPhraseTagSelection([]);
+    setNewTagInput("");
+    setIsCreatingPhraseTag(false);
+  };
+
+  return {
+    phraseSelectionMsg,
+    phraseSelectionText,
+    setPhraseSelectionText,
+    phraseTagSelection,
+    setPhraseTagSelection,
+    newTagInput,
+    setNewTagInput,
+    isCreatingPhraseTag,
+    setIsCreatingPhraseTag,
+    handleBubblePointerDown,
+    cancelBubbleLongPress,
+    handleBubblePointerMove,
+    handleSaveSelectedPhrase,
+    cancelPhraseSelection,
+  };
+}

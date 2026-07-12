@@ -1,17 +1,17 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import type { PersonaType, Session } from "../../types";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { useLibrary } from "../../app/context/LibraryProvider";
-import { playDataUrl } from "../../hooks/audio";
-import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
-import { extractVocabFromMessages } from "../../utils/vocab";
-import { newId } from "../../utils/id";
-import { DEFAULT_LANGUAGE_CODE, filterByLanguage } from "../../languages/scope";
+import { filterByLanguage } from "../../languages/scope";
 import { useActiveLanguageCode } from "../../hooks/useActiveLanguageCode";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
 import { useTour } from "../../app/components/tour/TourProvider";
+import { useUndoableDeletions } from "./hooks/useUndoableDeletions";
+import { useBookmarkPlayback } from "./hooks/useBookmarkPlayback";
+import { useBookmarkPhraseSelection } from "./hooks/useBookmarkPhraseSelection";
+import { useSessionLessonActions } from "./hooks/useSessionLessonActions";
 import { PhraseTagFilterBar } from "./components/PhraseTagFilterBar";
 import { SessionTagFilterBar } from "./components/SessionTagFilterBar";
 import { PhrasesTab } from "./components/PhrasesTab";
@@ -67,54 +67,47 @@ export function BookmarksPage() {
   const [openMenuSessionId, setOpenMenuSessionId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
-  const [pendingTagDeletions, setPendingTagDeletions] = useState<Set<string>>(new Set());
-  const [pendingMsgDeletions, setPendingMsgDeletions] = useState<Set<string>>(new Set());
-  const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const msgDeleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [deleteConfirmSessionId, setDeleteConfirmSessionId] = useState<string | null>(null);
 
-  const handleDeleteTag = useCallback(
-    (tagId: string) => {
-      setPendingTagDeletions((prev) => new Set([...prev, tagId]));
-      setSelectedTagFilters((prev) => {
-        const next = new Set(prev);
-        next.delete(tagId);
-        return next;
-      });
-      setSessionTagFilters((prev) => {
-        const next = new Set(prev);
-        next.delete(tagId);
-        return next;
-      });
+  const { pendingTagDeletions, pendingMsgDeletions, handleDeleteTag, handleDeleteMessage } =
+    useUndoableDeletions({
+      deleteTag,
+      deleteSessionMessage,
+      setSelectedTagFilters,
+      setSessionTagFilters,
+      setViewingSession,
+    });
 
-      const timer = setTimeout(() => {
-        deleteTag(tagId);
-        setPendingTagDeletions((prev) => {
-          const next = new Set(prev);
-          next.delete(tagId);
-          return next;
-        });
-        deleteTimers.current.delete(tagId);
-      }, 5000);
-      deleteTimers.current.set(tagId, timer);
+  const { playingId, handleSpeak, playMessage } = useBookmarkPlayback({ sessions, userProfile });
 
-      toast("Tag deleted", {
-        duration: 5000,
-        action: {
-          label: "Undo",
-          onClick: () => {
-            clearTimeout(deleteTimers.current.get(tagId));
-            deleteTimers.current.delete(tagId);
-            setPendingTagDeletions((prev) => {
-              const next = new Set(prev);
-              next.delete(tagId);
-              return next;
-            });
-          },
-        },
-      });
-    },
-    [deleteTag]
-  );
+  const {
+    phraseSelectionData,
+    phraseSelectionText,
+    setPhraseSelectionText,
+    handleSessionBookmark,
+    handleBubblePointerDown,
+    cancelBubbleLongPress,
+    handleBubblePointerMove,
+    handleSaveSelectedPhrase,
+    cancelPhraseSelection,
+  } = useBookmarkPhraseSelection({ phrases, addPhrase, toggleBookmark, activeLanguageCode });
+
+  const {
+    editingSessionId,
+    setEditingSessionId,
+    editingTitle,
+    setEditingTitle,
+    titleInputRef,
+    startEditing,
+    commitTitle,
+    pendingConvertSession,
+    setPendingConvertSession,
+    audioSourceType,
+    setAudioSourceType,
+    handleMakeLesson,
+    convertToLesson,
+  } = useSessionLessonActions({ renameSession, conversationLessons, saveConversationLesson });
 
   // All saved-content lists are scoped to the active language; a dialect
   // switch must never show mixed-language data (see src/languages/scope.ts).
@@ -128,233 +121,6 @@ export function BookmarksPage() {
     .filter((p) => selectedTagFilters.size === 0 || p.tags?.some((t) => selectedTagFilters.has(t)))
     .filter((p) => !searchLower || p.original.toLowerCase().includes(searchLower))
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
-
-  const [pendingConvertSession, setPendingConvertSession] = useState<Session | null>(null);
-  const [deleteConfirmSessionId, setDeleteConfirmSessionId] = useState<string | null>(null);
-  const [audioSourceType, setAudioSourceType] = useState<"recorded" | "transcribed">("recorded");
-  const [phraseSelectionData, setPhraseSelectionData] = useState<{
-    dialect: string;
-    original: string;
-  } | null>(null);
-  const [phraseSelectionText, setPhraseSelectionText] = useState("");
-  const titleInputRef = useRef<HTMLInputElement>(null);
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  const LONG_PRESS_MS = 500;
-  const LONG_PRESS_MOVE_THRESHOLD = 8;
-
-  const startEditing = (id: string, currentTitle: string) => {
-    setEditingSessionId(id);
-    setEditingTitle(currentTitle);
-    setTimeout(() => titleInputRef.current?.focus(), 50);
-  };
-
-  const commitTitle = (id: string) => {
-    const trimmed = editingTitle.trim();
-    if (trimmed) renameSession(id, trimmed);
-    setEditingSessionId(null);
-  };
-
-  const handleMakeLesson = (session: Session) => {
-    const alreadyExists = conversationLessons.some((l) => l.sessionId === session.id);
-    if (alreadyExists) {
-      toast.info("This conversation is already a lesson.");
-      return;
-    }
-    if ((session.persona ?? "personal") === "personal") {
-      setAudioSourceType("recorded");
-      setPendingConvertSession(session);
-    } else {
-      convertToLesson(session, "transcribed");
-    }
-  };
-
-  const convertToLesson = (session: Session, audioSource: "recorded" | "transcribed") => {
-    const vocab = extractVocabFromMessages(session.messages, audioSource);
-    if (vocab.length === 0) {
-      toast.error("No vocabulary found in this conversation.");
-      return;
-    }
-    saveConversationLesson({
-      id: session.id,
-      sessionId: session.id,
-      title: session.title ?? "Conversation",
-      createdAt: new Date().toISOString(),
-      vocabulary: vocab,
-      examCompleted: false,
-      examAttempts: 0,
-      // A lesson derives from its source session, so it inherits the
-      // session's language rather than whatever pack is active right now.
-      languageCode: session.languageCode ?? DEFAULT_LANGUAGE_CODE,
-    });
-    setPendingConvertSession(null);
-    toast.success("Added to Learn!");
-  };
-
-  const handleSessionBookmark = (msg: {
-    id: string;
-    sender: string;
-    text?: string;
-    dialectText?: string;
-    englishTranslation?: string;
-    audioDataUrl?: string;
-    audioDataUrls?: string[];
-  }) => {
-    const existing = phrases.find((p) => p.id === msg.id);
-    if (existing) {
-      toggleBookmark(msg.id);
-    } else {
-      const dialectText = msg.sender === "bot" ? (msg.text ?? "") : (msg.dialectText ?? "");
-      const originalText = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
-      if (!dialectText) return;
-      const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
-      addPhrase({
-        id: msg.id,
-        original: originalText,
-        dialect: dialectText,
-        pronunciation: "",
-        isBookmarked: true,
-        context: "",
-        audioDataUrl: urls[0],
-        audioDataUrls: urls.length > 1 ? urls : undefined,
-        languageCode: activeLanguageCode,
-      });
-    }
-  };
-
-  const handleBubblePointerDown = (e: React.PointerEvent, dialectText: string, originalText: string) => {
-    if (!dialectText) return;
-    longPressStartPosRef.current = { x: e.clientX, y: e.clientY };
-    longPressTimerRef.current = setTimeout(() => {
-      setPhraseSelectionData({ dialect: dialectText, original: originalText });
-      setPhraseSelectionText(dialectText);
-      longPressTimerRef.current = null;
-    }, LONG_PRESS_MS);
-  };
-
-  const cancelBubbleLongPress = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    longPressStartPosRef.current = null;
-  };
-
-  const handleBubblePointerMove = (e: React.PointerEvent) => {
-    if (!longPressStartPosRef.current || !longPressTimerRef.current) return;
-    const dx = Math.abs(e.clientX - longPressStartPosRef.current.x);
-    const dy = Math.abs(e.clientY - longPressStartPosRef.current.y);
-    if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) {
-      cancelBubbleLongPress();
-    }
-  };
-
-  const handleSaveSelectedPhrase = () => {
-    if (!phraseSelectionData || !phraseSelectionText.trim()) return;
-    addPhrase({
-      id: newId(),
-      original: phraseSelectionData.original,
-      dialect: phraseSelectionText.trim(),
-      pronunciation: "",
-      isBookmarked: true,
-      context: "",
-      languageCode: activeLanguageCode,
-    });
-    setPhraseSelectionData(null);
-    setPhraseSelectionText("");
-    toast.success("Phrase saved to bookmarks!");
-  };
-
-  const handleSpeak = async (
-    phraseId: string,
-    text: string,
-    audioDataUrl?: string,
-    audioDataUrls?: string[]
-  ) => {
-    if (playingId) return;
-    setPlayingId(phraseId);
-    try {
-      let urls = audioDataUrls ?? [];
-      if (urls.length === 0) {
-        const msg = sessions.flatMap((s) => s.messages).find((m) => m.id === phraseId);
-        urls = msg?.audioDataUrls ?? (msg?.audioDataUrl ? [msg.audioDataUrl] : []);
-      }
-      if (urls.length === 0 && audioDataUrl) {
-        urls = [audioDataUrl];
-      }
-      if (urls.length > 0) {
-        for (const url of urls) {
-          await playDataUrl(url);
-        }
-      } else {
-        await speakText(text, userProfile?.preferredVoiceId);
-      }
-    } catch {
-      toast.error("Audio playback failed. Check your connection.");
-    } finally {
-      setPlayingId(null);
-    }
-  };
-
-  const playMessage = async (
-    msgId: string,
-    audioDataUrl?: string,
-    audioDataUrls?: string[],
-    fallbackText?: string
-  ) => {
-    if (playingId) return;
-    setPlayingId(msgId);
-    try {
-      const urls = audioDataUrls ?? (audioDataUrl ? [audioDataUrl] : []);
-      if (urls.length > 0) {
-        for (const url of urls) {
-          await playDataUrl(url);
-        }
-      } else if (fallbackText) {
-        await speakText(fallbackText, userProfile?.preferredVoiceId);
-      }
-    } catch {
-      toast.error("Audio playback failed.");
-    } finally {
-      setPlayingId(null);
-    }
-  };
-
-  const handleDeleteMessage = (sessionId: string, msgId: string) => {
-    setPendingMsgDeletions((prev) => new Set([...prev, msgId]));
-    const timer = setTimeout(() => {
-      deleteSessionMessage(sessionId, msgId);
-      setViewingSession((prev) =>
-        prev ? { ...prev, messages: prev.messages.filter((m) => m.id !== msgId) } : null
-      );
-      setPendingMsgDeletions((prev) => {
-        const next = new Set(prev);
-        next.delete(msgId);
-        return next;
-      });
-      msgDeleteTimers.current.delete(msgId);
-    }, 4000);
-    msgDeleteTimers.current.set(msgId, timer);
-    toast("Message deleted", {
-      duration: 4000,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          clearTimeout(msgDeleteTimers.current.get(msgId));
-          msgDeleteTimers.current.delete(msgId);
-          setPendingMsgDeletions((prev) => {
-            const next = new Set(prev);
-            next.delete(msgId);
-            return next;
-          });
-        },
-      },
-    });
-  };
 
   return (
     <div className="flex flex-col h-full bg-background relative">
@@ -507,10 +273,7 @@ export function BookmarksPage() {
         phraseSelectionText={phraseSelectionText}
         setPhraseSelectionText={setPhraseSelectionText}
         onSave={handleSaveSelectedPhrase}
-        onCancel={() => {
-          setPhraseSelectionData(null);
-          setPhraseSelectionText("");
-        }}
+        onCancel={cancelPhraseSelection}
       />
 
       {/* Full-screen conversation view */}
