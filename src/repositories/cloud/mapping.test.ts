@@ -23,6 +23,7 @@ import {
   rowToTag,
   sessionToRow,
   tagToRow,
+  type ConversationLessonRow,
   type SessionRow,
 } from "./mapping";
 
@@ -394,8 +395,8 @@ describe("conversation lesson mapping", () => {
       vocabulary: [
         {
           english: "shrimp dumpling",
-          cantonese: "蝦餃",
-          pronunciation: "haa1 gaau2",
+          dialect: "蝦餃",
+          romanization: "haa1 gaau2",
           exampleSentence: "我想食蝦餃",
           breakdown: [{ characters: "蝦", pronunciation: "haa1", meaning: "shrimp" }],
         },
@@ -415,6 +416,54 @@ describe("conversation lesson mapping", () => {
     // Assert
     expect(row.language_code).toBe("yue-HK");
     expect(restored).toStrictEqual(lesson);
+  });
+
+  test("normalizes legacy vocabulary keys (cantonese/pronunciation) and never writes them back", () => {
+    // Arrange — jsonb rows written before the dialect-neutral VocabItem
+    // rename stored the dialect text under `cantonese` and its romanization
+    // under `pronunciation`
+    const legacyRow: ConversationLessonRow = {
+      id: "cccc1111-0000-0000-0000-000000000003",
+      user_id: USER_ID,
+      session_id: "bbbb1111-0000-0000-0000-000000000003",
+      title: "Old cloud lesson",
+      vocabulary: [
+        {
+          english: "shrimp dumpling",
+          cantonese: "蝦餃",
+          pronunciation: "haa1 gaau2",
+          exampleSentence: "我想食蝦餃",
+          breakdown: [{ characters: "蝦", pronunciation: "haa1", meaning: "shrimp" }],
+        },
+        { english: "tea", dialect: "茶", romanization: "caa4" },
+      ],
+      exam_best_score: null,
+      exam_completed: false,
+      exam_attempts: 0,
+      persona: null,
+      current_phase: null,
+      created_at: "2026-06-01T10:00:00.000Z",
+      language_code: null,
+    };
+
+    // Act
+    const restored = rowToConversationLesson(legacyRow);
+    const rewritten = conversationLessonToRow(restored, USER_ID);
+
+    // Assert — legacy fields round-trip into the new names...
+    expect(restored.vocabulary[0].dialect).toBe("蝦餃");
+    expect(restored.vocabulary[0].romanization).toBe("haa1 gaau2");
+    expect(restored.vocabulary[0]).not.toHaveProperty("cantonese");
+    expect(restored.vocabulary[0]).not.toHaveProperty("pronunciation");
+    // ...WordChunk breakdowns keep their own `pronunciation` field...
+    expect(restored.vocabulary[0].breakdown?.[0].pronunciation).toBe("haa1");
+    // ...already-migrated items survive structurally unchanged...
+    expect(restored.vocabulary[1]).toStrictEqual({ english: "tea", dialect: "茶", romanization: "caa4" });
+    // ...and the write path never re-emits the legacy keys.
+    expect(rewritten.vocabulary[0]).not.toHaveProperty("cantonese");
+    expect(rewritten.vocabulary[0]).not.toHaveProperty("pronunciation");
+    expect(rewritten.vocabulary[0].dialect).toBe("蝦餃");
+    expect(rewritten.vocabulary[0].romanization).toBe("haa1 gaau2");
   });
 
   test("round-trips a lesson with optional fields absent", () => {

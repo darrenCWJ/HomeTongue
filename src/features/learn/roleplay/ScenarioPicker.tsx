@@ -1,13 +1,16 @@
 import { ArrowLeft, ChevronRight, Target } from "lucide-react";
 import { motion } from "motion/react";
-import { ROLEPLAY_SCENARIOS, type RoleplayScenario } from "../../../services/roleplayService";
+import { getRoleplayScenarios, type RoleplayScenario } from "../../../services/roleplayService";
 
 interface ScenarioPickerProps {
+  /** Active language code — scenarios come from this pack's roleplay registry entry. */
+  languageCode: string;
   onBack: () => void;
   onSelect: (scenario: RoleplayScenario) => void;
 }
 
-export function ScenarioPicker({ onBack, onSelect }: ScenarioPickerProps) {
+export function ScenarioPicker({ languageCode, onBack, onSelect }: ScenarioPickerProps) {
+  const scenarios = getRoleplayScenarios(languageCode);
   return (
     <motion.div
       initial={{ x: "100%", opacity: 0 }}
@@ -30,7 +33,7 @@ export function ScenarioPicker({ onBack, onSelect }: ScenarioPickerProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-none pb-nav">
-        {ROLEPLAY_SCENARIOS.map((scenario) => (
+        {scenarios.map((scenario) => (
           <button
             key={scenario.id}
             onClick={() => onSelect(scenario)}

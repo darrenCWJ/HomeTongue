@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles/base.css";
 import "./styles/components.css";
 import "./styles/dashboard.css";
+import "./styles/content.css";
 
 const container = document.getElementById("root");
 if (!container) {

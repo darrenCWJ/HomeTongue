@@ -40,3 +40,5 @@ Produces `speech_samples.jsonl` + `corrections.jsonl` with user ids replaced by 
 1. **STT**: Whisper (or gpt-4o-transcribe-class distillation) LoRA fine-tune on `expected_text`/audio pairs, evaluated against the held-out exam scores.
 2. **Translation/reply quality**: SLM (e.g. Qwen-class) fine-tuned on correction pairs and rated suggestions.
 3. **Serving**: swap models behind the existing `/api/chat` + `/api/transcribe` contracts — the client never changes.
+
+The run scaffolding for these steps lives in [`ml/train/`](../ml/train/README.md): dataset preparation (tested against checked-in fixtures), Whisper-LoRA and SLM SFT/DPO training scripts with `--dry-run` plumbing checks, an STT serving stub matching the `transcribeCore` contract, and the pronunciation-scorer design. Note the corpus currently has **zero samples** — the training scripts are documented scaffolds that cannot run against real data yet; `ml/train/README.md` lists the per-step data gates, costs, and the export → prepare → train → eval-gate → env-flip sequence (companion plan: `docs/ML_TRAINING_PLAN.md`).

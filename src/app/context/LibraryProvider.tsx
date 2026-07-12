@@ -8,10 +8,11 @@ import {
   useRef,
   ReactNode,
 } from "react";
-import { repositories, isCloudStorageMode } from "../../repositories";
+import { repositories, isCloudStorageMode, setCloudWriteHold } from "../../repositories";
 import type { Phrase, Session, LessonProgress, ConversationLesson, Tag, TagType } from "../../types";
 import { newId } from "../../utils/id";
 import { useAuth } from "./AuthProvider";
+import { useSyncToasts } from "../../lib/useSyncToasts";
 
 interface LibraryContextType {
   phrases: Phrase[];
@@ -50,13 +51,19 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
   const [tags, setTags] = useState<Tag[]>([]);
 
-  // Set when the initial load rejects. While true, mutations keep updating the
-  // in-memory state (so the UI stays usable) but are NOT persisted — writing
-  // from an empty/partial in-memory state could overwrite real stored data,
-  // which is catastrophic in cloud mode. A ref (not state) so the stable
-  // `persist` callback can read the latest value without re-creating every
-  // mutation callback on load-status changes.
+  // Set when the initial load rejects. While true, mutations keep updating
+  // the in-memory state (UI stays usable) but never reach the backing store
+  // directly — an unhydrated state must not overwrite real stored data.
+  // Guard ownership: in LOCAL mode this guard owns everything (writes are
+  // skipped, memory-only, as before). In CLOUD mode it only decides WHEN
+  // writes may hit the network; the outbox (src/repositories/outbox/) owns
+  // durability — load failure puts it in hold mode so writes queue locally,
+  // and a later successful load clears the hold and flushes the queue.
+  // A ref (not state) so the stable `persist` callback reads the latest value.
   const loadFailedRef = useRef(false);
+
+  // Surface outbox events (queued / synced / dropped) as toasts.
+  useSyncToasts();
 
   // In cloud storage mode the initial load must re-run when the auth session
   // changes (data is per-user); in local mode this stays a constant 0 so the
@@ -74,6 +81,8 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
     ])
       .then(([p, s, lp, cl, t]) => {
         loadFailedRef.current = false;
+        // Hydrated: cloud writes may flow again; held writes flush now.
+        setCloudWriteHold(false);
         setPhrases(p);
         setSessions(s);
         setLessonProgress(lp);
@@ -82,17 +91,22 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       })
       .catch((err) => {
         loadFailedRef.current = true;
-        console.error("[library] initial load failed — persistence disabled to protect stored data:", err);
+        // Cloud: capture writes durably in the outbox instead (no-op locally).
+        setCloudWriteHold(true);
+        console.error(
+          "[library] initial load failed — direct persistence disabled to protect stored data:",
+          err
+        );
       });
   }, [reloadEpoch]);
 
   /**
-   * Run a single repository write with error handling. Skipped entirely when
-   * the initial load failed, so an unhydrated session can never clobber real
-   * local or cloud data.
+   * Run a single repository write with error handling. After a failed load:
+   * local mode skips the write entirely; cloud mode still runs it because the
+   * outbox is in hold mode and queues it locally (see loadFailedRef above).
    */
   const persist = useCallback((op: string, write: () => Promise<unknown>) => {
-    if (loadFailedRef.current) {
+    if (loadFailedRef.current && !isCloudStorageMode) {
       console.error(`[library] ${op} not persisted: initial load failed; change kept in memory only`);
       return;
     }

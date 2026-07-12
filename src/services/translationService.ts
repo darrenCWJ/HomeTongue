@@ -249,7 +249,32 @@ export function charMatchScore(expected: string, actual: string): number {
   return getLanguagePack("yue-HK").scoring.fallbackMatch(expected, actual);
 }
 
-export async function scoreDialectAccuracy(expected: string, actual: string): Promise<number> {
+/** How a dialect-accuracy score was produced. */
+export type ScoreMethod = "llm" | "fallback";
+
+export interface DialectAccuracyResult {
+  /** 0–100 word-accuracy score. */
+  score: number;
+  /**
+   * "llm" = the grading rubric scored the transcript; "fallback" = the LLM
+   * call failed (or returned junk) and the pack's offline character/token
+   * matcher scored it instead — treat as approximate.
+   */
+  method: ScoreMethod;
+}
+
+/**
+ * Score how closely the TRANSCRIBED WORDS match the expected phrase.
+ *
+ * Honesty note: this measures word accuracy of the STT transcript, not
+ * pronunciation — the transcription model auto-corrects tones, so tone
+ * mistakes are invisible here. UI surfacing this score should label it
+ * "word accuracy" (see ExamView / WordMatchBadge).
+ */
+export async function scoreDialectAccuracyDetailed(
+  expected: string,
+  actual: string
+): Promise<DialectAccuracyResult> {
   const pack = getActiveLanguagePack();
   const charCount = [...expected.replace(/[，。！？、；：""''（）\s]/g, "")].length;
   try {
@@ -261,12 +286,23 @@ export async function scoreDialectAccuracy(expected: string, actual: string): Pr
       { temperature: 0, max_tokens: 20 }
     );
     const parsed = parseModelJson<{ score?: number }>(raw);
-    return typeof parsed.score === "number"
-      ? Math.min(100, Math.max(0, Math.round(parsed.score)))
-      : pack.scoring.fallbackMatch(expected, actual);
+    if (typeof parsed.score === "number") {
+      return { score: Math.min(100, Math.max(0, Math.round(parsed.score))), method: "llm" };
+    }
+    return { score: pack.scoring.fallbackMatch(expected, actual), method: "fallback" };
   } catch {
-    return pack.scoring.fallbackMatch(expected, actual);
+    return { score: pack.scoring.fallbackMatch(expected, actual), method: "fallback" };
   }
+}
+
+/**
+ * Backward-compatible score-only wrapper around scoreDialectAccuracyDetailed.
+ * Prefer the detailed variant in new code so the UI can disclose when the
+ * approximate offline fallback produced the number.
+ */
+export async function scoreDialectAccuracy(expected: string, actual: string): Promise<number> {
+  const { score } = await scoreDialectAccuracyDetailed(expected, actual);
+  return score;
 }
 
 export async function getExampleMeta(

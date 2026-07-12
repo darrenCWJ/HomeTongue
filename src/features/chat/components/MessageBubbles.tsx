@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { Bookmark, RotateCcw, ThumbsDown, ThumbsUp, Volume2 } from "lucide-react";
 import { motion } from "motion/react";
 import type { Message, Tone, TranslationVariant } from "../../../types";
+import { useActiveLanguagePack } from "../../../hooks/useActiveLanguageCode";
 import { RegisterChips } from "./RegisterChips";
+import { SlowReplayChip } from "./SlowReplayChip";
+import { WordMatchBadge } from "./WordMatchBadge";
 
 export interface BubblePointerHandlers {
   onBubblePointerDown: (e: React.PointerEvent, msg: Message) => void;
@@ -20,6 +23,8 @@ interface IncomingCantoneseBubbleProps extends BubblePointerHandlers {
   ttsEnabled: boolean;
   onToggleBookmark: (id: string) => void;
   onReplay: (id: string, text: string) => void;
+  /** Slow (0.7x) replay — always fresh TTS, never the cached clip. */
+  onReplaySlow: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
 }
 
@@ -32,11 +37,15 @@ export function IncomingCantoneseBubble({
   ttsEnabled,
   onToggleBookmark,
   onReplay,
+  onReplaySlow,
   onUpdateMessage,
   onBubblePointerDown,
   onBubblePointerMove,
   onBubblePointerCancel,
 }: IncomingCantoneseBubbleProps) {
+  // Reactive glyph: hardcoding one pack's character would be wrong after a
+  // dialect switch (e.g. Hokkien sessions showing 粵).
+  const { character } = useActiveLanguagePack();
   return (
     <motion.div
       initial={{ opacity: 0, x: -12 }}
@@ -44,7 +53,7 @@ export function IncomingCantoneseBubble({
       className="flex items-end gap-2 justify-start"
     >
       <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-red">
-        粵
+        {character}
       </div>
       <div className="flex flex-col max-w-[78%]">
         <div
@@ -66,8 +75,9 @@ export function IncomingCantoneseBubble({
           </button>
           <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">{msg.text}</p>
           <p className="text-xs text-brand-blue mt-1 font-medium">{msg.englishTranslation}</p>
+          {msg.matchScore && <WordMatchBadge matchScore={msg.matchScore} />}
           {ttsEnabled && (
-            <div className="mt-2 pt-2 border-t border-zinc-100">
+            <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center gap-2">
               <button
                 {...(isFirstBotMsg ? { "data-tour": "chat-replay-button" } : {})}
                 onClick={() => onReplay(msg.id, msg.text)}
@@ -78,6 +88,11 @@ export function IncomingCantoneseBubble({
                 {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
                 {isPlaying ? "Playing..." : "Replay"}
               </button>
+              <SlowReplayChip
+                disabled={!!playingId}
+                variant="light"
+                onPlay={() => onReplaySlow(msg.id, msg.text)}
+              />
             </div>
           )}
         </div>
@@ -110,6 +125,8 @@ interface OutgoingReplyBubbleProps extends BubblePointerHandlers {
   ttsEnabled: boolean;
   onToggleBookmark: (id: string, displayedVariant?: TranslationVariant) => void;
   onReplay: (id: string, text: string) => void;
+  /** Slow (0.7x) replay — always fresh TTS, never the cached clip. */
+  onReplaySlow: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
 }
 
@@ -122,6 +139,7 @@ export function OutgoingReplyBubble({
   ttsEnabled,
   onToggleBookmark,
   onReplay,
+  onReplaySlow,
   onUpdateMessage,
   onBubblePointerDown,
   onBubblePointerMove,
@@ -159,7 +177,7 @@ export function OutgoingReplyBubble({
           {pronunciationText && <p className="text-white/50 text-xs font-mono mt-0.5">{pronunciationText}</p>}
           {msg.variants && <RegisterChips selected={selectedTone} onSelect={setSelectedTone} />}
           {ttsEnabled && (
-            <div className="mt-2 pt-2 border-t border-white/20">
+            <div className="mt-2 pt-2 border-t border-white/20 flex items-center gap-2">
               <button
                 onClick={() => dialectText && onReplay(msg.id, dialectText)}
                 onPointerDown={(e) => e.stopPropagation()}
@@ -169,6 +187,11 @@ export function OutgoingReplyBubble({
                 {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
                 {isPlaying ? "Playing..." : "Replay"}
               </button>
+              <SlowReplayChip
+                disabled={!!playingId}
+                variant="dark"
+                onPlay={() => dialectText && onReplaySlow(msg.id, dialectText)}
+              />
             </div>
           )}
         </div>

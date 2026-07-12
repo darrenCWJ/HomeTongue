@@ -2,7 +2,8 @@ import { ChevronRight, ArrowLeft, CheckCircle, Star } from "lucide-react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
 import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion } from "motion/react";
-import { getLessonContent, getLessonLevels } from "../../../data/lessons";
+import { getLessonLevels } from "../../../data/lessons";
+import { useLessonContent } from "../../../hooks/useLessonContent";
 import { resolveLanguagePackByLabel } from "../../../languages";
 import type { Lesson, LessonLevel } from "../../../types";
 
@@ -96,8 +97,9 @@ export function RoadmapView({
   const { lessonProgress } = useLibrary();
   const { dialect } = useProfile();
   // Derived from the profile dialect so a language switch re-renders with the
-  // right curriculum in the same pass (see LearnPage for the full rationale).
-  const { lessons } = getLessonContent(resolveLanguagePackByLabel(dialect).code);
+  // right curriculum in the same pass (see LearnPage for the full rationale);
+  // reactive to DB-published content via useLessonContent.
+  const { lessons } = useLessonContent(resolveLanguagePackByLabel(dialect).code);
   const lessonEntries: LessonEntry[] = lessons
     .filter((l) => l.categoryId === categoryId)
     .map((lesson) => ({ lesson, levels: getLessonLevels(lesson) }))

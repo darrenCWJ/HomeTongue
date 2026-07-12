@@ -203,7 +203,7 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
             </span>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-3xl font-bold text-white text-center">{card.phrase.dialect}</span>
-              <PlayButton text={card.phrase.dialect} audioDataUrl={card.phrase.audioDataUrl} />
+              <PlayButton text={card.phrase.dialect} audioDataUrl={card.phrase.audioDataUrl} withSlow />
             </div>
             <span className="text-base text-white/70 font-mono">{card.phrase.pronunciation}</span>
           </div>

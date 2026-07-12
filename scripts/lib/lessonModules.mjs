@@ -208,8 +208,8 @@ function serializeLevel(level, indent) {
 function serializeVocabItem(item, indent) {
   const pairs = [
     ["english", q(item.english)],
-    ["cantonese", q(item.cantonese)],
-    ["pronunciation", q(item.pronunciation)],
+    ["dialect", q(item.dialect)],
+    ["romanization", q(item.romanization)],
   ];
   if (item.exampleSentence !== undefined) pairs.push(["exampleSentence", q(item.exampleSentence)]);
   return objectLines(pairs, indent);
@@ -221,8 +221,8 @@ function serializeTurn(turn, indent) {
   const lines = [`${indent}{`];
   lines.push(`${inner}speaker: ${q(turn.speaker)},`);
   lines.push(`${inner}english: ${q(turn.english)},`);
-  lines.push(`${inner}cantonese: ${q(turn.cantonese)},`);
-  lines.push(`${inner}pronunciation: ${q(turn.pronunciation)},`);
+  lines.push(`${inner}dialect: ${q(turn.dialect)},`);
+  lines.push(`${inner}romanization: ${q(turn.romanization)},`);
   if (turn.hint !== undefined) lines.push(`${inner}hint: ${q(turn.hint)},`);
   lines.push(`${indent}},`);
   return lines.join("\n");

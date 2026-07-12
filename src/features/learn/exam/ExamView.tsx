@@ -4,14 +4,25 @@ import { useAudioRecorder } from "../../../hooks/audio";
 import {
   transcribeDialect,
   transcribeAnyLanguage,
-  scoreDialectAccuracy,
+  scoreDialectAccuracyDetailed,
+  type ScoreMethod,
 } from "../../../services/translationService";
 import { recordSpeechSample, consentFromProfile } from "../../../services/speechSampleService";
 import { useProfile } from "../../../app/context/ProfileProvider";
+import { useActiveCapabilities, useActiveLanguagePack } from "../../../hooks/useActiveLanguageCode";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import type { ConversationLesson } from "../../../types";
 import { PlayButtonDark } from "../shared";
+import { TranscriptDiff } from "./TranscriptDiff";
+
+// Honest framing shared by the per-item card and the final screen: the score
+// measures transcribed WORD accuracy (the STT model auto-corrects tones).
+const WORD_ACCURACY_EXPLAINER = "Measures whether you said the right words — tone coaching is coming.";
+
+function FallbackHint() {
+  return <p className="text-[10px] text-zinc-400 italic">Approximate — offline scoring</p>;
+}
 
 // ─── ExamView ─────────────────────────────────────────────────────────────────
 
@@ -30,10 +41,17 @@ export function ExamView({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [itemScore, setItemScore] = useState<number | null>(null);
+  const [itemMethod, setItemMethod] = useState<ScoreMethod | null>(null);
+  const [usedFallback, setUsedFallback] = useState(false);
   const [transcribed, setTranscribed] = useState<string | null>(null);
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const { userProfile } = useProfile();
+  // Reactive capability gate: packs without a usable STT model (e.g. a
+  // Hokkien session converted to a conversation lesson) cannot take a
+  // voice-scored exam — hide the mic and explain instead of a broken flow.
+  const { stt: sttEnabled } = useActiveCapabilities();
+  const packLabel = useActiveLanguagePack().label;
   const { startRecording, stopRecording } = useAudioRecorder();
   const current = vocab[index];
   const recordingStartRef = useRef<number | null>(null);
@@ -78,14 +96,15 @@ export function ExamView({
         toast.error("Could not detect speech — please speak louder or closer to the mic.");
         return;
       }
-      const score = await scoreDialectAccuracy(current.cantonese, result);
+      const { score, method } = await scoreDialectAccuracyDetailed(current.dialect, result);
       // ML data capture (consent-gated, fire-and-forget — never blocks the exam)
       recordSpeechSample(
-        { source: "exam", expectedText: current.cantonese, transcript: result, score, audioBlob: blob },
+        { source: "exam", expectedText: current.dialect, transcript: result, score, audioBlob: blob },
         consentFromProfile(userProfile)
       );
       setTranscribed(result);
       setItemScore(score);
+      setItemMethod(method);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Recording failed: ${msg}`);
@@ -120,10 +139,14 @@ export function ExamView({
 
   const handleRetry = () => {
     setItemScore(null);
+    setItemMethod(null);
     setTranscribed(null);
   };
 
   const handleNext = () => {
+    // Only committed scores mark the final result approximate — a retried
+    // item's discarded fallback score should not flag an all-LLM average.
+    if (itemMethod === "fallback") setUsedFallback(true);
     const updatedScores = [...scores, itemScore ?? 0];
     if (index + 1 >= vocab.length) {
       const avg = Math.round(updatedScores.reduce((a, b) => a + b, 0) / updatedScores.length);
@@ -133,6 +156,7 @@ export function ExamView({
       setScores(updatedScores);
       setIndex((i) => i + 1);
       setItemScore(null);
+      setItemMethod(null);
       setTranscribed(null);
     }
   };
@@ -154,16 +178,21 @@ export function ExamView({
             <X size={48} className="text-red-500" />
           )}
         </div>
-        <h2 className="text-3xl font-extrabold text-zinc-800 mb-2">{finalScore}%</h2>
+        <h2 className="text-3xl font-extrabold text-zinc-800 mb-1">{finalScore}%</h2>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">
+          Word accuracy
+        </p>
         <p className={`text-lg font-bold mb-1 ${passed ? "text-green-600" : "text-red-600"}`}>
           {passed ? "Passed!" : "Not quite"}
         </p>
-        <p className="text-sm text-zinc-500 mb-8">
+        <p className="text-sm text-zinc-500 mb-2">
           {passed ? "Great job! This lesson is marked complete." : "You need 60% to pass. Keep practising!"}
         </p>
+        <p className="text-[11px] text-zinc-400 mb-1">{WORD_ACCURACY_EXPLAINER}</p>
+        {usedFallback && <FallbackHint />}
         <button
           onClick={() => onComplete(finalScore)}
-          className="w-full max-w-xs py-3.5 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
+          className="w-full max-w-xs mt-7 py-3.5 bg-brand-blue/100 text-white font-bold rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
         >
           Back to Lesson
         </button>
@@ -199,17 +228,27 @@ export function ExamView({
           <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2">
             Recite this phrase
           </p>
-          <p className="text-2xl font-bold text-zinc-800 mb-1">{current.cantonese}</p>
-          {current.pronunciation && (
-            <p className="text-sm font-mono text-brand-blue/60 mb-3">{current.pronunciation}</p>
+          <p className="text-2xl font-bold text-zinc-800 mb-1">{current.dialect}</p>
+          {current.romanization && (
+            <p className="text-sm font-mono text-brand-blue/60 mb-3">{current.romanization}</p>
           )}
           <p className="text-sm text-zinc-500 italic">{current.english}</p>
           <div className="mt-4">
-            <PlayButtonDark text={current.cantonese} disabled={isRecording || isProcessing} />
+            <PlayButtonDark text={current.dialect} disabled={isRecording || isProcessing} withSlow />
           </div>
         </div>
 
-        {itemScore === null ? (
+        {!sttEnabled ? (
+          <div className="flex flex-col items-center gap-3 text-center px-4 py-6">
+            <span className="px-3 py-1 rounded-full bg-zinc-800/80 text-white text-[11px] font-medium shadow-md whitespace-nowrap">
+              Voice input coming soon for {packLabel}
+            </span>
+            <p className="text-sm text-zinc-500 max-w-xs">
+              The exam is scored by listening to your speech, and {packLabel} speech recognition isn't
+              available yet. Practise the phrases above and check back soon.
+            </p>
+          </div>
+        ) : itemScore === null ? (
           <div className="flex flex-col items-center gap-4">
             {isProcessing ? (
               <div className="flex items-center gap-2 text-zinc-500">
@@ -250,11 +289,16 @@ export function ExamView({
               className={`rounded-2xl p-5 flex flex-col gap-3 ${itemScore >= 60 ? "bg-green-50 border border-green-200" : "bg-orange-50 border border-orange-200"}`}
             >
               <div className="flex items-center justify-between">
-                <span
-                  className={`text-4xl font-extrabold ${itemScore >= 60 ? "text-green-600" : "text-orange-500"}`}
-                >
-                  {itemScore}%
-                </span>
+                <div>
+                  <span
+                    className={`text-4xl font-extrabold ${itemScore >= 60 ? "text-green-600" : "text-orange-500"}`}
+                  >
+                    {itemScore}%
+                  </span>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mt-0.5">
+                    Word accuracy
+                  </p>
+                </div>
                 <span
                   className={`text-sm font-semibold ${itemScore >= 60 ? "text-green-700" : "text-orange-600"}`}
                 >
@@ -265,59 +309,22 @@ export function ExamView({
               <div className="flex flex-col gap-1.5 text-sm">
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">Expected</span>
-                  <span className="font-bold text-zinc-700">{current.cantonese}</span>
+                  <span className="font-bold text-zinc-700">{current.dialect}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">You said</span>
                   <span className="font-bold">
-                    {transcribed
-                      ? (() => {
-                          const punct = /[，。！？、；：""''（）\s!?.,;:'"…—–]/;
-                          const expectedClean = [...current.cantonese].filter((c) => !punct.test(c));
-                          const transcribedFull = [...transcribed];
-                          const transcribedClean = transcribedFull.filter((c) => !punct.test(c));
-                          // LCS to find best alignment, so missing/extra chars don't shift all subsequent matches
-                          const m = expectedClean.length,
-                            n = transcribedClean.length;
-                          const dp: number[][] = Array.from({ length: m + 1 }, () =>
-                            new Array(n + 1).fill(0)
-                          );
-                          for (let r = 1; r <= m; r++)
-                            for (let c = 1; c <= n; c++)
-                              dp[r][c] =
-                                expectedClean[r - 1] === transcribedClean[c - 1]
-                                  ? dp[r - 1][c - 1] + 1
-                                  : Math.max(dp[r - 1][c], dp[r][c - 1]);
-                          const matched = new Set<number>();
-                          let r = m,
-                            c = n;
-                          while (r > 0 && c > 0) {
-                            if (expectedClean[r - 1] === transcribedClean[c - 1]) {
-                              matched.add(c - 1);
-                              r--;
-                              c--;
-                            } else if (dp[r - 1][c] >= dp[r][c - 1]) r--;
-                            else c--;
-                          }
-                          let cleanPos = 0;
-                          return transcribedFull.map((char, ci) => {
-                            if (punct.test(char))
-                              return (
-                                <span key={ci} className="text-zinc-700">
-                                  {char}
-                                </span>
-                              );
-                            const isMatch = matched.has(cleanPos++);
-                            return (
-                              <span key={ci} className={isMatch ? "text-green-600" : "text-orange-600"}>
-                                {char}
-                              </span>
-                            );
-                          });
-                        })()
-                      : "—"}
+                    {transcribed ? (
+                      <TranscriptDiff expected={current.dialect} transcribed={transcribed} />
+                    ) : (
+                      "—"
+                    )}
                   </span>
                 </div>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[11px] text-zinc-400 leading-snug">{WORD_ACCURACY_EXPLAINER}</p>
+                {itemMethod === "fallback" && <FallbackHint />}
               </div>
             </div>
             <div className="flex gap-3">

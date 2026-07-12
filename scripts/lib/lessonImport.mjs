@@ -174,8 +174,8 @@ function collectRow(cells, row, languages, lessonHome, error) {
       const turn = {
         speaker: cells.turn_speaker,
         english: cells.english,
-        cantonese: cells.dialect_text,
-        pronunciation: cells.romanization,
+        dialect: cells.dialect_text,
+        romanization: cells.romanization,
       };
       if (cells.turn_hint !== "") turn.hint = cells.turn_hint;
       level.conversation.push(turn);
@@ -196,7 +196,7 @@ function collectRow(cells, row, languages, lessonHome, error) {
     }
     lesson.itemsSeen.set(key, row);
   }
-  const item = { english: cells.english, cantonese: cells.dialect_text, pronunciation: cells.romanization };
+  const item = { english: cells.english, dialect: cells.dialect_text, romanization: cells.romanization };
   if (cells.example_sentence !== "") item.exampleSentence = cells.example_sentence;
   (level ? level.vocabulary : lesson.vocabulary).push(item);
 }

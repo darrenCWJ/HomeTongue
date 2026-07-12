@@ -45,6 +45,7 @@ Without keys the app still runs: translation falls back to a small offline mock,
 1. Import the repo; framework preset **Vite** (`vercel.json` already sets build/output and security headers).
 2. Set env vars: `OPENAI_API_KEY`, `GOOGLE_API_JSON` (single-line service-account JSON), optionally `OPENAI_MODEL`, `VITE_ACCESS_CODE`.
 3. Deploy — the `api/` folder becomes serverless functions automatically.
+4. Optional: enable **Web Analytics** in the Vercel project dashboard (Analytics tab) — the app already ships `@vercel/analytics` page-view tracking in production builds; no env vars needed.
 
 ### Android build
 

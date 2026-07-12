@@ -3,17 +3,26 @@
 // Usage:
 //   SUPABASE_URL=https://<ref>.supabase.co \
 //   SUPABASE_SERVICE_ROLE_KEY=... \
-//   node scripts/export-training-data.mjs [--language yue-HK] [--out data/]
+//   node scripts/export-training-data.mjs [--language yue-HK] [--out data/] [--include-rejected]
 //
 // Requires the SERVICE ROLE key (server-side only — never ship it) because
 // the export reads across users. Only rows inserted under consent exist in
 // these tables (RLS insert policies enforce the profile consent flag).
 //
 // Output:
-//   <out>/speech_samples.jsonl  — {expected, transcript, corrected, score, language, source, audio_url, created_at}
+//   <out>/speech_samples.jsonl  — {expected, transcript, corrected, score, language, source,
+//                                  audio_url, created_at, review_verdict, review_corrected_text}
 //   <out>/corrections.jsonl     — {kind, original, corrected, rating, context, language, created_at}
 // User ids are replaced with a per-export anonymous hash (salted per run) so
 // samples from one speaker stay groupable without exposing identity.
+//
+// Admin review join (public.sample_reviews, migration 0005): each speech
+// sample carries the latest human review verdict ("verified" | "corrected" |
+// "rejected", null when unreviewed) and the reviewer's fixed transcription.
+// REJECTED samples are EXCLUDED from the corpus by default; pass
+// --include-rejected to keep them (they still carry review_verdict:
+// "rejected" so downstream filters — ml/train/whisper-lora/prepare_data.py
+// consumes exactly these field names — can drop them themselves).
 
 import { createHash, randomBytes } from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
@@ -33,6 +42,7 @@ const argValue = (flag, fallback) => {
 };
 const language = argValue("--language", null);
 const outDir = argValue("--out", "training-export");
+const includeRejected = args.includes("--include-rejected");
 
 const salt = randomBytes(16).toString("hex");
 const anonId = (userId) => createHash("sha256").update(salt + userId).digest("hex").slice(0, 16);
@@ -59,14 +69,25 @@ async function fetchAll(table, languageFilter) {
 
 const samples = await fetchAll("speech_samples", language);
 const corrections = await fetchAll("corrections", language);
+// sample_reviews has no language column (it references speech_samples by id),
+// so it is always fetched unfiltered and joined in memory. PK = sample_id:
+// at most one (the latest) verdict per sample.
+const reviews = await fetchAll("sample_reviews", null);
+const reviewBySampleId = new Map(reviews.map((r) => [r.sample_id, r]));
+
+const keptSamples = includeRejected
+  ? samples
+  : samples.filter((r) => reviewBySampleId.get(r.id)?.verdict !== "rejected");
+const rejectedCount = samples.length - keptSamples.length;
 
 mkdirSync(outDir, { recursive: true });
 
 writeFileSync(
   join(outDir, "speech_samples.jsonl"),
-  samples
-    .map((r) =>
-      JSON.stringify({
+  keptSamples
+    .map((r) => {
+      const review = reviewBySampleId.get(r.id);
+      return JSON.stringify({
         speaker: anonId(r.user_id),
         language: r.language,
         source: r.source,
@@ -77,8 +98,11 @@ writeFileSync(
         stt_model: r.stt_model,
         audio_url: r.audio_url,
         created_at: r.created_at,
-      })
-    )
+        // Field names consumed as-is by ml/train/whisper-lora/prepare_data.py.
+        review_verdict: review ? review.verdict : null,
+        review_corrected_text: review ? (review.corrected_text ?? null) : null,
+      });
+    })
     .join("\n")
 );
 
@@ -100,4 +124,9 @@ writeFileSync(
     .join("\n")
 );
 
-console.log(`Exported ${samples.length} speech samples and ${corrections.length} corrections to ${outDir}/`);
+const rejectedNote = includeRejected
+  ? " (rejected samples included via --include-rejected)"
+  : ` (${rejectedCount} review-rejected sample${rejectedCount === 1 ? "" : "s"} excluded)`;
+console.log(
+  `Exported ${keptSamples.length} speech samples${rejectedNote} and ${corrections.length} corrections to ${outDir}/`
+);

@@ -3,7 +3,8 @@ import { Play, BookOpen, Star, Trophy, Repeat, Drama } from "lucide-react";
 import { useLibrary } from "../../app/context/LibraryProvider";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { motion, AnimatePresence } from "motion/react";
-import { getLessonContent, getLessonLevels } from "../../data/lessons";
+import { getLessonLevels } from "../../data/lessons";
+import { useLessonContent } from "../../hooks/useLessonContent";
 import { resolveLanguagePackByLabel } from "../../languages";
 import { filterByLanguage, type LanguageScoped } from "../../languages/scope";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
@@ -20,7 +21,7 @@ import { PracticeView } from "./srs/PracticeView";
 import { useReviewQueue } from "./srs/useReviewQueue";
 import { ScenarioPicker } from "./roleplay/ScenarioPicker";
 import { RoleplayView } from "./roleplay/RoleplayView";
-import type { RoleplayScenario } from "../../services/roleplayService";
+import { hasRoleplayScenarios, type RoleplayScenario } from "../../services/roleplayService";
 
 type View =
   "main" | "roadmap" | "level" | "conversation-lesson" | "exam" | "practice" | "roleplay-picker" | "roleplay";
@@ -42,7 +43,8 @@ export function LearnPage() {
   // Deriving the code straight from the profile dialect keeps lesson content
   // in lockstep with the render that reflects the new dialect.
   const languageCode = resolveLanguagePackByLabel(dialect).code;
-  const { categories: lessonCategories, lessons } = getLessonContent(languageCode);
+  // Reactive: re-renders when DB-published lesson content lands (cloud mode).
+  const { categories: lessonCategories, lessons } = useLessonContent(languageCode);
   const hasDailyVocab = lessons.some((l) => l.content.vocabulary.length > 0);
 
   // Conversation lessons without a languageCode are legacy Cantonese data
@@ -234,11 +236,10 @@ export function LearnPage() {
                 )}
               </button>
 
-              {/* Roleplay content currently ships only in the Cantonese pack
-                  (roleplayService imports src/languages/yue-HK/roleplay.ts
-                  directly), so the entry card is gated to yue-HK until
-                  scenarios move into the LanguagePack contract. */}
-              {languageCode === "yue-HK" && (
+              {/* Gated on the roleplay registry: the card shows only when the
+                  active pack has authored scenarios (see
+                  src/languages/roleplayRegistry.ts). */}
+              {hasRoleplayScenarios(languageCode) && (
                 <button
                   data-tour="learn-roleplay"
                   onClick={() => setView("roleplay-picker")}
@@ -403,6 +404,7 @@ export function LearnPage() {
         {view === "roleplay-picker" && (
           <ScenarioPicker
             key="roleplay-picker"
+            languageCode={languageCode}
             onBack={handleBackToMain}
             onSelect={handleSelectRoleplayScenario}
           />

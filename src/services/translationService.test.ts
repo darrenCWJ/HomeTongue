@@ -1,5 +1,17 @@
-import { describe, test, expect } from "vitest";
-import { charMatchScore, isPromptHallucination, parseModelJson } from "./translationService";
+import { beforeEach, describe, test, expect, vi } from "vitest";
+import {
+  charMatchScore,
+  isPromptHallucination,
+  parseModelJson,
+  scoreDialectAccuracy,
+  scoreDialectAccuracyDetailed,
+} from "./translationService";
+import { postJson } from "../lib/api";
+
+vi.mock("../lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/api")>();
+  return { ...actual, postJson: vi.fn() };
+});
 
 describe("charMatchScore", () => {
   test("returns 100 for an exact match", () => {
@@ -52,6 +64,67 @@ describe("isPromptHallucination", () => {
 
   test("does not flag empty text", () => {
     expect(isPromptHallucination("", PROMPT)).toBe(false);
+  });
+});
+
+describe("scoreDialectAccuracyDetailed", () => {
+  beforeEach(() => {
+    vi.mocked(postJson).mockReset();
+  });
+
+  test("returns the LLM score with method 'llm' when the rubric call succeeds", async () => {
+    // Arrange
+    vi.mocked(postJson).mockResolvedValue({ content: '{"score": 87}' });
+
+    // Act
+    const result = await scoreDialectAccuracyDetailed("你好嗎", "你好啊");
+
+    // Assert
+    expect(result).toEqual({ score: 87, method: "llm" });
+  });
+
+  test("clamps out-of-range LLM scores into 0–100", async () => {
+    // Arrange
+    vi.mocked(postJson).mockResolvedValue({ content: '{"score": 150}' });
+
+    // Act
+    const result = await scoreDialectAccuracyDetailed("你好嗎", "你好嗎");
+
+    // Assert
+    expect(result).toEqual({ score: 100, method: "llm" });
+  });
+
+  test("falls back to the offline matcher with method 'fallback' when the call fails", async () => {
+    // Arrange
+    vi.mocked(postJson).mockRejectedValue(new Error("network down"));
+
+    // Act
+    const result = await scoreDialectAccuracyDetailed("你好嗎", "你好嗎");
+
+    // Assert — exact character match scores 100 offline
+    expect(result).toEqual({ score: 100, method: "fallback" });
+  });
+
+  test("falls back with method 'fallback' when the model returns no numeric score", async () => {
+    // Arrange
+    vi.mocked(postJson).mockResolvedValue({ content: '{"verdict": "great"}' });
+
+    // Act
+    const result = await scoreDialectAccuracyDetailed("我想食嘢", "我食飯啦");
+
+    // Assert — offline partial overlap (2 of 4 chars)
+    expect(result).toEqual({ score: 50, method: "fallback" });
+  });
+
+  test("scoreDialectAccuracy stays backward compatible, returning only the number", async () => {
+    // Arrange
+    vi.mocked(postJson).mockResolvedValue({ content: '{"score": 72}' });
+
+    // Act
+    const score = await scoreDialectAccuracy("你好嗎", "你好");
+
+    // Assert
+    expect(score).toBe(72);
   });
 });
 

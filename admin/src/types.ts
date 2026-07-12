@@ -1,7 +1,8 @@
 // Shared domain types for the admin app. Column names mirror the Postgres
 // schema in supabase/migrations/0002_ml_data_pipeline.sql (speech_samples,
-// corrections), 0005_admin_review.sql (sample_reviews), and the
-// admin_dashboard_stats() RPC payload from 0007.
+// corrections), 0005_admin_review.sql (sample_reviews), the
+// admin_dashboard_stats() RPC payload from 0007, and
+// 0008_lesson_content.sql (lesson_content).
 
 export interface SpeechSample {
   id: string;
@@ -133,4 +134,74 @@ export interface DashboardStats {
   engagement: DashboardEngagement;
   improvement: DashboardImprovement;
   daily: DailyActivity[];
+}
+
+// ---------- Lesson content publishing ----------
+// Shape of lesson_content.content (supabase/migrations/0008): the
+// per-language registry shape produced by scripts/lib/lessonCsv.mjs
+// rowsToContent — exactly what src/data/lessons/<code>/index.ts exports for
+// static content. Field names mirror the main app's src/types.ts
+// (VocabularyItem / ConversationTurn / LessonLevel / Lesson /
+// LessonCategory) after the dialect-neutral rename: `dialect` is the text in
+// the language's own script, `romanization` its reading (Jyutping, Tâi-lô…).
+
+export interface LessonVocabItem {
+  english: string;
+  /** The word/phrase in the dialect's own script (legacy name: cantonese). */
+  dialect: string;
+  /** Romanized reading (legacy name: pronunciation). */
+  romanization: string;
+  exampleSentence?: string;
+}
+
+export interface LessonConversationTurn {
+  speaker: "user" | "them";
+  english: string;
+  dialect: string;
+  romanization: string;
+  hint?: string;
+}
+
+export interface LessonLevel {
+  level: number;
+  title: string;
+  description: string;
+  exerciseType: string;
+  vocabulary: LessonVocabItem[];
+  conversation?: LessonConversationTurn[];
+}
+
+export interface LessonEntry {
+  id: string;
+  categoryId: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  tags: string[];
+  content: {
+    vocabulary: LessonVocabItem[];
+    levels?: LessonLevel[];
+  };
+}
+
+export interface LessonCategory {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+}
+
+/** One language's full lesson registry — the lesson_content.content jsonb. */
+export interface LessonRegistryContent {
+  categories: LessonCategory[];
+  lessons: LessonEntry[];
+}
+
+/** A public.lesson_content row (0008). */
+export interface LessonContentRow {
+  language_code: string;
+  content: LessonRegistryContent;
+  published: boolean;
+  updated_by: string;
+  updated_at: string;
 }

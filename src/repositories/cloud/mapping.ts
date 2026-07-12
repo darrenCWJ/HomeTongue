@@ -49,6 +49,21 @@ export interface PhraseRow {
  */
 export type LegacyMessage = Message & { cantoneseText?: string };
 
+/**
+ * VocabItem as it may appear in the conversation_lessons.vocabulary jsonb
+ * column: rows written before the dialect-neutral rename stored the dialect
+ * text under `cantonese` and its romanization under `pronunciation` (older
+ * docs called that field "jyutping"). rowToConversationLesson normalizes both
+ * to the current names, and conversationLessonToRow strips them so the legacy
+ * keys are never written back.
+ */
+export type LegacyVocabItem = Omit<VocabItem, "dialect" | "romanization"> &
+  Partial<Pick<VocabItem, "dialect" | "romanization">> & {
+    cantonese?: string;
+    pronunciation?: string;
+    jyutping?: string;
+  };
+
 export interface SessionRow {
   id: string;
   user_id: string;
@@ -101,7 +116,7 @@ export interface ConversationLessonRow {
   user_id: string;
   session_id: string;
   title: string;
-  vocabulary: VocabItem[];
+  vocabulary: LegacyVocabItem[];
   exam_best_score: number | null;
   exam_completed: boolean;
   exam_attempts: number;
@@ -175,6 +190,23 @@ function normalizeMessage(message: LegacyMessage): Message {
   const { cantoneseText, ...rest } = message;
   if (cantoneseText === undefined) return rest;
   return rest.dialectText !== undefined ? rest : { ...rest, dialectText: cantoneseText };
+}
+
+/**
+ * Normalizes a persisted vocabulary item to the current domain shape: legacy
+ * `cantonese` moves to `dialect` and legacy `pronunciation` (or the even
+ * older `jyutping`) moves to `romanization` — already-present new-name values
+ * always win — and the legacy keys are dropped. Items written with the
+ * current names are returned structurally unchanged. WordChunk breakdowns
+ * keep their own `pronunciation` field and are not touched.
+ */
+function normalizeVocabItem(item: LegacyVocabItem): VocabItem {
+  const { cantonese, pronunciation, jyutping, ...rest } = item;
+  return {
+    ...rest,
+    dialect: rest.dialect ?? cantonese ?? "",
+    romanization: rest.romanization ?? pronunciation ?? jyutping ?? "",
+  };
 }
 
 export function sessionToRow(session: Session, userId: string): SessionRow {
@@ -285,7 +317,9 @@ export function conversationLessonToRow(lesson: ConversationLesson, userId: stri
     user_id: userId,
     session_id: lesson.sessionId,
     title: lesson.title,
-    vocabulary: lesson.vocabulary,
+    // Domain items are already dialect-neutral, but normalize defensively so
+    // a legacy key can never be written back to the jsonb column.
+    vocabulary: lesson.vocabulary.map(normalizeVocabItem),
     exam_best_score: lesson.examBestScore ?? null,
     exam_completed: lesson.examCompleted,
     exam_attempts: lesson.examAttempts,
@@ -302,7 +336,7 @@ export function rowToConversationLesson(row: ConversationLessonRow): Conversatio
     sessionId: row.session_id,
     title: row.title,
     createdAt: row.created_at,
-    vocabulary: row.vocabulary,
+    vocabulary: row.vocabulary.map(normalizeVocabItem),
     examCompleted: row.exam_completed,
     examAttempts: row.exam_attempts,
     ...(row.exam_best_score !== null ? { examBestScore: row.exam_best_score } : {}),

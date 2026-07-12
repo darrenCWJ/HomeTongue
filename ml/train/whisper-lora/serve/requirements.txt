@@ -1,0 +1,6 @@
+# Serving deps (loosely pinned). GPU inference additionally needs CUDA/cuDNN
+# libraries in the image — see README.md.
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+faster-whisper>=1.0

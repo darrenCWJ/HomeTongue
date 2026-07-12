@@ -11,9 +11,9 @@ export function ChatBubble({ turn, dimmed }: { turn: ConversationTurn; dimmed?: 
             : "bg-white border border-zinc-100 text-zinc-800 rounded-bl-sm"
         }`}
       >
-        <p className={`text-sm font-semibold ${isUser ? "text-white" : "text-zinc-800"}`}>{turn.cantonese}</p>
+        <p className={`text-sm font-semibold ${isUser ? "text-white" : "text-zinc-800"}`}>{turn.dialect}</p>
         <p className={`text-xs mt-0.5 ${isUser ? "text-brand-blue/60" : "text-zinc-400"}`}>
-          {turn.pronunciation}
+          {turn.romanization}
         </p>
       </div>
     </div>

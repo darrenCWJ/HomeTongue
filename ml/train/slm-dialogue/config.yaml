@@ -1,0 +1,38 @@
+# Colloquial-dialogue SLM hyperparameters (docs/ML_TRAINING_PLAN.md step 3).
+# Consumed by train_sft.py and train_dpo.py. Defaults target one A100-class GPU.
+
+base_model: Qwen/Qwen2.5-7B-Instruct   # Qwen-class instruct; swap for a community Cantonese LLM if it evals better
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+sft:
+  data: ml/train/slm-dialogue/data/sft.jsonl      # from prepare_sft_data.py
+  output_dir: ml/train/slm-dialogue/checkpoints/sft
+  max_seq_length: 1024
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  num_train_epochs: 2
+  warmup_ratio: 0.05
+  logging_steps: 20
+  save_steps: 200
+  seed: 42
+
+dpo:
+  data: ml/train/slm-dialogue/data/dpo.jsonl      # from prepare_dpo_data.py
+  sft_adapter: ml/train/slm-dialogue/checkpoints/sft/adapter   # merged into the base before DPO ("" = skip)
+  output_dir: ml/train/slm-dialogue/checkpoints/dpo
+  beta: 0.1
+  max_length: 1024
+  max_prompt_length: 512
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  learning_rate: 5.0e-6
+  num_train_epochs: 1
+  logging_steps: 10
+  save_steps: 100
+  seed: 42

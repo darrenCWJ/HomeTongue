@@ -128,8 +128,8 @@ function baseCells(languageCode, category, lesson, levelNumber, level) {
 function vocabRecord(languageCode, category, lesson, levelNumber, level, item) {
   return [
     ...baseCells(languageCode, category, lesson, levelNumber, level),
-    item.cantonese,
-    item.pronunciation,
+    item.dialect,
+    item.romanization,
     item.english,
     item.exampleSentence ?? "",
     "",
@@ -140,8 +140,8 @@ function vocabRecord(languageCode, category, lesson, levelNumber, level, item) {
 function turnRecord(languageCode, category, lesson, level, turn) {
   return [
     ...baseCells(languageCode, category, lesson, level.level, level),
-    turn.cantonese,
-    turn.pronunciation,
+    turn.dialect,
+    turn.romanization,
     turn.english,
     "",
     turn.speaker,

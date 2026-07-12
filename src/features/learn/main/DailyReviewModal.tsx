@@ -78,10 +78,10 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
                     Translation
                   </span>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-3xl font-bold text-white">{card.cantonese}</span>
-                    <PlayButton text={card.cantonese} />
+                    <span className="text-3xl font-bold text-white">{card.dialect}</span>
+                    <PlayButton text={card.dialect} withSlow />
                   </div>
-                  <span className="text-base text-white/70 font-mono">{card.pronunciation}</span>
+                  <span className="text-base text-white/70 font-mono">{card.romanization}</span>
                 </div>
               </motion.div>
             </div>
@@ -97,15 +97,14 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
                     {personalise(card.exampleSentence, userProfile?.name)}
                   </p>
                   <p className="text-xs text-zinc-500">
-                    Use <span className="font-semibold text-brand-blue">{card.cantonese}</span> (
-                    {card.pronunciation}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.
+                    Use <span className="font-semibold text-brand-blue">{card.dialect}</span> (
+                    {card.romanization}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.
                   </p>
                 </>
               ) : (
                 <p className="text-sm text-zinc-600">
-                  Say <span className="font-bold text-brand-blue">{card.cantonese}</span> (
-                  {card.pronunciation}) to mean "<span className="italic">{card.english}</span>" in everyday
-                  conversation.
+                  Say <span className="font-bold text-brand-blue">{card.dialect}</span> ({card.romanization})
+                  to mean "<span className="italic">{card.english}</span>" in everyday conversation.
                 </p>
               )}
             </div>

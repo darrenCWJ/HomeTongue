@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2, Mic, MicOff, Send, Target } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { useProfile } from "../../../app/context/ProfileProvider";
+import { useActiveLanguagePack } from "../../../hooks/useActiveLanguageCode";
 import { useAudioRecorder } from "../../../hooks/audio";
 import { speakText, asVoiceKey } from "../../../hooks/useGoogleTTS";
 import { transcribeDialect, transcribeAnyLanguage } from "../../../services/translationService";
@@ -27,6 +28,10 @@ interface RoleplayViewProps {
 
 export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
   const { userProfile } = useProfile();
+  // Voice-less packs (capabilities tts/stt false, e.g. nan-TW) rehearse by
+  // TYPING: the mic button is hidden and bot lines are not auto-spoken
+  // (speakText would no-op anyway; skipping keeps intent explicit).
+  const { label: languageLabel, capabilities } = useActiveLanguagePack();
   const { startRecording, stopRecording } = useAudioRecorder();
 
   const [turns, setTurns] = useState<RoleplayTurn[]>([]);
@@ -51,8 +56,9 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
     setTurns(turnsRef.current);
   };
 
-  const speakLine = (cantonese: string) => {
-    speakText(cantonese, asVoiceKey(voiceIdRef.current)).catch(() => {
+  const speakLine = (dialectText: string) => {
+    if (!capabilities.tts) return;
+    speakText(dialectText, asVoiceKey(voiceIdRef.current)).catch(() => {
       // Auto-play is best-effort; the bubble's play button remains available.
     });
   };
@@ -64,8 +70,8 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
     const opening: RoleplayTurn = {
       id: newId(),
       speaker: "bot",
-      text: scenario.opening.cantonese,
-      jyutping: scenario.opening.jyutping,
+      text: scenario.opening.dialect,
+      romanization: scenario.opening.romanization,
       english: scenario.opening.english,
     };
     applyTurns((prev) => (prev.length > 0 ? prev : [opening]));
@@ -81,8 +87,8 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
     const botTurn: RoleplayTurn = {
       id: newId(),
       speaker: "bot",
-      text: line.cantonese,
-      jyutping: line.jyutping,
+      text: line.dialect,
+      romanization: line.romanization,
       english: line.english,
     };
     applyTurns((prev) => [...prev, botTurn]);
@@ -100,7 +106,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
       isCoachPending: true,
     };
     const lastBotLine =
-      [...turnsRef.current].reverse().find((t) => t.speaker === "bot")?.text ?? scenario.opening.cantonese;
+      [...turnsRef.current].reverse().find((t) => t.speaker === "bot")?.text ?? scenario.opening.dialect;
     applyTurns((prev) => [...prev, userTurn]);
     const history = toHistory(turnsRef.current);
 
@@ -255,30 +261,34 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
             onSubmit={handleTextSubmit}
             className="flex items-center gap-2 px-4 pt-2 bg-white border-t border-zinc-200 pb-nav flex-shrink-0"
           >
-            <button
-              type="button"
-              onClick={handleMicClick}
-              disabled={isTranscribing || isBotThinking}
-              className={`relative w-11 h-11 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-all active:scale-95 disabled:opacity-50 ${
-                isRecording ? "bg-red-500 shadow-red-200 shadow" : "bg-brand-blue shadow"
-              }`}
-            >
-              {isRecording && (
-                <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-60" />
-              )}
-              {isTranscribing ? (
-                <Loader2 size={18} className="animate-spin relative z-10" />
-              ) : isRecording ? (
-                <MicOff size={18} className="relative z-10" />
-              ) : (
-                <Mic size={18} className="relative z-10" />
-              )}
-            </button>
+            {capabilities.stt && (
+              <button
+                type="button"
+                onClick={handleMicClick}
+                disabled={isTranscribing || isBotThinking}
+                className={`relative w-11 h-11 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-all active:scale-95 disabled:opacity-50 ${
+                  isRecording ? "bg-red-500 shadow-red-200 shadow" : "bg-brand-blue shadow"
+                }`}
+              >
+                {isRecording && (
+                  <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-60" />
+                )}
+                {isTranscribing ? (
+                  <Loader2 size={18} className="animate-spin relative z-10" />
+                ) : isRecording ? (
+                  <MicOff size={18} className="relative z-10" />
+                ) : (
+                  <Mic size={18} className="relative z-10" />
+                )}
+              </button>
+            )}
             <input
               type="text"
               value={textDraft}
               onChange={(e) => setTextDraft(e.target.value)}
-              placeholder={isRecording ? "Recording… tap mic to stop" : "Reply in Cantonese or English…"}
+              placeholder={
+                isRecording ? "Recording… tap mic to stop" : `Reply in ${languageLabel} or English…`
+              }
               disabled={isInputDisabled || isRecording}
               className="flex-1 min-w-0 bg-zinc-100 rounded-full px-4 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60"
             />

@@ -42,7 +42,7 @@ export function FlashcardExercise({
     });
   }, [flipped, index]);
 
-  const phraseId = `lesson-${current.cantonese}`;
+  const phraseId = `lesson-${current.dialect}`;
   const savedPhrase = phrases.find((p) => p.id === phraseId);
   const isBookmarked = savedPhrase?.isBookmarked ?? false;
 
@@ -52,8 +52,8 @@ export function FlashcardExercise({
       addPhrase({
         id: phraseId,
         original: current.english,
-        dialect: current.cantonese,
-        pronunciation: current.pronunciation,
+        dialect: current.dialect,
+        pronunciation: current.romanization,
         isBookmarked: true,
         context: level.title,
         languageCode: getActiveLanguagePack().code,
@@ -174,10 +174,10 @@ export function FlashcardExercise({
                     Cantonese
                   </span>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-4xl font-bold text-white text-center">{current.cantonese}</span>
-                    <PlayButton text={current.cantonese} />
+                    <span className="text-4xl font-bold text-white text-center">{current.dialect}</span>
+                    <PlayButton text={current.dialect} withSlow />
                   </div>
-                  <span className="text-base text-white/70 font-mono">{current.pronunciation}</span>
+                  <span className="text-base text-white/70 font-mono">{current.romanization}</span>
                 </div>
 
                 {/* Example sentence section */}

@@ -1,6 +1,6 @@
 # Data model
 
-All domain types live in `src/types.ts`. Persistence is Dexie (IndexedDB), DB name `hometongue`, schema versions 1–7 in `src/repositories/local/db.ts`.
+All domain types live in `src/types.ts`. Persistence is Dexie (IndexedDB), DB name `hometongue`, schema versions 1–9 in `src/repositories/local/db.ts`.
 
 ## Tables
 
@@ -71,7 +71,8 @@ interface ConversationLesson {
   id: string;
   sessionId: string;
   title: string;
-  vocabulary: VocabItem[];   // english / cantonese / jyutping / audio / breakdown
+  vocabulary: VocabItem[];   // english / dialect / romanization / audio / breakdown — legacy rows stored
+                             // cantonese / pronunciation (migrated in Dexie v9 / normalized in cloud mapping)
   examBestScore?: number;
   examCompleted: boolean;
   examAttempts: number;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Languages, Loader2, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
+import { useActiveLanguagePack } from "../../../hooks/useActiveLanguageCode";
 import type { RoleplayTurn } from "../../../services/roleplayService";
 import { PlayButtonDark } from "../shared";
 
@@ -39,6 +40,8 @@ function CoachChip({ turn }: { turn: RoleplayTurn }) {
 }
 
 export function RoleplayBubble({ turn }: { turn: RoleplayTurn }) {
+  // Avatar glyph follows the active pack (粵 for Cantonese, 閩 for Hokkien).
+  const { character } = useActiveLanguagePack();
   const [isGlossVisible, setIsGlossVisible] = useState(false);
 
   if (turn.speaker === "user") {
@@ -63,11 +66,13 @@ export function RoleplayBubble({ turn }: { turn: RoleplayTurn }) {
       className="flex items-end gap-2 justify-start"
     >
       <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-red">
-        粵
+        {character}
       </div>
       <div className="max-w-[78%] bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3">
         <p className="text-base font-semibold text-zinc-900 leading-snug">{turn.text}</p>
-        {turn.jyutping && <p className="text-xs font-mono text-brand-blue/60 mt-1">{turn.jyutping}</p>}
+        {turn.romanization && (
+          <p className="text-xs font-mono text-brand-blue/60 mt-1">{turn.romanization}</p>
+        )}
         <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center gap-2">
           <PlayButtonDark text={turn.text} size="sm" />
           {turn.english && (

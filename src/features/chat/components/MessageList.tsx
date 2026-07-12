@@ -26,6 +26,8 @@ interface MessageListProps extends BubblePointerHandlers {
   onReply: (englishText: string) => void;
   onToggleBookmark: (id: string, displayedVariant?: TranslationVariant) => void;
   onReplay: (id: string, text: string) => void;
+  /** Slow (0.7x) replay — always fresh TTS, never the cached clip. */
+  onReplaySlow: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
   messagesEndRef: React.RefObject<HTMLDivElement>;
 }
@@ -45,6 +47,7 @@ export function MessageList({
   onReply,
   onToggleBookmark,
   onReplay,
+  onReplaySlow,
   onUpdateMessage,
   onBubblePointerDown,
   onBubblePointerMove,
@@ -81,6 +84,7 @@ export function MessageList({
               ttsEnabled={ttsEnabled}
               onToggleBookmark={onToggleBookmark}
               onReplay={onReplay}
+              onReplaySlow={onReplaySlow}
               onUpdateMessage={onUpdateMessage}
               onBubblePointerDown={onBubblePointerDown}
               onBubblePointerMove={onBubblePointerMove}
@@ -104,6 +108,7 @@ export function MessageList({
                 ttsEnabled={ttsEnabled}
                 onToggleBookmark={onToggleBookmark}
                 onReplay={onReplay}
+                onReplaySlow={onReplaySlow}
                 onUpdateMessage={onUpdateMessage}
                 onBubblePointerDown={onBubblePointerDown}
                 onBubblePointerMove={onBubblePointerMove}

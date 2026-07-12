@@ -16,6 +16,11 @@ const SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 
 const MAX_TEXT_LENGTH = 500;
 
+// Optional speakingRate bounds ("slow replay" uses 0.7; 1 = normal). Google
+// accepts a wider range, but the product never needs chipmunk/ultra-slow.
+const MIN_SPEAKING_RATE = 0.5;
+const MAX_SPEAKING_RATE = 1.2;
+
 const TOKEN_TTL_SECONDS = 3_600;
 const TOKEN_EXPIRY_MARGIN_MS = 5 * 60 * 1000;
 const TOKEN_TIMEOUT_MS = 10_000;
@@ -104,7 +109,7 @@ export async function ttsCore(body, env) {
     return { status: 500, body: { error: "TTS server configuration is invalid" } };
   }
 
-  const { text, voiceName, languageCode } = body ?? {};
+  const { text, voiceName, languageCode, speakingRate } = body ?? {};
   if (
     typeof text !== "string" ||
     !text.trim() ||
@@ -115,6 +120,18 @@ export async function ttsCore(body, env) {
   }
   if (text.length > MAX_TEXT_LENGTH) {
     return { status: 400, body: { error: `Text exceeds ${MAX_TEXT_LENGTH} character limit` } };
+  }
+  if (
+    speakingRate !== undefined &&
+    (typeof speakingRate !== "number" ||
+      !Number.isFinite(speakingRate) ||
+      speakingRate < MIN_SPEAKING_RATE ||
+      speakingRate > MAX_SPEAKING_RATE)
+  ) {
+    return {
+      status: 400,
+      body: { error: `speakingRate must be a number between ${MIN_SPEAKING_RATE} and ${MAX_SPEAKING_RATE}` },
+    };
   }
   // Allowlists live in the shared manifest (api/_lib/languageManifest.js) so
   // the server stays in lockstep with the client pack registry. The voice must
@@ -147,7 +164,10 @@ export async function ttsCore(body, env) {
         body: JSON.stringify({
           input: { text },
           voice: { languageCode, name: voiceName },
-          audioConfig: { audioEncoding: "MP3" },
+          audioConfig: {
+            audioEncoding: "MP3",
+            ...(typeof speakingRate === "number" ? { speakingRate } : {}),
+          },
         }),
       },
       SYNTH_TIMEOUT_MS

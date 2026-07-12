@@ -1,0 +1,10 @@
+# Generated training artifacts — never commit corpus exports, audio, or weights.
+__pycache__/
+data/
+checkpoints/
+*.wav
+*.pt
+*.safetensors
+merged-model/
+ct2-model/
+merged-slm/

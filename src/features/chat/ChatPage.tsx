@@ -5,8 +5,9 @@ import { useChat } from "../../app/context/ChatProvider";
 import type { Phrase, Message, TranslationVariant } from "../../types";
 import { toast } from "sonner";
 import { useAudioRecorder, blobToDataUrl, playDataUrl } from "../../hooks/audio";
-import { speakText, speakTextAndCapture } from "../../hooks/useGoogleTTS";
+import { speakTextAndCapture } from "../../hooks/useGoogleTTS";
 import {
+  scoreDialectAccuracyDetailed,
   transcribeDialect,
   transcribeEnglish,
   translateDialectToEnglish,
@@ -19,6 +20,7 @@ import { newId } from "../../utils/id";
 import { recordCorrection, consentFromProfile } from "../../services/speechSampleService";
 import { useTour } from "../../app/components/tour/TourProvider";
 import { useBubbleLongPress } from "./hooks/useBubbleLongPress";
+import { usePhraseReplay } from "./hooks/usePhraseReplay";
 import { ChatHeader } from "./components/ChatHeader";
 import { DemoBubble } from "./components/DemoBubble";
 import { MessageList } from "./components/MessageList";
@@ -70,7 +72,10 @@ export function ChatPage() {
   const isListening = listeningMode !== null;
   const [stage, setStage] = useState<"transcribing" | "translating" | null>(null);
   const [stageIsUserSide, setStageIsUserSide] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  const { playingId, setPlayingId, replayPhrase, replayPhraseSlow } = usePhraseReplay(
+    messages,
+    userProfile?.preferredVoiceId
+  );
   const [isTyping, setIsTyping] = useState(false);
   const [typedReply, setTypedReply] = useState("");
   const [pendingEnglish, setPendingEnglish] = useState<{
@@ -306,6 +311,18 @@ export function ChatPage() {
             englishTranslation,
             audioDataUrls: [audioDataUrl],
           });
+          // Honest practice feedback: when the user was just shown a phrase
+          // (the most recent outgoing message with dialectText), score the
+          // transcript against it and attach a "word match" badge. Best-effort
+          // and fire-and-forget — skips silently when there is no target.
+          const practiceTarget = [...messagesRef.current]
+            .reverse()
+            .find((m) => m.sender === "user" && !!m.dialectText);
+          if (practiceTarget?.dialectText) {
+            scoreDialectAccuracyDetailed(practiceTarget.dialectText, dialectText)
+              .then((matchScore) => updateMessage(msgId, { matchScore }))
+              .catch(() => {});
+          }
           lastRecordRef.current = {
             msgId,
             suggestionMsgId: null,
@@ -496,33 +513,6 @@ export function ChatPage() {
     await handleReply(text);
   };
 
-  const replayPhrase = async (id: string, text: string) => {
-    if (playingId) return;
-    setPlayingId(id);
-    try {
-      const msg = messages.find((m) => m.id === id);
-      // Cached audio was captured for the original text; a switched register
-      // variant (different text) must fall through to fresh TTS instead.
-      const hasAudioForText = !!msg && text === (msg.dialectText ?? msg.text);
-      const urls = hasAudioForText ? (msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : [])) : [];
-      if (urls.length > 0) {
-        try {
-          for (const url of urls) {
-            await playDataUrl(url);
-          }
-          return;
-        } catch {
-          // cached audio failed, fall through to fresh TTS
-        }
-      }
-      await speakText(text, userProfile?.preferredVoiceId);
-    } catch {
-      toast.error("Audio playback failed.");
-    } finally {
-      setPlayingId(null);
-    }
-  };
-
   const openSaveDialog = () => {
     if (messages.length === 0) {
       toast.error("No conversation to save yet.");
@@ -557,13 +547,26 @@ export function ChatPage() {
   };
 
   // Intercept suggestion ratings for ML data capture before delegating to the
-  // normal message update (consent-gated, fire-and-forget).
+  // normal message update (consent-gated, fire-and-forget). `context` carries
+  // the English text the rated reply responded to (the nearest preceding
+  // incoming message's translation) so future DPO training can pair
+  // prompt→rating; it stays null when no such message exists.
   const handleUpdateMessage = (id: string, updates: Partial<Message>) => {
     if (updates.rating === "up" || updates.rating === "down") {
-      const rated = messages.find((m) => m.id === id);
+      const ratedIndex = messages.findIndex((m) => m.id === id);
+      const rated = ratedIndex >= 0 ? messages[ratedIndex] : undefined;
       if (rated) {
+        const precedingContext = messages
+          .slice(0, ratedIndex)
+          .reverse()
+          .find((m) => m.sender === "bot" && !!m.englishTranslation)?.englishTranslation;
         recordCorrection(
-          { kind: "suggestion_rating", original: rated.text, rating: updates.rating },
+          {
+            kind: "suggestion_rating",
+            original: rated.text,
+            rating: updates.rating,
+            ...(precedingContext ? { context: precedingContext } : {}),
+          },
           consentFromProfile(userProfile)
         );
       }
@@ -645,6 +648,7 @@ export function ChatPage() {
           onReply={handleReply}
           onToggleBookmark={handleToggleBookmark}
           onReplay={replayPhrase}
+          onReplaySlow={replayPhraseSlow}
           onUpdateMessage={handleUpdateMessage}
           onBubblePointerDown={handleBubblePointerDown}
           onBubblePointerMove={handleBubblePointerMove}

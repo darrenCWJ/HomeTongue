@@ -70,10 +70,10 @@ export function ConversationExercise({
             {revealed ? (
               <div className="bg-brand-blue/10 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-2xl font-bold text-brand-blue">{current.cantonese}</p>
-                  <PlayButton text={current.cantonese} size="sm" />
+                  <p className="text-2xl font-bold text-brand-blue">{current.dialect}</p>
+                  <PlayButton text={current.dialect} size="sm" />
                 </div>
-                <p className="text-sm font-mono text-brand-blue/60">{current.pronunciation}</p>
+                <p className="text-sm font-mono text-brand-blue/60">{current.romanization}</p>
               </div>
             ) : (
               <div className="flex gap-2">
@@ -97,10 +97,10 @@ export function ConversationExercise({
         ) : (
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-2xl font-bold text-zinc-800">{current.cantonese}</p>
-              <PlayButtonDark text={current.cantonese} />
+              <p className="text-2xl font-bold text-zinc-800">{current.dialect}</p>
+              <PlayButtonDark text={current.dialect} withSlow />
             </div>
-            <p className="text-sm font-mono text-zinc-400 mb-2">{current.pronunciation}</p>
+            <p className="text-sm font-mono text-zinc-400 mb-2">{current.romanization}</p>
             <p className="text-sm text-zinc-500 italic">{current.english}</p>
           </div>
         )}

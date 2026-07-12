@@ -1,0 +1,36 @@
+# Whisper LoRA fine-tune hyperparameters (docs/ML_TRAINING_PLAN.md step 2).
+# Consumed by train.py. Defaults target a single A10/T4 rented GPU.
+#
+# For a cheap --dry-run on a laptop, temporarily set base_model to
+# openai/whisper-tiny to avoid the multi-GB large-v3 download.
+
+base_model: openai/whisper-large-v3
+language: yue          # Whisper language token for Cantonese (supported by large-v3)
+task: transcribe
+
+data:
+  # Manifests built by prepare_data.py --audio-dir ... (absolute audio paths).
+  train_manifest: ml/train/whisper-lora/data/train.jsonl
+  val_manifest: ml/train/whisper-lora/data/val.jsonl
+  sampling_rate: 16000   # the app records 16 kHz mono WAV (src/hooks/audio.ts blobToWav)
+  max_label_chars: 200   # guard against pathological references
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules: ["q_proj", "v_proj"]
+
+training:
+  output_dir: ml/train/whisper-lora/checkpoints
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+  learning_rate: 1.0e-4
+  num_train_epochs: 3
+  warmup_ratio: 0.1
+  fp16: true
+  eval_steps: 100
+  save_steps: 100
+  logging_steps: 20
+  seed: 42

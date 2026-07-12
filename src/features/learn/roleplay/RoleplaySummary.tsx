@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Bookmark, BookmarkCheck, MessageCircle, Star } from "lucide-react";
 import { motion } from "motion/react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
-import { getActiveLanguagePack } from "../../../languages";
 import { newId } from "../../../utils/id";
 import type { RoleplayScenario, RoleplayTurn } from "../../../services/roleplayService";
 
@@ -29,10 +28,13 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
       id: `roleplay-${newId()}`,
       original: turn.english || turn.text,
       dialect: turn.text,
-      pronunciation: turn.jyutping ?? "",
+      pronunciation: turn.romanization ?? "",
       isBookmarked: true,
       context: `Roleplay: ${scenario.title}`,
-      languageCode: getActiveLanguagePack().code,
+      // Stamp the SCENARIO's language, not the module-level active pack: the
+      // scenario is the source of truth for what was rehearsed, and the
+      // active-pack module state can lag a render behind a dialect switch.
+      languageCode: scenario.languageCode,
     });
     setSavedTurnIds((prev) => {
       const next = new Set(prev);
@@ -99,8 +101,8 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-zinc-800">{turn.text}</p>
-                    {turn.jyutping && (
-                      <p className="text-[11px] font-mono text-brand-blue/60">{turn.jyutping}</p>
+                    {turn.romanization && (
+                      <p className="text-[11px] font-mono text-brand-blue/60">{turn.romanization}</p>
                     )}
                     {turn.english && <p className="text-xs text-zinc-500 mt-0.5">{turn.english}</p>}
                   </div>

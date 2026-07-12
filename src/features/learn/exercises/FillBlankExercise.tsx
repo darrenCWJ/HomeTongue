@@ -30,7 +30,7 @@ export function FillBlankExercise({
   const current = itemsWithSentences[index];
   const options = React.useMemo(() => {
     if (!current) return [];
-    const others = level.vocabulary.filter((v) => v.cantonese !== current.cantonese);
+    const others = level.vocabulary.filter((v) => v.dialect !== current.dialect);
     const shuffled = [...others].sort(() => Math.random() - 0.5).slice(0, 2);
     return [...shuffled, current].sort(() => Math.random() - 0.5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,10 +52,10 @@ export function FillBlankExercise({
 
   const sentence = personalise(current.exampleSentence ?? "", userProfile?.name);
 
-  const handleSelect = (cantonese: string) => {
+  const handleSelect = (dialect: string) => {
     if (selected !== null) return;
-    const correct = cantonese === current.cantonese;
-    setSelected(cantonese);
+    const correct = dialect === current.dialect;
+    setSelected(dialect);
     setIsCorrect(correct);
     if (correct) setCorrectCount((c) => c + 1);
   };
@@ -86,8 +86,8 @@ export function FillBlankExercise({
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
         {options.map((opt) => {
-          const isSelected = selected === opt.cantonese;
-          const correct = opt.cantonese === current.cantonese;
+          const isSelected = selected === opt.dialect;
+          const correct = opt.dialect === current.dialect;
           let style = "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50";
           if (selected !== null) {
             if (correct) style = "bg-green-50 border-green-400 text-green-700";
@@ -95,15 +95,15 @@ export function FillBlankExercise({
           }
           return (
             <button
-              key={opt.cantonese}
-              onClick={() => handleSelect(opt.cantonese)}
+              key={opt.dialect}
+              onClick={() => handleSelect(opt.dialect)}
               className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all active:scale-95 ${style}`}
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">{opt.cantonese}</span>
-                <PlayButtonDark text={opt.cantonese} size="sm" />
+                <span className="text-lg font-bold">{opt.dialect}</span>
+                <PlayButtonDark text={opt.dialect} size="sm" />
               </div>
-              <span className="text-sm font-mono text-zinc-400">{opt.pronunciation}</span>
+              <span className="text-sm font-mono text-zinc-400">{opt.romanization}</span>
             </button>
           );
         })}
@@ -124,7 +124,7 @@ export function FillBlankExercise({
               <X size={20} className="text-red-500" />
             )}
             <p className={`font-bold text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>
-              {isCorrect ? "Correct!" : `Answer: ${current.cantonese} (${current.pronunciation})`}
+              {isCorrect ? "Correct!" : `Answer: ${current.dialect} (${current.romanization})`}
             </p>
           </div>
           <button

@@ -1,0 +1,9 @@
+# Training deps for train.py / transcribe_for_eval.py (loosely pinned).
+# prepare_data.py is stdlib-only and needs none of these.
+torch>=2.1
+transformers>=4.44,<5
+peft>=0.11
+datasets[audio]>=2.19
+accelerate>=0.30
+soundfile>=0.12
+pyyaml>=6.0

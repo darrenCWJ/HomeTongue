@@ -1,0 +1,5 @@
+{"speaker":"spk-aaa","language":"yue-HK","kind":"transcript_edit","original":"我想要一杯凍奶茶","corrected":"我想要一杯凍奶茶，少甜","rating":null,"context":null,"created_at":"2026-07-01T10:00:00Z"}
+{"speaker":"spk-bbb","language":"yue-HK","kind":"transcript_edit","original":"你好嗎","corrected":null,"rating":null,"context":null,"created_at":"2026-07-01T10:05:00Z"}
+{"speaker":"spk-aaa","language":"yue-HK","kind":"suggestion_rating","original":"係呀，我哋週末去飲茶啦。","rating":"up","context":"嫲嫲問：你今個禮拜點呀？","created_at":"2026-07-02T09:00:00Z"}
+{"speaker":"spk-bbb","language":"yue-HK","kind":"suggestion_rating","original":"我不知道。","rating":"down","context":"嫲嫲問：你今個禮拜點呀？","created_at":"2026-07-02T09:01:00Z"}
+{"speaker":"spk-ccc","language":"yue-HK","kind":"suggestion_rating","original":"好呀，冇問題。","rating":"up","context":null,"created_at":"2026-07-03T14:00:00Z"}

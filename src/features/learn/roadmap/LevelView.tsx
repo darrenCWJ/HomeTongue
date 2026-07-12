@@ -3,7 +3,8 @@ import { ArrowLeft, CheckCircle, RotateCcw } from "lucide-react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
 import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion } from "motion/react";
-import { getLessonContent, getLessonLevels } from "../../../data/lessons";
+import { getLessonLevels } from "../../../data/lessons";
+import { useLessonContent } from "../../../hooks/useLessonContent";
 import { resolveLanguagePackByLabel } from "../../../languages";
 import type { LessonLevel, LessonProgress } from "../../../types";
 import { FlashcardExercise } from "../exercises/FlashcardExercise";
@@ -36,8 +37,8 @@ export function LevelView({
   const { dialect } = useProfile();
   // Active language's curriculum, derived from the profile dialect (see
   // LearnPage for why this is read per-render instead of via the module-level
-  // active pack).
-  const { lessons } = getLessonContent(resolveLanguagePackByLabel(dialect).code);
+  // active pack); reactive to DB-published content via useLessonContent.
+  const { lessons } = useLessonContent(resolveLanguagePackByLabel(dialect).code);
   const [result, setResult] = useState<AttemptResult | null>(null);
   // Bumped on retry so the active exercise remounts with fresh state.
   const [attemptKey, setAttemptKey] = useState(0);

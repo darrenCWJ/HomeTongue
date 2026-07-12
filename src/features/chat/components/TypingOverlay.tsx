@@ -1,5 +1,6 @@
 import { Send } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useActiveCapabilities } from "../../../hooks/useActiveLanguageCode";
 
 interface TypingOverlayProps {
   isOpen: boolean;
@@ -16,6 +17,9 @@ export function TypingOverlay({
   onSubmit,
   onClose,
 }: TypingOverlayProps) {
+  // Voice-less packs (capabilities.tts false) never speak the reply — don't
+  // promise audio the app can't deliver.
+  const { tts: ttsEnabled } = useActiveCapabilities();
   return (
     <AnimatePresence>
       {isOpen && (
@@ -28,7 +32,11 @@ export function TypingOverlay({
         >
           <div className="text-center mb-6 w-full">
             <h3 className="text-2xl font-bold text-zinc-800 mb-1">Your reply</h3>
-            <p className="text-sm text-zinc-500">Type in English — it will be spoken in their dialect</p>
+            <p className="text-sm text-zinc-500">
+              {ttsEnabled
+                ? "Type in English — it will be spoken in their dialect"
+                : "Type in English — it will be translated into their dialect"}
+            </p>
           </div>
           <div className="relative w-full max-w-md">
             <input

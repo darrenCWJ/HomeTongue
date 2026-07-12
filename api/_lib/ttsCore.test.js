@@ -86,6 +86,46 @@ describe("ttsCore", () => {
     expect(result.body).toEqual({ error: "Unsupported voice" });
   });
 
+  it("returns 400 for a speakingRate outside [0.5, 1.2]", async () => {
+    const result = await ttsCore({ ...VALID_BODY, speakingRate: 2 }, saEnv("svc-validate@test.iam"));
+
+    expect(result.status).toBe(400);
+    expect(result.body).toEqual({ error: "speakingRate must be a number between 0.5 and 1.2" });
+  });
+
+  it("returns 400 for a non-numeric speakingRate", async () => {
+    const result = await ttsCore({ ...VALID_BODY, speakingRate: "0.7" }, saEnv("svc-validate@test.iam"));
+
+    expect(result.status).toBe(400);
+    expect(result.body).toEqual({ error: "speakingRate must be a number between 0.5 and 1.2" });
+  });
+
+  it("passes a valid speakingRate through to the synthesis audioConfig", async () => {
+    const fetchMock = stubGoogleFetch();
+
+    const result = await ttsCore({ ...VALID_BODY, speakingRate: 0.7 }, saEnv("svc-rate@test.iam"));
+
+    expect(result.status).toBe(200);
+    const synthCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("texttospeech.googleapis.com")
+    );
+    const synthBody = JSON.parse(synthCall[1].body);
+    expect(synthBody.audioConfig).toEqual({ audioEncoding: "MP3", speakingRate: 0.7 });
+  });
+
+  it("omits speakingRate from the synthesis audioConfig when not requested", async () => {
+    const fetchMock = stubGoogleFetch();
+
+    const result = await ttsCore(VALID_BODY, saEnv("svc-norate@test.iam"));
+
+    expect(result.status).toBe(200);
+    const synthCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("texttospeech.googleapis.com")
+    );
+    const synthBody = JSON.parse(synthCall[1].body);
+    expect(synthBody.audioConfig).toEqual({ audioEncoding: "MP3" });
+  });
+
   it("returns 200 with audioContent on the happy path", async () => {
     const fetchMock = stubGoogleFetch({ audioContent: "bXAz" });
 

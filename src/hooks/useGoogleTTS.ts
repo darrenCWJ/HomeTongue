@@ -58,6 +58,21 @@ export function asVoiceKey(id: string | undefined | null): VoiceKey {
 // ──────────────────────────────────────────────────────────
 const TTS_TIMEOUT_MS = 15_000;
 
+/**
+ * Speaking rate for the "slow replay" affordance. The server validates
+ * speakingRate to [0.5, 1.2] (api/_lib/ttsCore.js) — keep in range.
+ */
+export const SLOW_SPEAKING_RATE = 0.7;
+
+export interface SpeakOptions {
+  /**
+   * Google TTS speakingRate (1 = normal). Callers requesting a non-default
+   * rate must NOT cache the result as the message's normal-speed clip —
+   * use speakText (no capture) for slow plays.
+   */
+  speakingRate?: number;
+}
+
 // Packs without a usable TTS model (capabilities.tts === false) must never
 // hit /api/tts and must never throw — callers just get silence. Warn once
 // per session so the skipped synthesis is still visible to developers.
@@ -75,11 +90,12 @@ function isTtsUnavailable(): boolean {
   return true;
 }
 
-async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob> {
+async function synthesizeToBlob(text: string, voiceKey: VoiceKey, options: SpeakOptions = {}): Promise<Blob> {
   if (isTtsUnavailable()) return new Blob([], { type: "audio/mpeg" });
   const pack = getActiveLanguagePack();
   const voice = pack.tts.voices[voiceKey] ?? pack.tts.voices[pack.tts.defaultVoice];
   const voiceName = voice.name;
+  const { speakingRate } = options;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
@@ -89,7 +105,12 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
     res = await fetch(apiUrl("/api/tts"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voiceName, languageCode: pack.tts.languageCode }),
+      body: JSON.stringify({
+        text,
+        voiceName,
+        languageCode: pack.tts.languageCode,
+        ...(typeof speakingRate === "number" ? { speakingRate } : {}),
+      }),
       signal: controller.signal,
     });
   } catch (e) {
@@ -122,12 +143,13 @@ async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob>
 // ──────────────────────────────────────────────────────────
 export async function speakTextAndCapture(
   text: string,
-  voice: string = DEFAULT_VOICE
+  voice: string = DEFAULT_VOICE,
+  options: SpeakOptions = {}
 ): Promise<{ audioDataUrl: string; play: () => Promise<void> }> {
   if (isTtsUnavailable()) {
     return { audioDataUrl: "", play: () => Promise.resolve() };
   }
-  const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
+  const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice), options);
   const audioDataUrl = await blobToDataUrl(audioBlob);
   const audioUrl = URL.createObjectURL(audioBlob);
 
@@ -148,9 +170,13 @@ export async function speakTextAndCapture(
   return { audioDataUrl, play };
 }
 
-export async function speakText(text: string, voice: string = DEFAULT_VOICE): Promise<void> {
+export async function speakText(
+  text: string,
+  voice: string = DEFAULT_VOICE,
+  options: SpeakOptions = {}
+): Promise<void> {
   if (isTtsUnavailable()) return;
-  const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
+  const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice), options);
   const audioUrl = URL.createObjectURL(audioBlob);
 
   await new Promise<void>((resolve, reject) => {

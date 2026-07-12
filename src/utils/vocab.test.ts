@@ -22,7 +22,7 @@ describe("extractVocabFromMessages", () => {
   test("extracts bot messages with an English translation", () => {
     const vocab = extractVocabFromMessages([botMsg("你好嗎", "How are you?")]);
     expect(vocab).toEqual([
-      { english: "How are you?", cantonese: "你好嗎", pronunciation: "", audioDataUrl: undefined },
+      { english: "How are you?", dialect: "你好嗎", romanization: "", audioDataUrl: undefined },
     ]);
   });
 
@@ -37,8 +37,8 @@ describe("extractVocabFromMessages", () => {
     expect(vocab).toEqual([
       {
         english: "I want tea",
-        cantonese: "我想飲茶",
-        pronunciation: "ngo5 soeng2 jam2 caa4",
+        dialect: "我想飲茶",
+        romanization: "ngo5 soeng2 jam2 caa4",
         audioDataUrl: undefined,
       },
     ]);

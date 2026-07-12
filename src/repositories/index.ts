@@ -17,6 +17,8 @@ import {
 } from "./cloud/CloudRepositories";
 import { LocalReviewStateRepository } from "./local/ReviewStateRepository";
 import { CloudReviewStateRepository } from "./cloud/CloudReviewStateRepository";
+import { createOutboxRepositories } from "./outbox/OutboxRepositories";
+import { setOutboxHold } from "./outbox/outboxStore";
 const STORAGE_MODE: string = import.meta.env.VITE_STORAGE_MODE ?? "local";
 
 // Literal `!!(...)` on the statically-replaced env values (NOT the imported
@@ -34,7 +36,11 @@ function createRepositories(mode: string): Repositories {
   // Cloud mode requires BOTH the mode flag and a configured Supabase project;
   // otherwise the app silently keeps working on local IndexedDB storage.
   if (mode === "cloud" && supabaseConfigured) {
-    return {
+    // The outbox decorator makes cloud writes durable: a failed write is
+    // queued locally and replayed when connectivity/auth returns — see
+    // src/repositories/outbox/. Local mode needs no such layer (IndexedDB
+    // writes don't fail on connectivity).
+    return createOutboxRepositories({
       phrases: new CloudPhraseRepository(),
       conversations: new CloudConversationRepository(),
       user: new CloudUserRepository(),
@@ -42,7 +48,7 @@ function createRepositories(mode: string): Repositories {
       conversationLessons: new CloudConversationLessonRepository(),
       tags: new CloudTagRepository(),
       reviewStates: new CloudReviewStateRepository(),
-    };
+    });
   }
   if (mode === "cloud") {
     console.warn(
@@ -62,3 +68,12 @@ function createRepositories(mode: string): Repositories {
 }
 
 export const repositories = createRepositories(STORAGE_MODE);
+
+// Hold switch for the outbox decorator: while held, cloud writes skip the
+// network and queue directly (LibraryProvider holds while its initial load
+// has failed; clearing the hold flushes what accumulated). A no-op constant
+// in local mode so this export never drags the outbox into local bundles —
+// the literal `supabaseConfigured` check keeps the branch statically foldable,
+// same pattern as createRepositories above.
+export const setCloudWriteHold: (held: boolean) => void =
+  STORAGE_MODE === "cloud" && supabaseConfigured ? setOutboxHold : () => {};

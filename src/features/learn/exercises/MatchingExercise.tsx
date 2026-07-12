@@ -31,7 +31,7 @@ export function MatchingExercise({
   };
 
   const handleSelectZh = (item: VocabItem) => {
-    const originalIndex = batchItems.findIndex((b) => b.cantonese === item.cantonese);
+    const originalIndex = batchItems.findIndex((b) => b.dialect === item.dialect);
     if (matched.has(originalIndex)) return;
 
     if (selectedEn !== null) {
@@ -94,7 +94,7 @@ export function MatchingExercise({
 
         <div className="flex flex-col gap-3">
           {shuffledZh.map((item, i) => {
-            const originalIndex = batchItems.findIndex((b) => b.cantonese === item.cantonese);
+            const originalIndex = batchItems.findIndex((b) => b.dialect === item.dialect);
             const isMatched = matched.has(originalIndex);
             const isWrong = wrong?.zh === originalIndex;
             return (
@@ -109,10 +109,10 @@ export function MatchingExercise({
                 `}
               >
                 <div className="flex items-center justify-center gap-1">
-                  <span>{item.cantonese}</span>
-                  <PlayButtonDark text={item.cantonese} size="sm" />
+                  <span>{item.dialect}</span>
+                  <PlayButtonDark text={item.dialect} size="sm" />
                 </div>
-                <div className="text-xs font-mono text-zinc-400">{item.pronunciation}</div>
+                <div className="text-xs font-mono text-zinc-400">{item.romanization}</div>
               </button>
             );
           })}

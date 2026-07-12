@@ -29,10 +29,10 @@ export function MultipleChoiceExercise({
     return [...shuffled, current].sort(() => Math.random() - 0.5);
   }, [index]);
 
-  const handleSelect = (cantonese: string) => {
+  const handleSelect = (dialect: string) => {
     if (selected !== null) return;
-    const correct = cantonese === current.cantonese;
-    setSelected(cantonese);
+    const correct = dialect === current.dialect;
+    setSelected(dialect);
     setIsCorrect(correct);
     if (correct) setCorrectCount((c) => c + 1);
   };
@@ -64,8 +64,8 @@ export function MultipleChoiceExercise({
 
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
         {options.map((opt) => {
-          const isSelected = selected === opt.cantonese;
-          const correct = opt.cantonese === current.cantonese;
+          const isSelected = selected === opt.dialect;
+          const correct = opt.dialect === current.dialect;
           let style = "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50";
           if (selected !== null) {
             if (correct) style = "bg-green-50 border-green-400 text-green-700";
@@ -73,15 +73,15 @@ export function MultipleChoiceExercise({
           }
           return (
             <button
-              key={opt.cantonese}
-              onClick={() => handleSelect(opt.cantonese)}
+              key={opt.dialect}
+              onClick={() => handleSelect(opt.dialect)}
               className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all active:scale-95 ${style}`}
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-bold">{opt.cantonese}</span>
-                <PlayButtonDark text={opt.cantonese} size="sm" />
+                <span className="text-xl font-bold">{opt.dialect}</span>
+                <PlayButtonDark text={opt.dialect} size="sm" />
               </div>
-              <span className="text-xs font-mono text-zinc-400">{opt.pronunciation}</span>
+              <span className="text-xs font-mono text-zinc-400">{opt.romanization}</span>
             </button>
           );
         })}
@@ -107,7 +107,7 @@ export function MultipleChoiceExercise({
               </p>
               {!isCorrect && (
                 <p className="text-xs text-red-500">
-                  Answer: {current.cantonese} ({current.pronunciation})
+                  Answer: {current.dialect} ({current.romanization})
                 </p>
               )}
             </div>

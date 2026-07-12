@@ -9,6 +9,7 @@ import type {
   Tag,
 } from "../../types";
 import type { PhraseReviewState } from "../../types";
+import type { OutboxEntry } from "../outbox/types";
 import { DEFAULT_LANGUAGE_CODE } from "../../languages/scope";
 
 interface ProfileRow {
@@ -30,6 +31,7 @@ class HomeTongueDB extends Dexie {
   draftMessages!: Table<DraftRow, string>;
   tags!: Table<Tag, string>;
   reviewStates!: Table<PhraseReviewState, string>;
+  outbox!: Table<OutboxEntry, string>;
 
   constructor() {
     super("hometongue");
@@ -112,6 +114,57 @@ class HomeTongueDB extends Dexie {
         tx.table("sessions").toCollection().modify(backfillLanguageCode),
         tx.table("conversationLessons").toCollection().modify(backfillLanguageCode),
       ]).then(() => undefined);
+    });
+    // v9: dialect-neutral VocabItem rename — `cantonese` became `dialect` and
+    // `pronunciation` became `romanization` on the vocabulary items persisted
+    // in `conversationLessons` (the only table that stores VocabItems; some
+    // old docs called the romanization field "jyutping", handled too).
+    // Idempotent and tolerant of odd shapes: items without a legacy key (or
+    // already migrated) pass through untouched, and an existing new-name
+    // value is never overwritten. WordChunk breakdowns keep their own
+    // `pronunciation` field — only the item's top-level keys move.
+    this.version(9).upgrade((tx) => {
+      const migrateVocabulary = (vocabulary: unknown): void => {
+        if (!Array.isArray(vocabulary)) return;
+        for (const item of vocabulary) {
+          if (!item || typeof item !== "object") continue;
+          const legacy = item as {
+            cantonese?: unknown;
+            pronunciation?: unknown;
+            jyutping?: unknown;
+            dialect?: unknown;
+            romanization?: unknown;
+          };
+          if ("cantonese" in legacy) {
+            if (legacy.dialect === undefined && typeof legacy.cantonese === "string") {
+              legacy.dialect = legacy.cantonese;
+            }
+            delete legacy.cantonese;
+          }
+          for (const legacyKey of ["pronunciation", "jyutping"] as const) {
+            if (!(legacyKey in legacy)) continue;
+            if (legacy.romanization === undefined && typeof legacy[legacyKey] === "string") {
+              legacy.romanization = legacy[legacyKey];
+            }
+            delete legacy[legacyKey];
+          }
+        }
+      };
+      return tx
+        .table("conversationLessons")
+        .toCollection()
+        .modify((lesson) => {
+          migrateVocabulary(lesson.vocabulary);
+        })
+        .then(() => undefined);
+    });
+    // v10: cloud-write outbox — durable queue for cloud-mode repository
+    // writes that failed (offline, expired session, RLS error), flushed FIFO
+    // when connectivity/auth returns (see src/repositories/outbox/). Brand-new
+    // empty table, so no upgrade callback is needed — Dexie creates it as-is.
+    // `createdAt` is indexed for FIFO replay, `userId` for per-user flushing.
+    this.version(10).stores({
+      outbox: "id, createdAt, userId",
     });
   }
 }

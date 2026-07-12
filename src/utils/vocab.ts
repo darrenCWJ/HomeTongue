@@ -11,25 +11,25 @@ export function extractVocabFromMessages(
 
   for (const msg of msgs) {
     if (msg.sender === "bot" && msg.text && msg.englishTranslation) {
-      const cantonese = msg.text.trim();
-      if (hasTwoChinese(cantonese) && !seen.has(cantonese)) {
-        seen.add(cantonese);
+      const dialect = msg.text.trim();
+      if (hasTwoChinese(dialect) && !seen.has(dialect)) {
+        seen.add(dialect);
         items.push({
           english: msg.englishTranslation,
-          cantonese,
-          pronunciation: "",
+          dialect,
+          romanization: "",
           audioDataUrl: audioSource === "recorded" ? msg.audioDataUrls?.[0] : undefined,
         });
       }
     }
     if (msg.sender === "user" && msg.dialectText) {
-      const cantonese = msg.dialectText.trim();
-      if (hasTwoChinese(cantonese) && !seen.has(cantonese)) {
-        seen.add(cantonese);
+      const dialect = msg.dialectText.trim();
+      if (hasTwoChinese(dialect) && !seen.has(dialect)) {
+        seen.add(dialect);
         items.push({
           english: msg.text,
-          cantonese,
-          pronunciation: msg.pronunciation ?? "",
+          dialect,
+          romanization: msg.pronunciation ?? "",
           audioDataUrl: msg.audioDataUrl,
         });
       }

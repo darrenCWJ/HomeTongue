@@ -36,8 +36,8 @@ export function PhraseBreakdownExercise({
     if (!cache[phraseIdx]) {
       setIsLoading(true);
       generateWordBreakdown(
-        vocab[phraseIdx].cantonese,
-        vocab[phraseIdx].pronunciation ?? "",
+        vocab[phraseIdx].dialect,
+        vocab[phraseIdx].romanization ?? "",
         vocab[phraseIdx].english
       )
         .then((result) => {
@@ -89,11 +89,11 @@ export function PhraseBreakdownExercise({
       <div className="bg-brand-blue/10 border border-brand-blue/15 rounded-2xl p-4">
         <p className="text-xs text-zinc-400 mb-1">{item.english}</p>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-bold text-brand-blue">{item.cantonese}</p>
-          <PlayButtonDark text={item.cantonese} size="sm" />
+          <p className="text-2xl font-bold text-brand-blue">{item.dialect}</p>
+          <PlayButtonDark text={item.dialect} size="sm" />
         </div>
-        {item.pronunciation && (
-          <p className="text-sm font-mono text-brand-blue/60 mt-0.5">{item.pronunciation}</p>
+        {item.romanization && (
+          <p className="text-sm font-mono text-brand-blue/60 mt-0.5">{item.romanization}</p>
         )}
       </div>
 

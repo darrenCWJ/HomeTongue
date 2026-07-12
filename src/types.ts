@@ -100,6 +100,15 @@ export interface Message {
   variants?: MessageVariants;
   /** Model-predicted likely reply from the other speaker, in the dialect. */
   predictedResponse?: string;
+  /**
+   * Word-match score of a Dialect-mic transcription against the most recent
+   * practice target (the last outgoing message with dialectText). Measures
+   * transcribed WORD accuracy, not pronunciation/tones. `method` is
+   * "llm" or "fallback" (approximate offline matcher) — see
+   * scoreDialectAccuracyDetailed in src/services/translationService.ts.
+   * Persists through the sessions jsonb blob without mapping changes.
+   */
+  matchScore?: { score: number; method: string };
 }
 
 export interface Session {
@@ -167,8 +176,10 @@ export interface WordChunk {
 
 export interface VocabItem {
   english: string;
-  cantonese: string;
-  pronunciation: string;
+  /** The word/phrase in the active dialect's script (persisted; legacy records stored this as `cantonese`). */
+  dialect: string;
+  /** Romanization of the dialect text, e.g. Jyutping or Tâi-lô (persisted; legacy records stored this as `pronunciation`). */
+  romanization: string;
   exampleSentence?: string;
   audioDataUrl?: string;
   breakdown?: WordChunk[];
@@ -176,11 +187,14 @@ export interface VocabItem {
 
 export type ExerciseType = "flashcard" | "matching" | "multiple-choice" | "fill-blank" | "conversation";
 
+/** One scripted line of a lesson conversation (static content only — never persisted). */
 export interface ConversationTurn {
   speaker: "user" | "them";
   english: string;
-  cantonese: string;
-  pronunciation: string;
+  /** The line in the active dialect's script (legacy name: `cantonese`). */
+  dialect: string;
+  /** Romanization of the dialect line (legacy name: `pronunciation`). */
+  romanization: string;
   hint?: string;
 }
 
