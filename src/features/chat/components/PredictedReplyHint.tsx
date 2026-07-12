@@ -32,19 +32,19 @@ export function PredictedReplyHint({
       animate={{ opacity: 1, y: 0 }}
       className="flex justify-start pl-10"
     >
-      <div className="flex items-center gap-2 max-w-[78%] bg-zinc-100/80 border border-dashed border-zinc-200 rounded-2xl rounded-tl-sm px-3 py-2">
+      <div className="flex items-center gap-2 max-w-[78%] bg-muted/80 border border-dashed border-border rounded-2xl rounded-tl-sm px-3 py-2">
         <div className="min-w-0">
-          <span className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
+          <span className="block text-[10px] font-semibold text-faint uppercase tracking-wide">
             They might reply:
           </span>
-          <span className="block text-sm font-medium text-zinc-600 leading-snug">{text}</span>
+          <span className="block text-sm font-medium text-muted-foreground leading-snug">{text}</span>
         </div>
         {showPlay && (
           <button
             onClick={onPlay}
             disabled={playDisabled}
             aria-label="Play predicted reply"
-            className="flex-shrink-0 p-1 rounded-full text-zinc-400 hover:text-brand-blue disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 p-1 rounded-full text-faint hover:text-brand-blue disabled:opacity-50 transition-colors"
           >
             <Volume2 size={14} className={isPlaying ? "animate-pulse text-brand-blue" : ""} />
           </button>
@@ -52,7 +52,7 @@ export function PredictedReplyHint({
         <button
           onClick={() => setIsDismissed(true)}
           aria-label="Dismiss predicted reply"
-          className="flex-shrink-0 p-1 rounded-full text-zinc-300 hover:text-zinc-500 transition-colors"
+          className="flex-shrink-0 p-1 rounded-full text-faint hover:text-muted-foreground transition-colors"
         >
           <X size={12} />
         </button>

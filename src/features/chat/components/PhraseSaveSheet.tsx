@@ -42,20 +42,20 @@ export function PhraseSaveSheet({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col"
+          className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-border-subtle z-30 pt-8 pb-12 px-6 flex flex-col"
         >
           <div className="text-center mb-5">
-            <h3 className="text-xl font-bold text-zinc-800 mb-1">Save as Phrase</h3>
-            <p className="text-sm text-zinc-500">Edit to keep just the part you want</p>
+            <h3 className="text-xl font-bold text-foreground mb-1">Save as Phrase</h3>
+            <p className="text-sm text-muted-foreground">Edit to keep just the part you want</p>
           </div>
           <textarea
             value={phraseSelectionText}
             onChange={(e) => setPhraseSelectionText(e.target.value)}
             autoFocus
             rows={3}
-            className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800 text-base resize-none mb-4"
+            className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground text-base resize-none mb-4"
           />
-          <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Tags</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tags</label>
           <div className="flex flex-wrap gap-2 mb-3">
             {phraseTags.map((tag) => {
               const isSelected = phraseTagSelection.includes(tag.id);
@@ -70,7 +70,7 @@ export function PhraseSaveSheet({
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                     isSelected
                       ? "bg-brand-blue text-white border-brand-blue"
-                      : "bg-white text-zinc-600 border-zinc-200 hover:border-brand-blue/20"
+                      : "bg-card text-muted-foreground border-border hover:border-brand-blue/20"
                   }`}
                 >
                   {tag.name}
@@ -118,7 +118,7 @@ export function PhraseSaveSheet({
             ) : (
               <button
                 onClick={() => setIsCreatingPhraseTag(true)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-border text-faint hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
               >
                 <Plus size={12} />
                 New
@@ -134,7 +134,7 @@ export function PhraseSaveSheet({
           </button>
           <button
             onClick={onCancel}
-            className="text-zinc-400 font-medium text-sm hover:text-zinc-600 text-center"
+            className="text-faint font-medium text-sm hover:text-muted-foreground text-center"
           >
             Cancel
           </button>

@@ -58,7 +58,7 @@ export function IncomingCantoneseBubble({
       <div className="flex flex-col max-w-[78%]">
         <div
           {...(isFirstBotMsg ? { "data-tour": "chat-message-bubble" } : {})}
-          className="relative bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3"
+          className="relative bg-card rounded-2xl rounded-bl-sm shadow-sm border border-border px-4 py-3"
           onPointerDown={(e) => onBubblePointerDown(e, msg)}
           onPointerUp={onBubblePointerCancel}
           onPointerMove={onBubblePointerMove}
@@ -69,21 +69,21 @@ export function IncomingCantoneseBubble({
             {...(isFirstBotMsg ? { "data-tour": "chat-bookmark-button" } : {})}
             onClick={() => onToggleBookmark(msg.id)}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-2 right-2 text-zinc-300 hover:text-zinc-500 transition-colors"
+            className="absolute top-2 right-2 text-faint hover:text-muted-foreground transition-colors"
           >
-            <Bookmark size={14} className={isBookmarked ? "fill-zinc-600 text-zinc-600" : ""} />
+            <Bookmark size={14} className={isBookmarked ? "fill-muted-foreground text-muted-foreground" : ""} />
           </button>
-          <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">{msg.text}</p>
+          <p className="text-lg font-semibold text-foreground leading-snug pr-5">{msg.text}</p>
           <p className="text-xs text-brand-blue mt-1 font-medium">{msg.englishTranslation}</p>
           {msg.matchScore && <WordMatchBadge matchScore={msg.matchScore} />}
           {ttsEnabled && (
-            <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center gap-2">
+            <div className="mt-2 pt-2 border-t border-border-subtle flex items-center gap-2">
               <button
                 {...(isFirstBotMsg ? { "data-tour": "chat-replay-button" } : {})}
                 onClick={() => onReplay(msg.id, msg.text)}
                 onPointerDown={(e) => e.stopPropagation()}
                 disabled={!!playingId}
-                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1 text-xs text-faint hover:text-muted-foreground disabled:opacity-50 transition-colors"
               >
                 {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
                 {isPlaying ? "Playing..." : "Replay"}
@@ -99,13 +99,13 @@ export function IncomingCantoneseBubble({
         <div className="flex items-center gap-1 mt-1 ml-1">
           <button
             onClick={() => onUpdateMessage(msg.id, { rating: msg.rating === "up" ? undefined : "up" })}
-            className={`p-1 rounded transition-colors ${msg.rating === "up" ? "text-green-600 bg-green-50" : "text-zinc-300 hover:text-green-500"}`}
+            className={`p-1 rounded transition-colors ${msg.rating === "up" ? "text-green-600 bg-green-50" : "text-faint hover:text-green-500"}`}
           >
             <ThumbsUp size={12} className={msg.rating === "up" ? "fill-green-600" : ""} />
           </button>
           <button
             onClick={() => onUpdateMessage(msg.id, { rating: msg.rating === "down" ? undefined : "down" })}
-            className={`p-1 rounded transition-colors ${msg.rating === "down" ? "text-red-500 bg-red-50" : "text-zinc-300 hover:text-red-400"}`}
+            className={`p-1 rounded transition-colors ${msg.rating === "down" ? "text-red-500 bg-red-50" : "text-faint hover:text-red-400"}`}
           >
             <ThumbsDown size={12} className={msg.rating === "down" ? "fill-red-500" : ""} />
           </button>
@@ -198,13 +198,13 @@ export function OutgoingReplyBubble({
         <div className="flex items-center gap-1 mt-1 mr-1">
           <button
             onClick={() => onUpdateMessage(msg.id, { rating: msg.rating === "up" ? undefined : "up" })}
-            className={`p-1 rounded transition-colors ${msg.rating === "up" ? "text-green-600 bg-green-50" : "text-zinc-300 hover:text-green-500"}`}
+            className={`p-1 rounded transition-colors ${msg.rating === "up" ? "text-green-600 bg-green-50" : "text-faint hover:text-green-500"}`}
           >
             <ThumbsUp size={12} className={msg.rating === "up" ? "fill-green-600" : ""} />
           </button>
           <button
             onClick={() => onUpdateMessage(msg.id, { rating: msg.rating === "down" ? undefined : "down" })}
-            className={`p-1 rounded transition-colors ${msg.rating === "down" ? "text-red-500 bg-red-50" : "text-zinc-300 hover:text-red-400"}`}
+            className={`p-1 rounded transition-colors ${msg.rating === "down" ? "text-red-500 bg-red-50" : "text-faint hover:text-red-400"}`}
           >
             <ThumbsDown size={12} className={msg.rating === "down" ? "fill-red-500" : ""} />
           </button>
@@ -220,8 +220,8 @@ export function OutgoingReplyBubble({
 export function PlainBotBubble({ msg }: { msg: Message }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start pl-10">
-      <div className="max-w-[78%] bg-white border border-zinc-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-        <p className="text-sm text-zinc-700">{msg.text}</p>
+      <div className="max-w-[78%] bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+        <p className="text-sm text-foreground/90">{msg.text}</p>
       </div>
     </motion.div>
   );

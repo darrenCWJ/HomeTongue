@@ -27,7 +27,7 @@ export function PhraseCard({
   return (
     <div
       {...(isFirst ? { "data-tour": "bookmarks-phrase-card" } : {})}
-      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 relative"
+      className="bg-card rounded-2xl p-4 shadow-sm border border-border-subtle relative"
     >
       <div className="absolute top-4 right-4 flex items-center gap-1">
         <button
@@ -35,7 +35,7 @@ export function PhraseCard({
           className={`p-1.5 rounded-full transition-colors ${
             editingTagsPhraseId === phrase.id
               ? "bg-brand-blue/15 text-brand-blue"
-              : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
+              : "text-faint hover:text-brand-blue hover:bg-muted"
           }`}
         >
           <TagIcon size={16} />
@@ -68,24 +68,24 @@ export function PhraseCard({
             );
           })}
         </div>
-        <p className="text-lg font-medium text-zinc-800 mb-1">{phrase.dialect}</p>
+        <p className="text-lg font-medium text-foreground mb-1">{phrase.dialect}</p>
         <div className="flex items-center gap-2 mb-3">
-          <p className="text-sm text-zinc-500 italic">{phrase.pronunciation}</p>
+          <p className="text-sm text-muted-foreground italic">{phrase.pronunciation}</p>
           <button
             onClick={() => onSpeak(phrase.id, phrase.dialect, phrase.audioDataUrl, phrase.audioDataUrls)}
             disabled={playingId !== null}
             className={`p-1.5 rounded-full transition-colors ${
               playingId === phrase.id
                 ? "bg-brand-blue/15 text-brand-blue"
-                : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                : "bg-background text-faint hover:bg-muted hover:text-muted-foreground"
             } disabled:cursor-not-allowed`}
           >
             <Volume2 size={14} className={playingId === phrase.id ? "animate-pulse" : ""} />
           </button>
         </div>
-        <div className="bg-zinc-50 rounded-lg p-2.5 border border-zinc-100">
-          <p className="text-xs text-zinc-600 font-medium line-clamp-2">
-            <span className="text-zinc-400 font-normal mr-1">Meaning:</span>
+        <div className="bg-background rounded-lg p-2.5 border border-border-subtle">
+          <p className="text-xs text-muted-foreground font-medium line-clamp-2">
+            <span className="text-faint font-normal mr-1">Meaning:</span>
             {phrase.original}
           </p>
         </div>
@@ -93,8 +93,8 @@ export function PhraseCard({
 
       {/* Inline tag editor */}
       {editingTagsPhraseId === phrase.id && (
-        <div className="mt-3 pt-3 border-t border-zinc-100">
-          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide mb-2">Tags</p>
+        <div className="mt-3 pt-3 border-t border-border-subtle">
+          <p className="text-[10px] font-semibold text-faint uppercase tracking-wide mb-2">Tags</p>
           <div className="flex flex-wrap gap-1.5">
             {phraseTags.map((tag) => {
               const isSelected = phrase.tags?.includes(tag.id) ?? false;
@@ -109,7 +109,7 @@ export function PhraseCard({
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                     isSelected
                       ? "bg-brand-blue text-white"
-                      : "bg-zinc-100 text-zinc-500 hover:bg-brand-blue/10 hover:text-brand-blue"
+                      : "bg-muted text-muted-foreground hover:bg-brand-blue/10 hover:text-brand-blue"
                   }`}
                 >
                   {tag.name}

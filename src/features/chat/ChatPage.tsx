@@ -606,7 +606,7 @@ export function ChatPage() {
   const stageLabel = stage === "transcribing" ? "Listening..." : "Translating...";
 
   return (
-    <div className="flex flex-col h-full bg-zinc-50 relative">
+    <div className="flex flex-col h-full bg-background relative">
       {/* Header */}
       <ChatHeader
         activePersona={activePersona}
@@ -621,7 +621,7 @@ export function ChatPage() {
       {/* Empty state */}
       {messages.length === 0 && !stage && !showDemoBubble ? (
         <div className="flex-1 flex items-center justify-center p-6">
-          <p className="text-zinc-400 text-sm text-center">
+          <p className="text-faint text-sm text-center">
             Tap the mic button or type your message for translation
           </p>
         </div>
@@ -658,7 +658,7 @@ export function ChatPage() {
       )}
 
       {/* Button area background mask — covers scroll content behind buttons */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-zinc-50 z-20 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-background z-20 pointer-events-none" />
 
       {/* Bottom action bar */}
       {!isBusy && (

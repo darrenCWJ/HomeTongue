@@ -39,8 +39,8 @@ export function ConversationExercise({
     <div className="flex flex-col p-6 gap-4">
       <div className="flex items-center gap-2 mb-2">
         <MessageCircle size={16} className="text-brand-blue/60" />
-        <p className="text-sm text-zinc-500">Step through the conversation</p>
-        <span className="ml-auto text-xs text-zinc-400">
+        <p className="text-sm text-muted-foreground">Step through the conversation</p>
+        <span className="ml-auto text-xs text-faint">
           {step + 1} / {turns.length}
         </span>
       </div>
@@ -51,19 +51,19 @@ export function ConversationExercise({
         ))}
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-brand-blue/15 p-5">
+      <div className="bg-card rounded-3xl shadow-sm border border-brand-blue/15 p-5">
         <div className="flex items-center gap-2 mb-3">
           <div
             className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${isUserTurn ? "bg-orange-400" : "bg-brand-blue/60"}`}
           >
             {isUserTurn ? "Y" : "T"}
           </div>
-          <span className="text-xs font-semibold text-zinc-500">{isUserTurn ? "Your turn" : "They say"}</span>
+          <span className="text-xs font-semibold text-muted-foreground">{isUserTurn ? "Your turn" : "They say"}</span>
         </div>
 
         {isUserTurn ? (
           <>
-            <p className="text-sm text-zinc-600 mb-3">{current.english}</p>
+            <p className="text-sm text-muted-foreground mb-3">{current.english}</p>
             {showHint && current.hint && (
               <p className="text-xs text-brand-blue italic mb-3">Hint: {current.hint}</p>
             )}
@@ -80,7 +80,7 @@ export function ConversationExercise({
                 {!showHint && current.hint && (
                   <button
                     onClick={() => setShowHint(true)}
-                    className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-500 text-sm font-semibold hover:bg-zinc-50 active:scale-95 transition-all"
+                    className="flex-1 py-2.5 rounded-xl border border-border text-muted-foreground text-sm font-semibold hover:bg-background active:scale-95 transition-all"
                   >
                     Hint
                   </button>
@@ -97,11 +97,11 @@ export function ConversationExercise({
         ) : (
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-2xl font-bold text-zinc-800">{current.dialect}</p>
+              <p className="text-2xl font-bold text-foreground">{current.dialect}</p>
               <PlayButtonDark text={current.dialect} withSlow />
             </div>
-            <p className="text-sm font-mono text-zinc-400 mb-2">{current.romanization}</p>
-            <p className="text-sm text-zinc-500 italic">{current.english}</p>
+            <p className="text-sm font-mono text-faint mb-2">{current.romanization}</p>
+            <p className="text-sm text-muted-foreground italic">{current.english}</p>
           </div>
         )}
       </div>
@@ -110,7 +110,7 @@ export function ConversationExercise({
         onClick={handleNext}
         disabled={isUserTurn && !revealed}
         className={`w-full py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95
-          ${!isUserTurn || revealed ? "bg-brand-blue/100 text-white hover:bg-brand-blue" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}
+          ${!isUserTurn || revealed ? "bg-brand-blue/100 text-white hover:bg-brand-blue" : "bg-muted text-faint cursor-not-allowed"}
         `}
       >
         {isLast ? "Complete Conversation" : "Next"}
@@ -121,7 +121,7 @@ export function ConversationExercise({
           <div
             key={i}
             className={`h-1.5 rounded-full transition-all
-              ${i === step ? "w-6 bg-brand-blue/100" : i < step ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}
+              ${i === step ? "w-6 bg-brand-blue/100" : i < step ? "w-2 bg-brand-blue/20" : "w-2 bg-secondary"}
             `}
           />
         ))}

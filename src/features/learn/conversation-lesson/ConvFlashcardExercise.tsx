@@ -21,7 +21,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
   if (vocab.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-4">
-        <p className="text-zinc-500 text-sm">No phrases available.</p>
+        <p className="text-muted-foreground text-sm">No phrases available.</p>
         <button onClick={onComplete} className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold">
           Continue
         </button>
@@ -82,7 +82,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
 
   return (
     <div className="flex flex-col items-center p-6 gap-6">
-      <div className="text-sm text-zinc-400 font-medium">
+      <div className="text-sm text-faint font-medium">
         {index + 1} / {vocab.length}
       </div>
 
@@ -91,7 +91,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
         <div
           className={`absolute inset-y-0 left-0 flex items-center pl-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "right" && index > 0 ? "opacity-100" : "opacity-0"}`}
         >
-          <div className="bg-zinc-100 text-zinc-500 rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
+          <div className="bg-muted text-muted-foreground rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
         </div>
         <div
           className={`absolute inset-y-0 right-0 flex items-center pr-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "left" ? "opacity-100" : "opacity-0"}`}
@@ -129,14 +129,14 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
             >
               {/* Front face */}
               <div
-                className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6"
+                className="absolute inset-0 bg-card rounded-3xl shadow-md border border-border-subtle flex flex-col items-center justify-center p-6"
                 style={{ backfaceVisibility: "hidden" }}
               >
                 <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">
                   English
                 </span>
-                <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
-                <span className="text-xs text-zinc-400 mt-4">Tap for translation · Swipe to navigate</span>
+                <span className="text-3xl font-bold text-foreground text-center">{current.english}</span>
+                <span className="text-xs text-faint mt-4">Tap for translation · Swipe to navigate</span>
               </div>
 
               {/* Back face */}
@@ -177,7 +177,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
         {index > 0 && (
           <button
             onClick={() => goToCard(index - 1, "right")}
-            className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+            className="flex-1 py-3 rounded-2xl border border-border text-muted-foreground font-semibold text-sm hover:bg-background active:scale-95 transition-all"
           >
             Back
           </button>
@@ -194,7 +194,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
         {vocab.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-secondary"}`}
           />
         ))}
       </div>

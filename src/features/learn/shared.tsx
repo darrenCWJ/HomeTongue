@@ -180,7 +180,7 @@ export function PlayButtonDark({
       onClick={handlePlay}
       onPointerDown={(e) => e.stopPropagation()}
       disabled={disabled}
-      className={`${sizeClasses} rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${disabled && externalDisabled ? "bg-zinc-100 text-zinc-300 cursor-not-allowed" : "bg-brand-blue/15 hover:bg-brand-blue/20 text-brand-blue"}`}
+      className={`${sizeClasses} rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${disabled && externalDisabled ? "bg-muted text-faint cursor-not-allowed" : "bg-brand-blue/15 hover:bg-brand-blue/20 text-brand-blue"}`}
     >
       {isPlaying ? (
         <Loader2 size={iconSize} className="animate-spin text-brand-blue/60" />
@@ -199,7 +199,7 @@ export function PlayButtonDark({
         isPlaying={isPlayingSlow}
         className={
           disabled && externalDisabled
-            ? "bg-zinc-100 text-zinc-300 cursor-not-allowed"
+            ? "bg-muted text-faint cursor-not-allowed"
             : "bg-brand-blue/15 hover:bg-brand-blue/20 text-brand-blue"
         }
         onPlay={handlePlaySlow}

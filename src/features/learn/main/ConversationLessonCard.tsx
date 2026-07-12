@@ -40,7 +40,7 @@ export function ConversationLessonCard({
     ? "bg-green-100 text-green-700"
     : lesson.examAttempts > 0
       ? "bg-orange-100 text-orange-700"
-      : "bg-zinc-100 text-zinc-500";
+      : "bg-muted text-muted-foreground";
 
   const commitEdit = () => {
     const trimmed = draft.trim();
@@ -55,7 +55,7 @@ export function ConversationLessonCard({
   return (
     <div
       onClick={editing || menuOpen ? undefined : onClick}
-      className="relative bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
+      className="relative bg-card rounded-2xl p-4 shadow-sm border border-border-subtle flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
       <div className="absolute top-2 right-2" ref={menuRef}>
         <button
@@ -63,20 +63,20 @@ export function ConversationLessonCard({
             e.stopPropagation();
             setMenuOpen(!menuOpen);
           }}
-          className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+          className="p-1.5 rounded-full text-faint hover:text-muted-foreground hover:bg-muted transition-colors"
           aria-label="More options"
         >
           <MoreHorizontal size={16} />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-8 z-20 bg-white rounded-xl shadow-lg border border-zinc-100 py-1 min-w-[120px]">
+          <div className="absolute right-0 top-8 z-20 bg-card rounded-xl shadow-lg border border-border-subtle py-1 min-w-[120px]">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpen(false);
                 setEditing(true);
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground/90 hover:bg-background transition-colors"
             >
               <Pencil size={14} />
               Edit title
@@ -114,7 +114,7 @@ export function ConversationLessonCard({
               }}
               onClick={(e) => e.stopPropagation()}
               maxLength={20}
-              className="font-semibold text-sm text-zinc-800 flex-1 min-w-0 border-b border-brand-blue/50 outline-none bg-transparent pb-0.5"
+              className="font-semibold text-sm text-foreground flex-1 min-w-0 border-b border-brand-blue/50 outline-none bg-transparent pb-0.5"
             />
             <button
               onClick={(e) => {
@@ -131,25 +131,25 @@ export function ConversationLessonCard({
                 setDraft(lesson.title);
                 setEditing(false);
               }}
-              className="p-1 rounded-full bg-zinc-100 text-zinc-500 flex-shrink-0"
+              className="p-1 rounded-full bg-muted text-muted-foreground flex-shrink-0"
             >
               <X size={12} />
             </button>
           </div>
         ) : (
-          <h4 className="font-semibold text-sm text-zinc-800 truncate">{lesson.title}</h4>
+          <h4 className="font-semibold text-sm text-foreground truncate">{lesson.title}</h4>
         )}
-        <p className="text-xs text-zinc-500 mb-1.5">{lesson.vocabulary.length} phrases</p>
+        <p className="text-xs text-muted-foreground mb-1.5">{lesson.vocabulary.length} phrases</p>
         <div className="flex items-center gap-2">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
             {statusLabel}
           </span>
           {lesson.examBestScore !== undefined && (
-            <span className="text-xs text-zinc-400">Best: {lesson.examBestScore}%</span>
+            <span className="text-xs text-faint">Best: {lesson.examBestScore}%</span>
           )}
         </div>
       </div>
-      <ChevronRight size={20} className="text-zinc-300 flex-shrink-0" />
+      <ChevronRight size={20} className="text-faint flex-shrink-0" />
     </div>
   );
 }

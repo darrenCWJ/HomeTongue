@@ -82,16 +82,16 @@ export function LevelView({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center"
+        className="absolute inset-0 bg-card z-30 flex flex-col items-center justify-center p-8 text-center"
       >
         <div className="w-24 h-24 rounded-full bg-brand-blue/15 flex items-center justify-center mb-6">
           <CheckCircle size={48} className="text-brand-blue" />
         </div>
-        <h2 className="text-2xl font-extrabold text-zinc-800 mb-2">Level Complete!</h2>
+        <h2 className="text-2xl font-extrabold text-foreground mb-2">Level Complete!</h2>
         {result.accuracy !== null && (
           <p className="text-lg font-bold text-brand-blue mb-1">{result.accuracy}% correct</p>
         )}
-        <p className="text-zinc-500 mb-8">{level.title} — well done!</p>
+        <p className="text-muted-foreground mb-8">{level.title} — well done!</p>
         <button
           onClick={onBack}
           className="bg-brand-blue/100 text-white font-bold px-8 py-3 rounded-2xl shadow hover:bg-brand-blue active:scale-95 transition-all"
@@ -107,14 +107,14 @@ export function LevelView({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center"
+        className="absolute inset-0 bg-card z-30 flex flex-col items-center justify-center p-8 text-center"
       >
         <div className="w-24 h-24 rounded-full bg-orange-100 flex items-center justify-center mb-6">
           <RotateCcw size={44} className="text-orange-500" />
         </div>
-        <h2 className="text-2xl font-extrabold text-zinc-800 mb-2">Almost there!</h2>
+        <h2 className="text-2xl font-extrabold text-foreground mb-2">Almost there!</h2>
         <p className="text-lg font-bold text-orange-500 mb-1">{result.accuracy}% correct</p>
-        <p className="text-zinc-500 mb-8 max-w-xs">
+        <p className="text-muted-foreground mb-8 max-w-xs">
           You need {PASS_THRESHOLD}% to complete {level.title}. Give it another go — repetition is how it
           sticks!
         </p>
@@ -127,7 +127,7 @@ export function LevelView({
           </button>
           <button
             onClick={onBack}
-            className="border border-zinc-200 text-zinc-600 font-semibold px-8 py-3 rounded-2xl hover:bg-zinc-50 active:scale-95 transition-all"
+            className="border border-border text-muted-foreground font-semibold px-8 py-3 rounded-2xl hover:bg-background active:scale-95 transition-all"
           >
             Back to Roadmap
           </button>
@@ -144,18 +144,18 @@ export function LevelView({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-30 flex flex-col"
+      className="absolute inset-0 bg-background z-30 flex flex-col"
     >
-      <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+      <div className="flex items-center gap-3 p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+          className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h2 className="font-bold text-lg text-zinc-800 leading-tight">{level.title}</h2>
-          <p className="text-xs text-zinc-400">{level.description}</p>
+          <h2 className="font-bold text-lg text-foreground leading-tight">{level.title}</h2>
+          <p className="text-xs text-faint">{level.description}</p>
         </div>
       </div>
 

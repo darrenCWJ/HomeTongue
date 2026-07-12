@@ -28,7 +28,7 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-          className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
+          className="w-full max-w-sm bg-card rounded-3xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-brand-blue to-brand-red px-6 pt-6 pb-4 flex items-center justify-between">
@@ -60,14 +60,14 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
               >
                 {/* Front */}
                 <div
-                  className="absolute inset-0 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col items-center justify-center p-6"
+                  className="absolute inset-0 bg-background rounded-2xl border border-border-subtle flex flex-col items-center justify-center p-6"
                   style={{ backfaceVisibility: "hidden" }}
                 >
                   <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-3">
                     English
                   </span>
-                  <span className="text-2xl font-bold text-zinc-800 text-center">{card.english}</span>
-                  <span className="text-xs text-zinc-400 mt-3">Tap to reveal</span>
+                  <span className="text-2xl font-bold text-foreground text-center">{card.english}</span>
+                  <span className="text-xs text-faint mt-3">Tap to reveal</span>
                 </div>
                 {/* Back */}
                 <div
@@ -93,16 +93,16 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
               </p>
               {card.exampleSentence ? (
                 <>
-                  <p className="text-base font-bold text-zinc-800 mb-1">
+                  <p className="text-base font-bold text-foreground mb-1">
                     {personalise(card.exampleSentence, userProfile?.name)}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     Use <span className="font-semibold text-brand-blue">{card.dialect}</span> (
                     {card.romanization}) when {card.english.toLowerCase().replace(/[?.!]/g, "")}.
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-zinc-600">
+                <p className="text-sm text-muted-foreground">
                   Say <span className="font-bold text-brand-blue">{card.dialect}</span> ({card.romanization})
                   to mean "<span className="italic">{card.english}</span>" in everyday conversation.
                 </p>

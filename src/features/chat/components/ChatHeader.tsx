@@ -21,25 +21,25 @@ export function ChatHeader({
   onOpenSaveDialog,
 }: ChatHeaderProps) {
   return (
-    <div className="px-4 py-3 border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
+    <div className="px-4 py-3 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
       <div>
-        <h1 className="font-semibold text-zinc-800">Live Translation</h1>
+        <h1 className="font-semibold text-foreground">Live Translation</h1>
         <div className="flex items-center gap-2 mt-0.5">
           <button
             data-tour="chat-persona-selector"
             onClick={onOpenPersonaSheet}
             disabled={hasMessages}
-            className={`flex items-center gap-1 text-xs transition-colors ${hasMessages ? "text-zinc-300 cursor-not-allowed" : "text-zinc-500 hover:text-brand-blue"}`}
+            className={`flex items-center gap-1 text-xs transition-colors ${hasMessages ? "text-faint cursor-not-allowed" : "text-muted-foreground hover:text-brand-blue"}`}
           >
             {activePersona === "work" ? <Briefcase size={11} /> : <Home size={11} />}
             <span className="capitalize">{activePersona}</span>
             <ChevronDown size={10} />
           </button>
-          <span className="text-zinc-300 text-xs">·</span>
+          <span className="text-faint text-xs">·</span>
           <button
             data-tour="chat-dialect-selector"
             onClick={onOpenDialectSheet}
-            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-brand-blue transition-colors"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-brand-blue transition-colors"
           >
             <Languages size={11} />
             <span>{dialect}</span>
@@ -51,7 +51,7 @@ export function ChatHeader({
         {hasMessages && (
           <button
             onClick={onNewChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-600 rounded-full text-xs font-medium hover:bg-zinc-200 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-muted text-muted-foreground rounded-full text-xs font-medium hover:bg-secondary transition-colors"
           >
             New Chat
           </button>

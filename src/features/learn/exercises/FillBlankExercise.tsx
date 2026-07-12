@@ -39,7 +39,7 @@ export function FillBlankExercise({
   if (itemsWithSentences.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-4">
-        <p className="text-zinc-500">No fill-in-the-blank items available.</p>
+        <p className="text-muted-foreground">No fill-in-the-blank items available.</p>
         <button
           onClick={() => onComplete()}
           className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold"
@@ -72,23 +72,23 @@ export function FillBlankExercise({
 
   return (
     <div className="flex flex-col items-center p-6 gap-6">
-      <div className="text-sm text-zinc-400 font-medium">
+      <div className="text-sm text-faint font-medium">
         {index + 1} / {itemsWithSentences.length}
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-zinc-100 p-6">
+      <div className="w-full max-w-sm bg-card rounded-3xl shadow-sm border border-border-subtle p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">
           Fill in the blank
         </p>
-        <p className="text-xl font-bold text-zinc-800 text-center leading-relaxed">{sentence}</p>
-        <p className="text-xs text-zinc-400 text-center mt-2">{current.english}</p>
+        <p className="text-xl font-bold text-foreground text-center leading-relaxed">{sentence}</p>
+        <p className="text-xs text-faint text-center mt-2">{current.english}</p>
       </div>
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
         {options.map((opt) => {
           const isSelected = selected === opt.dialect;
           const correct = opt.dialect === current.dialect;
-          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50";
+          let style = "bg-card border-border text-foreground/90 hover:border-brand-blue/50";
           if (selected !== null) {
             if (correct) style = "bg-green-50 border-green-400 text-green-700";
             else if (isSelected) style = "bg-red-50 border-red-400 text-red-600";
@@ -103,7 +103,7 @@ export function FillBlankExercise({
                 <span className="text-lg font-bold">{opt.dialect}</span>
                 <PlayButtonDark text={opt.dialect} size="sm" />
               </div>
-              <span className="text-sm font-mono text-zinc-400">{opt.romanization}</span>
+              <span className="text-sm font-mono text-faint">{opt.romanization}</span>
             </button>
           );
         })}

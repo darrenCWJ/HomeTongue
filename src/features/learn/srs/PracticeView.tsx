@@ -69,16 +69,16 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
   };
 
   const header = (
-    <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+    <div className="flex items-center gap-3 p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30">
       <button
         onClick={onBack}
-        className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+        className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
       >
         <ArrowLeft size={20} />
       </button>
       <div>
-        <h2 className="font-bold text-lg text-zinc-800 leading-tight">Practice my phrases</h2>
-        <p className="text-xs text-zinc-400">Spaced repetition over your saved phrases</p>
+        <h2 className="font-bold text-lg text-foreground leading-tight">Practice my phrases</h2>
+        <p className="text-xs text-faint">Spaced repetition over your saved phrases</p>
       </div>
     </div>
   );
@@ -89,7 +89,7 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-30 flex flex-col"
+      className="absolute inset-0 bg-background z-30 flex flex-col"
     >
       {header}
       <div className="flex-1 overflow-y-auto scrollbar-none pb-nav">{content}</div>
@@ -99,7 +99,7 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
   if (review.isLoading || queue === null) {
     return shell(
       <div className="flex items-center justify-center h-full">
-        <RefreshCw size={22} className="animate-spin text-zinc-300" />
+        <RefreshCw size={22} className="animate-spin text-faint" />
       </div>
     );
   }
@@ -107,7 +107,7 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
   if (review.loadError) {
     return shell(
       <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-3">
-        <p className="text-sm font-semibold text-zinc-600">{review.loadError}</p>
+        <p className="text-sm font-semibold text-muted-foreground">{review.loadError}</p>
         <button onClick={onBack} className="text-sm font-bold text-brand-blue">
           Go back
         </button>
@@ -121,10 +121,10 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
         <div className="w-20 h-20 rounded-full bg-brand-blue/10 flex items-center justify-center mb-5">
           <Sparkles size={36} className="text-brand-blue" />
         </div>
-        <h3 className="text-xl font-extrabold text-zinc-800 mb-2">
+        <h3 className="text-xl font-extrabold text-foreground mb-2">
           {review.totalBookmarked === 0 ? "No saved phrases yet" : "All caught up!"}
         </h3>
-        <p className="text-sm text-zinc-500 mb-6 max-w-xs">
+        <p className="text-sm text-muted-foreground mb-6 max-w-xs">
           {review.totalBookmarked === 0
             ? "Bookmark phrases from chats or lessons and they will show up here for review."
             : "Nothing is due for review right now. Come back later — spacing out reviews is what makes them stick."}
@@ -145,8 +145,8 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
         <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-6">
           <CheckCircle size={48} className="text-green-500" />
         </div>
-        <h3 className="text-2xl font-extrabold text-zinc-800 mb-2">Session complete!</h3>
-        <p className="text-sm text-zinc-500 mb-8">
+        <h3 className="text-2xl font-extrabold text-foreground mb-2">Session complete!</h3>
+        <p className="text-sm text-muted-foreground mb-8">
           {gradedCount} review{gradedCount === 1 ? "" : "s"}
           {againCount > 0 ? ` · ${againCount} marked "Again" and repeated` : " — nothing forgotten"}
         </p>
@@ -164,7 +164,7 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
 
   return shell(
     <div className="flex flex-col items-center p-6 gap-6">
-      <div className="text-sm text-zinc-400 font-medium">
+      <div className="text-sm text-faint font-medium">
         {index + 1} / {queue.length}
         {card.isNew && (
           <span className="ml-2 bg-brand-blue/10 text-brand-blue text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5">
@@ -183,14 +183,14 @@ export function PracticeView({ review, onBack }: { review: ReviewQueue; onBack: 
         >
           {/* Front — English */}
           <div
-            className="absolute inset-0 bg-white rounded-3xl shadow-md border border-zinc-100 flex flex-col items-center justify-center p-6"
+            className="absolute inset-0 bg-card rounded-3xl shadow-md border border-border-subtle flex flex-col items-center justify-center p-6"
             style={{ backfaceVisibility: "hidden" }}
           >
             <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">
               English
             </span>
-            <span className="text-2xl font-bold text-zinc-800 text-center">{card.phrase.original}</span>
-            <span className="text-xs text-zinc-400 mt-4">Tap to reveal · then grade yourself</span>
+            <span className="text-2xl font-bold text-foreground text-center">{card.phrase.original}</span>
+            <span className="text-xs text-faint mt-4">Tap to reveal · then grade yourself</span>
           </div>
 
           {/* Back — dialect */}

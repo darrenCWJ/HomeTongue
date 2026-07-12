@@ -99,7 +99,7 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden">
+    <div className="flex flex-col h-full bg-card relative overflow-hidden">
       {/* Background */}
       <div className="absolute top-0 left-0 w-full h-56 bg-brand-blue rounded-b-[2.5rem] overflow-hidden">
         <div className="absolute top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl" />
@@ -129,7 +129,7 @@ export function OnboardingPage() {
             <div
               key={s}
               className={`h-2 rounded-full transition-all duration-300 ${
-                s === step ? "w-6 bg-brand-blue" : i < stepIndex ? "w-2 bg-brand-blue/40" : "w-2 bg-zinc-200"
+                s === step ? "w-6 bg-brand-blue" : i < stepIndex ? "w-2 bg-brand-blue/40" : "w-2 bg-secondary"
               }`}
             />
           ))}
@@ -143,10 +143,10 @@ export function OnboardingPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -40, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
+              className="bg-card rounded-3xl shadow-xl shadow-border/50 p-6 border border-border-subtle"
             >
-              <h2 className="text-xl font-bold text-zinc-800 mb-1">What's your name?</h2>
-              <p className="text-zinc-500 text-sm mb-6">This helps personalise your learning journey.</p>
+              <h2 className="text-xl font-bold text-foreground mb-1">What's your name?</h2>
+              <p className="text-muted-foreground text-sm mb-6">This helps personalise your learning journey.</p>
 
               <form onSubmit={handleNameNext} className="space-y-4">
                 <input
@@ -156,7 +156,7 @@ export function OnboardingPage() {
                   placeholder="Enter your name"
                   autoFocus
                   maxLength={40}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 px-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
+                  className="w-full bg-input-background border border-border rounded-xl py-3 px-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-foreground placeholder:font-normal placeholder:text-faint"
                 />
                 <button
                   type="submit"
@@ -177,24 +177,24 @@ export function OnboardingPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -40, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
+              className="bg-card rounded-3xl shadow-xl shadow-border/50 p-6 border border-border-subtle"
             >
               <div className="flex items-center gap-2 mb-1">
                 <Volume2 size={20} className="text-brand-blue" />
-                <h2 className="text-xl font-bold text-zinc-800">Pick your voice</h2>
+                <h2 className="text-xl font-bold text-foreground">Pick your voice</h2>
               </div>
-              <p className="text-zinc-500 text-sm mb-5">Choose the voice for your learning journey.</p>
+              <p className="text-muted-foreground text-sm mb-5">Choose the voice for your learning journey.</p>
 
               {/* Gender tabs */}
-              <div className="flex bg-zinc-100 rounded-xl p-1 mb-4">
+              <div className="flex bg-muted rounded-xl p-1 mb-4">
                 {(["female", "male"] as const).map((g) => (
                   <button
                     key={g}
                     onClick={() => setVoiceGenderTab(g)}
                     className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
                       voiceGenderTab === g
-                        ? "bg-white text-brand-blue shadow-sm"
-                        : "text-zinc-500 hover:text-zinc-700"
+                        ? "bg-card text-brand-blue shadow-sm"
+                        : "text-muted-foreground hover:text-foreground/90"
                     }`}
                   >
                     {g}
@@ -215,18 +215,18 @@ export function OnboardingPage() {
                         className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
                           selected
                             ? "border-brand-blue bg-brand-blue/10"
-                            : "border-zinc-100 bg-zinc-50 hover:border-zinc-200"
+                            : "border-border-subtle bg-background hover:border-border"
                         }`}
                       >
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-zinc-200"}`}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-secondary"}`}
                         >
-                          <Volume2 size={16} className={selected ? "text-white" : "text-zinc-500"} />
+                          <Volume2 size={16} className={selected ? "text-white" : "text-muted-foreground"} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span
-                              className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-zinc-800"}`}
+                              className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-foreground"}`}
                             >
                               {voice.label}
                             </span>
@@ -237,13 +237,13 @@ export function OnboardingPage() {
                           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                             previewingId === voice.key
                               ? "bg-brand-blue/15"
-                              : "bg-zinc-100 hover:bg-brand-blue/15"
+                              : "bg-muted hover:bg-brand-blue/15"
                           }`}
                         >
                           {previewingId === voice.key ? (
                             <Loader2 size={14} className="text-brand-blue animate-spin" />
                           ) : (
-                            <Volume2 size={14} className="text-zinc-500" />
+                            <Volume2 size={14} className="text-muted-foreground" />
                           )}
                         </div>
                         {selected && (
@@ -273,10 +273,10 @@ export function OnboardingPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -40, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
+              className="bg-card rounded-3xl shadow-xl shadow-border/50 p-6 border border-border-subtle"
             >
-              <h2 className="text-xl font-bold text-zinc-800 mb-1">How will you use HomeTongue?</h2>
-              <p className="text-zinc-500 text-sm mb-5">
+              <h2 className="text-xl font-bold text-foreground mb-1">How will you use HomeTongue?</h2>
+              <p className="text-muted-foreground text-sm mb-5">
                 This helps the AI tailor translations to your context. You can change this anytime.
               </p>
 
@@ -286,19 +286,19 @@ export function OnboardingPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                     selectedPersona === "personal"
                       ? "bg-brand-blue/10 border-brand-blue shadow-sm"
-                      : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                      : "bg-background border-border-subtle hover:border-border"
                   }`}
                 >
                   <Home
                     size={28}
-                    className={selectedPersona === "personal" ? "text-brand-blue" : "text-zinc-400"}
+                    className={selectedPersona === "personal" ? "text-brand-blue" : "text-faint"}
                   />
                   <span
-                    className={`font-semibold text-sm ${selectedPersona === "personal" ? "text-brand-blue" : "text-zinc-600"}`}
+                    className={`font-semibold text-sm ${selectedPersona === "personal" ? "text-brand-blue" : "text-muted-foreground"}`}
                   >
                     Personal
                   </span>
-                  <span className="text-xs text-zinc-400 text-center leading-tight">
+                  <span className="text-xs text-faint text-center leading-tight">
                     Home & family conversations
                   </span>
                   {selectedPersona === "personal" && (
@@ -312,19 +312,19 @@ export function OnboardingPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                     selectedPersona === "work"
                       ? "bg-brand-blue/10 border-brand-blue shadow-sm"
-                      : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                      : "bg-background border-border-subtle hover:border-border"
                   }`}
                 >
                   <Briefcase
                     size={28}
-                    className={selectedPersona === "work" ? "text-brand-blue" : "text-zinc-400"}
+                    className={selectedPersona === "work" ? "text-brand-blue" : "text-faint"}
                   />
                   <span
-                    className={`font-semibold text-sm ${selectedPersona === "work" ? "text-brand-blue" : "text-zinc-600"}`}
+                    className={`font-semibold text-sm ${selectedPersona === "work" ? "text-brand-blue" : "text-muted-foreground"}`}
                   >
                     Work
                   </span>
-                  <span className="text-xs text-zinc-400 text-center leading-tight">
+                  <span className="text-xs text-faint text-center leading-tight">
                     Professional context
                   </span>
                   {selectedPersona === "work" && (

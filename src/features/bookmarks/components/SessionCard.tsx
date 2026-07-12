@@ -58,7 +58,7 @@ export function SessionCard({
   return (
     <div
       {...(isFirst ? { "data-tour": "bookmarks-session-card" } : {})}
-      className="relative bg-white rounded-2xl shadow-sm border border-zinc-100"
+      className="relative bg-card rounded-2xl shadow-sm border border-border-subtle"
     >
       {/* Session header */}
       <div className="p-5 flex items-center gap-3">
@@ -78,15 +78,15 @@ export function SessionCard({
                 }}
                 onClick={(e) => e.stopPropagation()}
                 maxLength={20}
-                className="text-base font-semibold text-zinc-800 border-b-2 border-brand-blue outline-none bg-transparent w-36"
+                className="text-base font-semibold text-foreground border-b-2 border-brand-blue outline-none bg-transparent w-36"
               />
             ) : (
-              <p className="font-semibold text-zinc-800 text-base truncate">
+              <p className="font-semibold text-foreground text-base truncate">
                 {session.title ?? "Conversation"}
               </p>
             )}
           </div>
-          <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+          <p className="text-xs text-faint flex items-center gap-1.5">
             {session.date}
             {session.persona === "work" ? (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-semibold">
@@ -115,7 +115,7 @@ export function SessionCard({
             </div>
           )}
           {session.messages[0]?.text && (
-            <p className="text-xs text-zinc-400 truncate mt-0.5 italic">{session.messages[0].text}</p>
+            <p className="text-xs text-faint truncate mt-0.5 italic">{session.messages[0].text}</p>
           )}
         </div>
 
@@ -131,7 +131,7 @@ export function SessionCard({
               </button>
               <button
                 onClick={() => setEditingSessionId(null)}
-                className="p-2.5 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition-colors"
+                className="p-2.5 rounded-lg bg-muted text-muted-foreground hover:bg-secondary transition-colors"
               >
                 <X size={14} />
               </button>
@@ -148,7 +148,7 @@ export function SessionCard({
                   setOpenMenuSessionId(session.id);
                 }
               }}
-              className="absolute top-2 right-2 p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+              className="absolute top-2 right-2 p-1.5 rounded-full text-faint hover:text-muted-foreground hover:bg-muted transition-colors"
             >
               <MoreHorizontal size={16} />
             </button>
@@ -165,8 +165,8 @@ export function SessionCard({
 
       {/* Inline tag editor for session */}
       {editingTagsSessionId === session.id && (
-        <div className="px-5 pb-4 pt-2 border-t border-zinc-100">
-          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide mb-2">Tags</p>
+        <div className="px-5 pb-4 pt-2 border-t border-border-subtle">
+          <p className="text-[10px] font-semibold text-faint uppercase tracking-wide mb-2">Tags</p>
           <div className="flex flex-wrap gap-1.5">
             {sessionTags.map((tag) => {
               const isSelected = session.tags?.includes(tag.id) ?? false;
@@ -181,7 +181,7 @@ export function SessionCard({
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                     isSelected
                       ? "bg-brand-blue text-white"
-                      : "bg-zinc-100 text-zinc-500 hover:bg-brand-blue/10 hover:text-brand-blue"
+                      : "bg-muted text-muted-foreground hover:bg-brand-blue/10 hover:text-brand-blue"
                   }`}
                 >
                   {tag.name}
@@ -199,7 +199,7 @@ export function SessionCard({
         </div>
       ) : pendingConvertSession?.id === session.id ? (
         <div className="border-t border-brand-blue/15 bg-brand-blue/10/30 p-4 space-y-3">
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Choose voice for lesson
           </p>
           <div className="flex gap-2">
@@ -209,22 +209,22 @@ export function SessionCard({
                 onClick={() => setAudioSourceType(src)}
                 className={`flex-1 flex items-center gap-2.5 px-3 py-3 rounded-2xl border-2 transition-all ${
                   audioSourceType === src
-                    ? "border-brand-blue bg-white"
-                    : "border-zinc-200 bg-white hover:border-brand-blue/20"
+                    ? "border-brand-blue bg-card"
+                    : "border-border bg-card hover:border-brand-blue/20"
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${audioSourceType === src ? "bg-brand-blue/100" : "bg-zinc-100"}`}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${audioSourceType === src ? "bg-brand-blue/100" : "bg-muted"}`}
                 >
-                  <Mic size={15} className={audioSourceType === src ? "text-white" : "text-zinc-400"} />
+                  <Mic size={15} className={audioSourceType === src ? "text-white" : "text-faint"} />
                 </div>
                 <div className="text-left">
                   <p
-                    className={`text-xs font-semibold leading-tight ${audioSourceType === src ? "text-brand-blue" : "text-zinc-700"}`}
+                    className={`text-xs font-semibold leading-tight ${audioSourceType === src ? "text-brand-blue" : "text-foreground/90"}`}
                   >
                     {src === "recorded" ? "Recorded" : "Synthesised"}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">
+                  <p className="text-[10px] text-faint leading-tight mt-0.5">
                     {src === "recorded" ? "Actual dialect audio" : "Text-to-speech"}
                   </p>
                 </div>
@@ -234,7 +234,7 @@ export function SessionCard({
           <div className="flex gap-2">
             <button
               onClick={() => setPendingConvertSession(null)}
-              className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-500 text-sm font-medium hover:bg-zinc-50 transition-colors"
+              className="flex-1 py-2.5 rounded-xl border border-border text-muted-foreground text-sm font-medium hover:bg-background transition-colors"
             >
               Cancel
             </button>
@@ -258,7 +258,7 @@ export function SessionCard({
 
       {/* Inline preview (first few messages) */}
       {expandedSessionId === session.id && (
-        <div className="border-t border-zinc-100 p-3 space-y-2 bg-zinc-50 max-h-48 overflow-y-auto">
+        <div className="border-t border-border-subtle p-3 space-y-2 bg-background max-h-48 overflow-y-auto">
           {session.messages
             .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
             .slice(0, 4)
@@ -274,10 +274,10 @@ export function SessionCard({
                     </div>
                   )}
                   <div
-                    className={`max-w-[75%] rounded-2xl px-3 py-2 ${isBot ? "rounded-bl-sm bg-white border border-zinc-200" : "rounded-br-sm bg-brand-blue/100 text-white"}`}
+                    className={`max-w-[75%] rounded-2xl px-3 py-2 ${isBot ? "rounded-bl-sm bg-card border border-border" : "rounded-br-sm bg-brand-blue/100 text-white"}`}
                   >
                     <p
-                      className={`text-sm font-semibold leading-snug ${isBot ? "text-zinc-800" : "text-white"}`}
+                      className={`text-sm font-semibold leading-snug ${isBot ? "text-foreground" : "text-white"}`}
                     >
                       {displayText}
                     </p>
@@ -297,7 +297,7 @@ export function SessionCard({
             })}
           {session.messages.filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
             .length > 4 && (
-            <p className="text-center text-xs text-zinc-400 pt-1">Tap View to see full conversation</p>
+            <p className="text-center text-xs text-faint pt-1">Tap View to see full conversation</p>
           )}
         </div>
       )}

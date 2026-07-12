@@ -198,20 +198,20 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-30 flex flex-col"
+      className="absolute inset-0 bg-background z-30 flex flex-col"
     >
-      <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+      <div className="flex items-center gap-3 p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+          className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-lg text-zinc-800 leading-tight truncate">
+          <h2 className="font-bold text-lg text-foreground leading-tight truncate">
             {scenario.emoji} {scenario.title}
           </h2>
-          <p className="text-xs text-zinc-400 truncate">{scenario.subtitle}</p>
+          <p className="text-xs text-faint truncate">{scenario.subtitle}</p>
         </div>
         {!isSummaryOpen && (
           <button
@@ -236,7 +236,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
             {scenario.goalHints.map((hint) => (
               <span
                 key={hint}
-                className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-500 bg-white border border-zinc-100 rounded-full px-2 py-1 whitespace-nowrap flex-shrink-0"
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-card border border-border-subtle rounded-full px-2 py-1 whitespace-nowrap flex-shrink-0"
               >
                 <Target size={10} className="text-brand-blue/60 flex-shrink-0" />
                 {hint}
@@ -249,7 +249,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
               <RoleplayBubble key={turn.id} turn={turn} />
             ))}
             {isBotThinking && (
-              <div className="flex items-center gap-2 text-zinc-400 text-xs pl-10">
+              <div className="flex items-center gap-2 text-faint text-xs pl-10">
                 <Loader2 size={14} className="animate-spin" />
                 Thinking…
               </div>
@@ -259,7 +259,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
 
           <form
             onSubmit={handleTextSubmit}
-            className="flex items-center gap-2 px-4 pt-2 bg-white border-t border-zinc-200 pb-nav flex-shrink-0"
+            className="flex items-center gap-2 px-4 pt-2 bg-card border-t border-border pb-nav flex-shrink-0"
           >
             {capabilities.stt && (
               <button
@@ -290,7 +290,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
                 isRecording ? "Recording… tap mic to stop" : `Reply in ${languageLabel} or English…`
               }
               disabled={isInputDisabled || isRecording}
-              className="flex-1 min-w-0 bg-zinc-100 rounded-full px-4 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60"
+              className="flex-1 min-w-0 bg-muted rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-60"
             />
             <button
               type="submit"

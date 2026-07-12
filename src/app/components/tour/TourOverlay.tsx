@@ -192,21 +192,21 @@ export function TourOverlay() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="fixed bg-white rounded-2xl shadow-xl p-4 w-[280px] z-[61]"
+              className="fixed bg-card rounded-2xl shadow-xl p-4 w-[280px] z-[61]"
               style={{ top: tooltipPos.top, left: tooltipPos.left }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between mb-1">
-                <h3 className="font-semibold text-zinc-900 text-sm">{step.title}</h3>
-                <span className="text-xs text-zinc-400 whitespace-nowrap ml-2">
+                <h3 className="font-semibold text-foreground text-sm">{step.title}</h3>
+                <span className="text-xs text-faint whitespace-nowrap ml-2">
                   {currentStep + 1} / {totalSteps}
                 </span>
               </div>
-              <p className="text-xs text-zinc-600 mb-4 leading-relaxed">{step.description}</p>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{step.description}</p>
               <div className="flex items-center justify-between">
                 <button
                   onClick={skipTour}
-                  className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                  className="text-xs text-faint hover:text-muted-foreground transition-colors"
                 >
                   Skip
                 </button>
@@ -214,7 +214,7 @@ export function TourOverlay() {
                   {currentStep > 0 && (
                     <button
                       onClick={prevStep}
-                      className="px-3 py-1.5 text-xs font-medium text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted rounded-lg hover:bg-secondary transition-colors"
                     >
                       Back
                     </button>

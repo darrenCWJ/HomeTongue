@@ -69,7 +69,7 @@ export function AuthPage({ onComplete }: AuthPageProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden">
+    <div className="flex flex-col h-full bg-card relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-64 bg-brand-blue rounded-b-[2.5rem] overflow-hidden">
         <div className="absolute top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl" />
         <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-brand-red opacity-20 rounded-full blur-2xl" />
@@ -95,17 +95,17 @@ export function AuthPage({ onComplete }: AuthPageProps) {
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100 mb-6"
+          className="bg-card rounded-3xl shadow-xl shadow-border/50 p-6 border border-border-subtle mb-6"
         >
           {confirmationEmail ? (
             <div className="text-center py-2">
               <div className="w-12 h-12 bg-brand-blue/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <MailCheck size={24} className="text-brand-blue" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-800 mb-2">Check your email</h2>
-              <p className="text-sm text-zinc-500 leading-relaxed mb-5">
+              <h2 className="text-xl font-bold text-foreground mb-2">Check your email</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">
                 We sent a confirmation link to{" "}
-                <span className="font-semibold text-zinc-700">{confirmationEmail}</span>. Confirm your
+                <span className="font-semibold text-foreground/90">{confirmationEmail}</span>. Confirm your
                 address, then sign in.
               </p>
               <button
@@ -117,43 +117,43 @@ export function AuthPage({ onComplete }: AuthPageProps) {
             </div>
           ) : (
             <>
-              <h2 className="text-xl font-bold text-zinc-800 mb-6 text-center">
+              <h2 className="text-xl font-bold text-foreground mb-6 text-center">
                 {isLogin ? "Welcome back" : "Create an account"}
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                     Email Address
                   </label>
                   <div className="relative">
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="hello@example.com"
-                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
+                      className="w-full bg-input-background border border-border rounded-xl py-3 pl-11 pr-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-foreground placeholder:font-normal placeholder:text-faint"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-zinc-800 placeholder:font-normal placeholder:text-zinc-400"
+                      className="w-full bg-input-background border border-border rounded-xl py-3 pl-11 pr-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-foreground placeholder:font-normal placeholder:text-faint"
                     />
                   </div>
                   {isCloudAuthEnabled && !isLogin && (
-                    <p className="text-xs text-zinc-400 mt-1.5">At least {MIN_PASSWORD_LENGTH} characters.</p>
+                    <p className="text-xs text-faint mt-1.5">At least {MIN_PASSWORD_LENGTH} characters.</p>
                   )}
                 </div>
 
@@ -173,7 +173,7 @@ export function AuthPage({ onComplete }: AuthPageProps) {
                 </button>
               </form>
 
-              <div className="mt-5 flex items-center justify-center gap-2 text-sm text-zinc-500">
+              <div className="mt-5 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 {isLogin ? "Don't have an account?" : "Already have an account?"}
                 <button
                   onClick={() => setIsLogin(!isLogin)}
@@ -194,12 +194,12 @@ export function AuthPage({ onComplete }: AuthPageProps) {
         >
           <button
             onClick={onComplete}
-            className="text-zinc-500 text-sm font-semibold hover:text-zinc-800 transition-colors"
+            className="text-muted-foreground text-sm font-semibold hover:text-foreground transition-colors"
           >
             Continue as Guest
           </button>
           {isCloudAuthEnabled && (
-            <p className="text-zinc-400 text-xs mt-1.5">Guest data stays on this device.</p>
+            <p className="text-faint text-xs mt-1.5">Guest data stays on this device.</p>
           )}
         </motion.div>
       </div>

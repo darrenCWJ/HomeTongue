@@ -43,7 +43,7 @@ export function TranscriptDiff({ expected, transcribed }: { expected: string; tr
       {transcribedFull.map((char, ci) => {
         if (PUNCT.test(char)) {
           return (
-            <span key={ci} className="text-zinc-700">
+            <span key={ci} className="text-foreground/90">
               {char}
             </span>
           );

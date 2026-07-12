@@ -68,7 +68,7 @@ export function ActionBar({
           data-tour="chat-type-button"
           onClick={onOpenTyping}
           disabled={isListening}
-          className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border-2 border-zinc-300 text-zinc-600 shadow-lg shadow-zinc-100 transition-transform active:scale-95 disabled:opacity-50 select-none"
+          className="flex items-center gap-2 px-5 py-3 rounded-full bg-card border-2 border-border text-muted-foreground shadow-lg shadow-border-subtle transition-transform active:scale-95 disabled:opacity-50 select-none"
         >
           <Keyboard size={18} />
           <span className="text-sm font-bold">Type</span>

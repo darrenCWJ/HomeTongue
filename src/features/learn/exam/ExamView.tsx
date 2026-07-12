@@ -21,7 +21,7 @@ import { TranscriptDiff } from "./TranscriptDiff";
 const WORD_ACCURACY_EXPLAINER = "Measures whether you said the right words — tone coaching is coming.";
 
 function FallbackHint() {
-  return <p className="text-[10px] text-zinc-400 italic">Approximate — offline scoring</p>;
+  return <p className="text-[10px] text-faint italic">Approximate — offline scoring</p>;
 }
 
 // ─── ExamView ─────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ export function ExamView({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center"
+        className="absolute inset-0 bg-card z-30 flex flex-col items-center justify-center p-8 text-center"
       >
         <div
           className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${passed ? "bg-green-100" : "bg-red-100"}`}
@@ -178,17 +178,17 @@ export function ExamView({
             <X size={48} className="text-red-500" />
           )}
         </div>
-        <h2 className="text-3xl font-extrabold text-zinc-800 mb-1">{finalScore}%</h2>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">
+        <h2 className="text-3xl font-extrabold text-foreground mb-1">{finalScore}%</h2>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-2">
           Word accuracy
         </p>
         <p className={`text-lg font-bold mb-1 ${passed ? "text-green-600" : "text-red-600"}`}>
           {passed ? "Passed!" : "Not quite"}
         </p>
-        <p className="text-sm text-zinc-500 mb-2">
+        <p className="text-sm text-muted-foreground mb-2">
           {passed ? "Great job! This lesson is marked complete." : "You need 60% to pass. Keep practising!"}
         </p>
-        <p className="text-[11px] text-zinc-400 mb-1">{WORD_ACCURACY_EXPLAINER}</p>
+        <p className="text-[11px] text-faint mb-1">{WORD_ACCURACY_EXPLAINER}</p>
         {usedFallback && <FallbackHint />}
         <button
           onClick={() => onComplete(finalScore)}
@@ -206,33 +206,33 @@ export function ExamView({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-30 flex flex-col"
+      className="absolute inset-0 bg-background z-30 flex flex-col"
     >
-      <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+      <div className="flex items-center gap-3 p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+          className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h2 className="font-bold text-lg text-zinc-800 leading-tight">Final Exam</h2>
-          <p className="text-xs text-zinc-400">
+          <h2 className="font-bold text-lg text-foreground leading-tight">Final Exam</h2>
+          <p className="text-xs text-faint">
             {index + 1} / {vocab.length}
           </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5 scrollbar-none pb-nav">
-        <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2">
+        <div className="bg-card rounded-3xl shadow-sm border border-border-subtle p-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-faint mb-2">
             Recite this phrase
           </p>
-          <p className="text-2xl font-bold text-zinc-800 mb-1">{current.dialect}</p>
+          <p className="text-2xl font-bold text-foreground mb-1">{current.dialect}</p>
           {current.romanization && (
             <p className="text-sm font-mono text-brand-blue/60 mb-3">{current.romanization}</p>
           )}
-          <p className="text-sm text-zinc-500 italic">{current.english}</p>
+          <p className="text-sm text-muted-foreground italic">{current.english}</p>
           <div className="mt-4">
             <PlayButtonDark text={current.dialect} disabled={isRecording || isProcessing} withSlow />
           </div>
@@ -243,7 +243,7 @@ export function ExamView({
             <span className="px-3 py-1 rounded-full bg-zinc-800/80 text-white text-[11px] font-medium shadow-md whitespace-nowrap">
               Voice input coming soon for {packLabel}
             </span>
-            <p className="text-sm text-zinc-500 max-w-xs">
+            <p className="text-sm text-muted-foreground max-w-xs">
               The exam is scored by listening to your speech, and {packLabel} speech recognition isn't
               available yet. Practise the phrases above and check back soon.
             </p>
@@ -251,7 +251,7 @@ export function ExamView({
         ) : itemScore === null ? (
           <div className="flex flex-col items-center gap-4">
             {isProcessing ? (
-              <div className="flex items-center gap-2 text-zinc-500">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 size={20} className="animate-spin" />
                 <span className="text-sm">Analysing your speech…</span>
               </div>
@@ -273,7 +273,7 @@ export function ExamView({
                     <Mic size={36} className="relative z-10" />
                   )}
                 </button>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-muted-foreground">
                   {isRecording ? "Recording… tap to stop" : "Tap or hold to record"}
                 </p>
               </>
@@ -295,7 +295,7 @@ export function ExamView({
                   >
                     {itemScore}%
                   </span>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mt-0.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mt-0.5">
                     Word accuracy
                   </p>
                 </div>
@@ -308,11 +308,11 @@ export function ExamView({
               <div className="w-full h-px bg-black/5" />
               <div className="flex flex-col gap-1.5 text-sm">
                 <div className="flex items-start gap-2">
-                  <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">Expected</span>
-                  <span className="font-bold text-zinc-700">{current.dialect}</span>
+                  <span className="text-xs font-semibold text-faint w-16 pt-0.5 shrink-0">Expected</span>
+                  <span className="font-bold text-foreground/90">{current.dialect}</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-xs font-semibold text-zinc-400 w-16 pt-0.5 shrink-0">You said</span>
+                  <span className="text-xs font-semibold text-faint w-16 pt-0.5 shrink-0">You said</span>
                   <span className="font-bold">
                     {transcribed ? (
                       <TranscriptDiff expected={current.dialect} transcribed={transcribed} />
@@ -323,14 +323,14 @@ export function ExamView({
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
-                <p className="text-[11px] text-zinc-400 leading-snug">{WORD_ACCURACY_EXPLAINER}</p>
+                <p className="text-[11px] text-faint leading-snug">{WORD_ACCURACY_EXPLAINER}</p>
                 {itemMethod === "fallback" && <FallbackHint />}
               </div>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={handleRetry}
-                className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+                className="flex-1 py-3 rounded-2xl border border-border text-muted-foreground font-semibold text-sm hover:bg-background active:scale-95 transition-all"
               >
                 Try Again
               </button>
@@ -348,7 +348,7 @@ export function ExamView({
           {vocab.map((_, i) => (
             <div
               key={i}
-              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
+              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-secondary"}`}
             />
           ))}
         </div>

@@ -54,7 +54,7 @@ export function SessionTagFilterBar({
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
             sessionPersonaFilters.size === 0 && sessionTagFilters.size === 0
               ? "bg-brand-blue text-white"
-              : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              : "bg-muted text-muted-foreground hover:bg-secondary"
           }`}
         >
           All
@@ -76,7 +76,7 @@ export function SessionTagFilterBar({
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
               sessionPersonaFilters.has(f.id)
                 ? "bg-brand-blue text-white"
-                : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                : "bg-muted text-muted-foreground hover:bg-secondary"
             }`}
           >
             {f.icon}
@@ -152,7 +152,7 @@ export function SessionTagFilterBar({
         ) : (
           <button
             onClick={() => setIsCreatingTag(true)}
-            className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-zinc-300 text-zinc-400 hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
+            className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-border text-faint hover:border-brand-blue/50 hover:text-brand-blue transition-all flex items-center gap-1"
           >
             <Plus size={12} />
             New
@@ -163,7 +163,7 @@ export function SessionTagFilterBar({
           className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
             isEditingTags
               ? "bg-brand-blue text-white"
-              : "text-zinc-400 hover:text-brand-blue hover:bg-zinc-100"
+              : "text-faint hover:text-brand-blue hover:bg-muted"
           }`}
         >
           {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}

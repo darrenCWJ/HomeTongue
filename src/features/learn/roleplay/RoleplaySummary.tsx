@@ -55,31 +55,31 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
         <div className="w-16 h-16 rounded-full bg-brand-blue/10 flex items-center justify-center text-3xl mx-auto mb-3">
           {scenario.emoji}
         </div>
-        <h3 className="text-xl font-extrabold text-zinc-800">Rehearsal complete!</h3>
-        <p className="text-sm text-zinc-500">{scenario.title}</p>
+        <h3 className="text-xl font-extrabold text-foreground">Rehearsal complete!</h3>
+        <p className="text-sm text-muted-foreground">{scenario.title}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-6">
-        <div className="bg-white p-3 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center">
+        <div className="bg-card p-3 rounded-xl shadow-sm border border-border-subtle flex flex-col items-center">
           <div className="w-8 h-8 rounded-full bg-brand-blue/15 flex items-center justify-center mb-1.5">
             <MessageCircle size={16} className="text-brand-blue" />
           </div>
-          <span className="text-xl font-bold text-zinc-800">{userTurns.length}</span>
-          <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Your Turns</span>
+          <span className="text-xl font-bold text-foreground">{userTurns.length}</span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Your Turns</span>
         </div>
-        <div className="bg-white p-3 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center">
+        <div className="bg-card p-3 rounded-xl shadow-sm border border-border-subtle flex flex-col items-center">
           <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center mb-1.5">
             <Star size={16} className="text-brand-red" />
           </div>
-          <span className="text-xl font-bold text-zinc-800">{avgScore !== null ? `${avgScore}%` : "–"}</span>
-          <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Avg Score</span>
+          <span className="text-xl font-bold text-foreground">{avgScore !== null ? `${avgScore}%` : "–"}</span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Avg Score</span>
         </div>
       </div>
 
       {botTurns.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+            <p className="text-xs font-semibold uppercase tracking-widest text-faint">
               Save these phrases
             </p>
             {unsavedBotTurns.length > 0 && (
@@ -97,14 +97,14 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
               return (
                 <div
                   key={turn.id}
-                  className="bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center gap-3"
+                  className="bg-card rounded-2xl p-3.5 shadow-sm border border-border-subtle flex items-center gap-3"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-zinc-800">{turn.text}</p>
+                    <p className="text-sm font-bold text-foreground">{turn.text}</p>
                     {turn.romanization && (
                       <p className="text-[11px] font-mono text-brand-blue/60">{turn.romanization}</p>
                     )}
-                    {turn.english && <p className="text-xs text-zinc-500 mt-0.5">{turn.english}</p>}
+                    {turn.english && <p className="text-xs text-muted-foreground mt-0.5">{turn.english}</p>}
                   </div>
                   <button
                     onClick={() => saveTurn(turn)}
@@ -127,7 +127,7 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
       <div className="flex gap-3">
         <button
           onClick={onKeepPractising}
-          className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+          className="flex-1 py-3 rounded-2xl border border-border text-muted-foreground font-semibold text-sm hover:bg-background active:scale-95 transition-all"
         >
           Keep practising
         </button>

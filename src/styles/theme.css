@@ -2,26 +2,58 @@
 
 :root {
   --font-size: 16px;
-  --background: #eaebee;
-  --foreground: #000000;
+
+  /*
+   * Light-mode values are pinned to the EXACT colors the app rendered before
+   * the zinc-* / bg-white → semantic-token migration, so the sweep is a
+   * visual no-op. Zinc values are copied verbatim from the installed
+   * Tailwind v4 palette (node_modules/tailwindcss/theme.css, v4.1.12).
+   *
+   * Provenance (pre-migration utility usage across src/):
+   *   --background        zinc-50   page/section fills (bg-zinc-50)
+   *   --card              #ffffff   cards, sheets, nav, headers (bg-white)
+   *   --muted             zinc-100  chips + hover fills (bg-zinc-100)
+   *   --secondary         zinc-200  stronger fills: sheet grab handles,
+   *                                 inactive progress dots, chip hover states
+   *                                 (bg-zinc-200; was an unused oklch gray)
+   *   --border            zinc-200  strong borders (border-zinc-200; the 8
+   *                                 border-zinc-300 uses merged in — <10 rule;
+   *                                 was rgba(0,0,0,.1) ≈ #e5e5e5 on white)
+   *   --border-subtle     zinc-100  hairline card borders (border-zinc-100,
+   *                                 divide-zinc-100)
+   *   --foreground        zinc-800  primary text (text-zinc-800; the 8
+   *                                 text-zinc-900 uses merged in)
+   *   --muted-foreground  zinc-500  secondary text (text-zinc-500;
+   *                                 text-zinc-600 merged in per migration plan)
+   *   --faint             zinc-400  hints, placeholders, disabled text
+   *                                 (text-zinc-400; text-zinc-300/200 merged
+   *                                 in — nearest token)
+   *   --input-background  zinc-50   gate-screen inputs (was #f3f3f5, unused)
+   *   --switch-background zinc-300  toggle-off tracks (was #cbced4, unused)
+   */
+  --background: oklch(98.5% 0 0); /* zinc-50 */
+  --foreground: oklch(27.4% 0.006 286.033); /* zinc-800 */
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #1985ff;
+  --card-foreground: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --popover: #ffffff;
+  --popover-foreground: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --primary: #1985ff; /* = brand-blue */
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
+  --secondary: oklch(92% 0.004 286.32); /* zinc-200 */
+  --secondary-foreground: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --muted: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --muted-foreground: oklch(55.2% 0.016 285.938); /* zinc-500 */
+  --accent: #e9ebef; /* unused by app surfaces; kept as-is */
   --accent-foreground: #030213;
-  --destructive: #d61059;
+  --destructive: #d61059; /* = brand-red */
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: oklch(92% 0.004 286.32); /* zinc-200 */
+  --border-subtle: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --faint: oklch(70.5% 0.015 286.067); /* zinc-400 */
   --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
+  --input-background: oklch(98.5% 0 0); /* zinc-50 */
+  --switch-background: oklch(87.1% 0.006 286.286); /* zinc-300 */
+  --brand-blue: #1985ff;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --ring: oklch(0.708 0 0);
@@ -42,24 +74,36 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
+  /*
+   * Dark palette: a coherent dark-zinc scheme mirroring the light tokens.
+   * zinc-950 page, zinc-900 cards, zinc-800 hairlines / zinc-700 strong
+   * borders, zinc-100 text, zinc-400 secondary text, zinc-600 faint text.
+   * brand-blue is lightened here: #1985ff is ~4.2:1 on zinc-800 chips
+   * (fails AA for text); #3b9aff is ~5.2:1.
+   */
+  --background: oklch(14.1% 0.005 285.823); /* zinc-950 */
+  --foreground: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --card: oklch(21% 0.006 285.885); /* zinc-900 */
+  --card-foreground: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --popover: oklch(21% 0.006 285.885); /* zinc-900 */
+  --popover-foreground: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --primary: #3b9aff; /* = dark brand-blue */
+  --primary-foreground: #ffffff;
+  --secondary: oklch(37% 0.013 285.805); /* zinc-700 */
+  --secondary-foreground: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --muted: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --muted-foreground: oklch(70.5% 0.015 286.067); /* zinc-400 */
+  --accent: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --accent-foreground: oklch(96.7% 0.001 286.375); /* zinc-100 */
+  --destructive: #e8407c; /* brand-red lightened for dark surfaces */
+  --destructive-foreground: #ffffff;
+  --border: oklch(37% 0.013 285.805); /* zinc-700 */
+  --border-subtle: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --faint: oklch(44.2% 0.017 285.786); /* zinc-600 */
+  --input: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --input-background: oklch(27.4% 0.006 286.033); /* zinc-800 */
+  --switch-background: oklch(37% 0.013 285.805); /* zinc-700 */
+  --brand-blue: #3b9aff;
   --ring: oklch(0.439 0 0);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -81,7 +125,8 @@
 @theme inline {
   --color-brand-red: #d61059;
   --color-brand-yellow: #ffca36;
-  --color-brand-blue: #1985ff;
+  /* brand-blue routes through a variable so .dark can lighten it (contrast). */
+  --color-brand-blue: var(--brand-blue);
   --color-brand-black: #000000;
   --color-brand-white: #eaebee;
 
@@ -102,6 +147,8 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-faint: var(--faint);
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-switch-background: var(--switch-background);

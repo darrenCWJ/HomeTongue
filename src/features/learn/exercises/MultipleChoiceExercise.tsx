@@ -51,22 +51,22 @@ export function MultipleChoiceExercise({
 
   return (
     <div className="flex flex-col items-center p-6 gap-6">
-      <div className="text-sm text-zinc-400 font-medium">
+      <div className="text-sm text-faint font-medium">
         {index + 1} / {items.length}
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-zinc-100 p-8 flex flex-col items-center justify-center min-h-[140px]">
+      <div className="w-full max-w-sm bg-card rounded-3xl shadow-sm border border-border-subtle p-8 flex flex-col items-center justify-center min-h-[140px]">
         <span className="text-xs font-semibold uppercase tracking-widest text-brand-blue/60 mb-4">
           How do you say…
         </span>
-        <span className="text-3xl font-bold text-zinc-800 text-center">{current.english}</span>
+        <span className="text-3xl font-bold text-foreground text-center">{current.english}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
         {options.map((opt) => {
           const isSelected = selected === opt.dialect;
           const correct = opt.dialect === current.dialect;
-          let style = "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50";
+          let style = "bg-card border-border text-foreground/90 hover:border-brand-blue/50";
           if (selected !== null) {
             if (correct) style = "bg-green-50 border-green-400 text-green-700";
             else if (isSelected) style = "bg-red-50 border-red-400 text-red-600";
@@ -81,7 +81,7 @@ export function MultipleChoiceExercise({
                 <span className="text-xl font-bold">{opt.dialect}</span>
                 <PlayButtonDark text={opt.dialect} size="sm" />
               </div>
-              <span className="text-xs font-mono text-zinc-400">{opt.romanization}</span>
+              <span className="text-xs font-mono text-faint">{opt.romanization}</span>
             </button>
           );
         })}
@@ -125,7 +125,7 @@ export function MultipleChoiceExercise({
         {items.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue/100" : i < index ? "w-2 bg-brand-blue/20" : "w-2 bg-secondary"}`}
           />
         ))}
       </div>

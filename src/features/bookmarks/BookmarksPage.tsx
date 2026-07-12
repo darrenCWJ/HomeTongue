@@ -357,18 +357,18 @@ export function BookmarksPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-50 relative">
+    <div className="flex flex-col h-full bg-background relative">
       {/* Header */}
-      <div className="bg-white px-4 py-4 border-b border-zinc-200 sticky top-0 z-10 shadow-sm">
+      <div className="bg-card px-4 py-4 border-b border-border sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-zinc-800">Saved Content</h1>
+          <h1 className="text-xl font-bold text-foreground">Saved Content</h1>
           <div data-tour="bookmarks-language-filter">
             <LanguageFilter />
           </div>
         </div>
 
         {/* Tabs */}
-        <div data-tour="bookmarks-tabs" className="flex bg-zinc-100 rounded-lg p-1 mb-4">
+        <div data-tour="bookmarks-tabs" className="flex bg-muted rounded-lg p-1 mb-4">
           <button
             onClick={() => {
               setActiveTab("phrases");
@@ -376,8 +376,8 @@ export function BookmarksPage() {
             }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "phrases"
-                ? "bg-white text-zinc-800 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground/90"
             }`}
           >
             Phrases
@@ -386,8 +386,8 @@ export function BookmarksPage() {
             onClick={() => setActiveTab("sessions")}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "sessions"
-                ? "bg-white text-zinc-800 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground/90"
             }`}
           >
             Conversations
@@ -395,17 +395,17 @@ export function BookmarksPage() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 mb-3">
-          <Search size={16} className="text-zinc-400" />
+        <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2 mb-3">
+          <Search size={16} className="text-faint" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by English translation..."
-            className="bg-transparent border-none outline-none text-sm w-full placeholder-zinc-400"
+            className="bg-transparent border-none outline-none text-sm w-full placeholder:text-faint"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-zinc-400 hover:text-zinc-600">
+            <button onClick={() => setSearchQuery("")} className="text-faint hover:text-muted-foreground">
               <X size={14} />
             </button>
           )}

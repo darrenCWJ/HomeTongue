@@ -23,17 +23,17 @@ export function DeleteSessionDialog({ isOpen, onCancel, onConfirm }: DeleteSessi
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-xl"
+            className="bg-card rounded-2xl p-6 w-full max-w-xs shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-zinc-800 mb-1">Delete conversation?</h3>
-            <p className="text-sm text-zinc-500 mb-5">
+            <h3 className="text-lg font-semibold text-foreground mb-1">Delete conversation?</h3>
+            <p className="text-sm text-muted-foreground mb-5">
               This will permanently delete this conversation. This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={onCancel}
-                className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-border text-muted-foreground text-sm font-medium hover:bg-background transition-colors"
               >
                 Cancel
               </button>

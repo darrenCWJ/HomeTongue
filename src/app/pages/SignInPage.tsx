@@ -30,7 +30,7 @@ export function SignInPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden">
+    <div className="flex flex-col h-full bg-card relative overflow-hidden">
       {/* Background */}
       <div className="absolute top-0 left-0 w-full h-64 bg-brand-blue rounded-b-[2.5rem] overflow-hidden">
         <div className="absolute top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl" />
@@ -59,14 +59,14 @@ export function SignInPage() {
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white rounded-3xl shadow-xl shadow-zinc-200/50 p-6 border border-zinc-100"
+          className="bg-card rounded-3xl shadow-xl shadow-border/50 p-6 border border-border-subtle"
         >
           <div className="flex flex-col items-center mb-6">
             <div className="w-12 h-12 bg-brand-blue/10 rounded-2xl flex items-center justify-center mb-3">
               <Lock size={24} className="text-brand-blue" />
             </div>
-            <h2 className="text-xl font-bold text-zinc-800">Enter Access Code</h2>
-            <p className="text-zinc-500 text-sm mt-1 text-center">
+            <h2 className="text-xl font-bold text-foreground">Enter Access Code</h2>
+            <p className="text-muted-foreground text-sm mt-1 text-center">
               This is a private preview — enter the code to continue.
             </p>
           </div>
@@ -82,11 +82,11 @@ export function SignInPage() {
                 }}
                 placeholder="••••••••"
                 autoFocus
-                className={`w-full bg-zinc-50 border rounded-xl py-3 px-4 text-center text-lg tracking-[0.3em] font-semibold outline-none transition-all
+                className={`w-full bg-input-background border rounded-xl py-3 px-4 text-center text-lg tracking-[0.3em] font-semibold outline-none transition-all
                   ${
                     error
                       ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-400"
-                      : "border-zinc-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
+                      : "border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
                   }`}
               />
               {error && (

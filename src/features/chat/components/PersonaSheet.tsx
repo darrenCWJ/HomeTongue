@@ -28,11 +28,11 @@ export function PersonaSheet({ isOpen, activePersona, onSelectPersona, onClose }
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl z-40 px-6 pt-6 pb-10"
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl z-40 px-6 pt-6 pb-10"
           >
-            <div className="w-10 h-1 bg-zinc-200 rounded-full mx-auto mb-5" />
-            <h3 className="text-lg font-bold text-zinc-800 mb-1">Switch Persona</h3>
-            <p className="text-xs text-zinc-500 mb-4">
+            <div className="w-10 h-1 bg-secondary rounded-full mx-auto mb-5" />
+            <h3 className="text-lg font-bold text-foreground mb-1">Switch Persona</h3>
+            <p className="text-xs text-muted-foreground mb-4">
               Changes how the AI interprets your tone and suggestions.
             </p>
 
@@ -44,19 +44,19 @@ export function PersonaSheet({ isOpen, activePersona, onSelectPersona, onClose }
                   className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                     activePersona === p
                       ? "bg-brand-blue/10 border-brand-blue shadow-sm"
-                      : "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
+                      : "bg-background border-border-subtle hover:border-border"
                   }`}
                 >
                   {p === "work" ? (
                     <Briefcase
                       size={24}
-                      className={activePersona === p ? "text-brand-blue" : "text-zinc-400"}
+                      className={activePersona === p ? "text-brand-blue" : "text-faint"}
                     />
                   ) : (
-                    <Home size={24} className={activePersona === p ? "text-brand-blue" : "text-zinc-400"} />
+                    <Home size={24} className={activePersona === p ? "text-brand-blue" : "text-faint"} />
                   )}
                   <span
-                    className={`font-semibold text-sm capitalize ${activePersona === p ? "text-brand-blue" : "text-zinc-600"}`}
+                    className={`font-semibold text-sm capitalize ${activePersona === p ? "text-brand-blue" : "text-muted-foreground"}`}
                   >
                     {p}
                   </span>

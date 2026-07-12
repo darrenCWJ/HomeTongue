@@ -35,14 +35,14 @@ function LevelCard({
   const isCurrent = level.level === completedCount + 1;
   const typeMeta = EXERCISE_TYPE_META[level.exerciseType] ?? {
     label: level.exerciseType,
-    color: "bg-zinc-100 text-zinc-500",
+    color: "bg-muted text-muted-foreground",
   };
 
   return (
     <button
       onClick={onSelect}
       className={`w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.98] hover:shadow-md
-        ${isCompleted ? "bg-white border-brand-blue/15 shadow-sm" : "bg-white border-zinc-100 shadow-sm hover:border-brand-blue/15"}
+        ${isCompleted ? "bg-card border-brand-blue/15 shadow-sm" : "bg-card border-border-subtle shadow-sm hover:border-brand-blue/15"}
       `}
     >
       {/* Level badge */}
@@ -50,19 +50,19 @@ function LevelCard({
         className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
         ${isCompleted ? "bg-brand-blue/100" : ""}
         ${isCurrent ? "bg-orange-400" : ""}
-        ${!isCompleted && !isCurrent ? "bg-zinc-100" : ""}
+        ${!isCompleted && !isCurrent ? "bg-muted" : ""}
       `}
       >
         {isCompleted && <CheckCircle size={22} className="text-white" />}
         {isCurrent && <Star size={22} className="text-white fill-white" />}
-        {!isCompleted && !isCurrent && <span className="text-sm font-bold text-zinc-400">{level.level}</span>}
+        {!isCompleted && !isCurrent && <span className="text-sm font-bold text-faint">{level.level}</span>}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span
-            className={`font-semibold text-sm ${isCompleted ? "text-zinc-700" : isCurrent ? "text-orange-600" : "text-zinc-700"}`}
+            className={`font-semibold text-sm ${isCompleted ? "text-foreground/90" : isCurrent ? "text-orange-600" : "text-foreground/90"}`}
           >
             {level.title}
           </span>
@@ -72,13 +72,13 @@ function LevelCard({
             </span>
           )}
         </div>
-        <p className="text-xs text-zinc-400 mb-2 leading-snug">{level.description}</p>
+        <p className="text-xs text-faint mb-2 leading-snug">{level.description}</p>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${typeMeta.color}`}>
           {typeMeta.label}
         </span>
       </div>
 
-      <ChevronRight size={18} className="text-zinc-300 flex-shrink-0" />
+      <ChevronRight size={18} className="text-faint flex-shrink-0" />
     </button>
   );
 }
@@ -119,26 +119,26 @@ export function RoadmapView({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col"
+      className="absolute inset-0 bg-background z-20 flex flex-col"
     >
       {/* Header */}
-      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-zinc-100 sticky top-0 z-30">
+      <div className="flex-shrink-0 bg-card/80 backdrop-blur-md border-b border-border-subtle sticky top-0 z-30">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
           <button
             onClick={onBack}
-            className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+            className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-lg text-zinc-800 leading-tight">{title}</h2>
-            <p className="text-xs text-zinc-400">
+            <h2 className="font-bold text-lg text-foreground leading-tight">{title}</h2>
+            <p className="text-xs text-faint">
               {completedCount} of {totalLevels} levels complete
             </p>
           </div>
           <span className="text-sm font-bold text-brand-blue">{progressPct}%</span>
         </div>
-        <div className="mx-4 mb-3 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+        <div className="mx-4 mb-3 h-1.5 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-brand-blue/100 rounded-full transition-all duration-500"
             style={{ width: `${progressPct}%` }}
@@ -154,8 +154,8 @@ export function RoadmapView({
             <div key={entry.lesson.id} className="space-y-3">
               {hasMultipleLessons && (
                 <div className="pt-2 first:pt-0">
-                  <h3 className="font-bold text-sm text-zinc-700">{entry.lesson.title}</h3>
-                  <p className="text-xs text-zinc-400">{entry.lesson.description}</p>
+                  <h3 className="font-bold text-sm text-foreground/90">{entry.lesson.title}</h3>
+                  <p className="text-xs text-faint">{entry.lesson.description}</p>
                 </div>
               )}
               {entry.levels.map((lvl) => (

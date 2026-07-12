@@ -141,7 +141,7 @@ export function MessageList({
             className={`rounded-2xl px-4 py-3 shadow-sm flex items-center gap-2 ${
               stageIsUserSide
                 ? "bg-brand-blue rounded-br-sm"
-                : "bg-white border border-zinc-200 rounded-tl-sm"
+                : "bg-card border border-border rounded-tl-sm"
             }`}
           >
             <div className="flex gap-1">
@@ -153,7 +153,7 @@ export function MessageList({
                 />
               ))}
             </div>
-            <span className={`text-xs ${stageIsUserSide ? "text-white/80" : "text-zinc-500"}`}>
+            <span className={`text-xs ${stageIsUserSide ? "text-white/80" : "text-muted-foreground"}`}>
               {stageLabel}
             </span>
           </div>
@@ -169,7 +169,7 @@ export function MessageList({
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="flex flex-col gap-2 pt-1 w-full"
           >
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
+            <span className="text-[10px] font-semibold text-faint uppercase tracking-wide">
               Suggested replies
             </span>
             {suggestions.map((s) => (
@@ -177,7 +177,7 @@ export function MessageList({
                 key={s.id}
                 onClick={() => onReply(s.original)}
                 disabled={isBusy}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-brand-blue/10 border border-brand-blue/15 rounded-2xl text-sm font-medium text-zinc-700 hover:bg-brand-blue/15 hover:border-brand-blue/20 active:scale-[0.99] transition-all disabled:opacity-50 text-left"
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-brand-blue/10 border border-brand-blue/15 rounded-2xl text-sm font-medium text-foreground/90 hover:bg-brand-blue/15 hover:border-brand-blue/20 active:scale-[0.99] transition-all disabled:opacity-50 text-left"
               >
                 <span>{s.original}</span>
                 <ChevronRight size={16} className="text-brand-blue/60 flex-shrink-0" />

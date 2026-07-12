@@ -72,14 +72,14 @@ export function PhraseBreakdownExercise({
     <div className="flex flex-col min-h-full gap-4">
       {/* Phrase progress */}
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-zinc-400 font-medium">
+        <span className="text-xs text-faint font-medium">
           Phrase {phraseIdx + 1} of {vocab.length}
         </span>
         <div className="flex gap-1">
           {vocab.map((_, i) => (
             <div
               key={i}
-              className={`h-1 rounded-full transition-all ${i === phraseIdx ? "w-5 bg-brand-blue/100" : i < phraseIdx ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
+              className={`h-1 rounded-full transition-all ${i === phraseIdx ? "w-5 bg-brand-blue/100" : i < phraseIdx ? "w-2 bg-brand-blue/20" : "w-2 bg-secondary"}`}
             />
           ))}
         </div>
@@ -87,7 +87,7 @@ export function PhraseBreakdownExercise({
 
       {/* Full phrase — always visible */}
       <div className="bg-brand-blue/10 border border-brand-blue/15 rounded-2xl p-4">
-        <p className="text-xs text-zinc-400 mb-1">{item.english}</p>
+        <p className="text-xs text-faint mb-1">{item.english}</p>
         <div className="flex items-center gap-2">
           <p className="text-2xl font-bold text-brand-blue">{item.dialect}</p>
           <PlayButtonDark text={item.dialect} size="sm" />
@@ -102,7 +102,7 @@ export function PhraseBreakdownExercise({
         {isLoading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 size={28} className="animate-spin text-brand-blue/60" />
-            <p className="text-xs text-zinc-400">Breaking down the phrase…</p>
+            <p className="text-xs text-faint">Breaking down the phrase…</p>
           </div>
         ) : chunk ? (
           <>
@@ -113,20 +113,20 @@ export function PhraseBreakdownExercise({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.18 }}
-                className="w-full bg-white rounded-3xl shadow-sm border border-zinc-100 p-7 flex flex-col items-center gap-3"
+                className="w-full bg-card rounded-3xl shadow-sm border border-border-subtle p-7 flex flex-col items-center gap-3"
               >
-                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                <span className="text-xs font-semibold uppercase tracking-widest text-faint">
                   Word {chunkIdx + 1} of {chunks.length}
                 </span>
                 <div className="flex items-center gap-3">
-                  <span className="text-5xl font-bold text-zinc-800">{chunk.characters}</span>
+                  <span className="text-5xl font-bold text-foreground">{chunk.characters}</span>
                   <PlayButtonDark text={chunk.characters} />
                 </div>
                 <span className="text-lg font-mono text-brand-blue">{chunk.pronunciation}</span>
                 {chunk.meaning && (
                   <>
-                    <div className="w-full h-px bg-zinc-100" />
-                    <span className="text-base text-zinc-500 italic text-center">"{chunk.meaning}"</span>
+                    <div className="w-full h-px bg-muted" />
+                    <span className="text-base text-muted-foreground italic text-center">"{chunk.meaning}"</span>
                   </>
                 )}
               </motion.div>
@@ -137,7 +137,7 @@ export function PhraseBreakdownExercise({
               {chunks.map((_, i) => (
                 <div
                   key={i}
-                  className={`h-1.5 rounded-full transition-all ${i === chunkIdx ? "w-6 bg-brand-blue/100" : i < chunkIdx ? "w-2 bg-brand-blue/20" : "w-2 bg-zinc-200"}`}
+                  className={`h-1.5 rounded-full transition-all ${i === chunkIdx ? "w-6 bg-brand-blue/100" : i < chunkIdx ? "w-2 bg-brand-blue/20" : "w-2 bg-secondary"}`}
                 />
               ))}
             </div>
@@ -150,7 +150,7 @@ export function PhraseBreakdownExercise({
         {canGoBack && (
           <button
             onClick={goBack}
-            className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-semibold text-sm hover:bg-zinc-50 active:scale-95 transition-all"
+            className="flex-1 py-3 rounded-2xl border border-border text-muted-foreground font-semibold text-sm hover:bg-background active:scale-95 transition-all"
           >
             Back
           </button>
@@ -158,7 +158,7 @@ export function PhraseBreakdownExercise({
         <button
           onClick={goNext}
           disabled={isLoading || !chunk}
-          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${!isLoading && chunk ? "bg-brand-blue/100 text-white hover:bg-brand-blue" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"}`}
+          className={`flex-1 py-3 rounded-2xl font-bold text-sm shadow transition-all active:scale-95 ${!isLoading && chunk ? "bg-brand-blue/100 text-white hover:bg-brand-blue" : "bg-muted text-faint cursor-not-allowed"}`}
         >
           {isLastChunk && isLastPhrase ? "Finish" : isLastChunk ? "Next Phrase →" : "Next Word →"}
         </button>

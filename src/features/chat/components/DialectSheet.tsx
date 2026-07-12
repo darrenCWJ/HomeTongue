@@ -27,11 +27,11 @@ export function DialectSheet({ isOpen, dialect, onSelectDialect, onClose }: Dial
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl z-40 px-6 pt-6 pb-10"
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl z-40 px-6 pt-6 pb-10"
           >
-            <div className="w-10 h-1 bg-zinc-200 rounded-full mx-auto mb-5" />
-            <h3 className="text-lg font-bold text-zinc-800 mb-1">Select Dialect</h3>
-            <p className="text-xs text-zinc-500 mb-4">Choose which dialect to translate into.</p>
+            <div className="w-10 h-1 bg-secondary rounded-full mx-auto mb-5" />
+            <h3 className="text-lg font-bold text-foreground mb-1">Select Dialect</h3>
+            <p className="text-xs text-muted-foreground mb-4">Choose which dialect to translate into.</p>
 
             <div className="space-y-2">
               {DIALECTS.map((d) => (
@@ -48,8 +48,8 @@ export function DialectSheet({ isOpen, dialect, onSelectDialect, onClose }: Dial
                     dialect === d.value && d.available
                       ? "bg-brand-blue/10 border-brand-blue"
                       : d.available
-                        ? "bg-zinc-50 border-zinc-100 hover:border-zinc-200"
-                        : "bg-zinc-50 border-zinc-100 opacity-40 cursor-not-allowed"
+                        ? "bg-background border-border-subtle hover:border-border"
+                        : "bg-background border-border-subtle opacity-40 cursor-not-allowed"
                   }`}
                 >
                   <div
@@ -57,8 +57,8 @@ export function DialectSheet({ isOpen, dialect, onSelectDialect, onClose }: Dial
                       dialect === d.value && d.available
                         ? "bg-brand-blue/100 text-white"
                         : d.available
-                          ? "bg-zinc-200 text-zinc-600"
-                          : "bg-zinc-200 text-zinc-400"
+                          ? "bg-secondary text-muted-foreground"
+                          : "bg-secondary text-faint"
                     }`}
                   >
                     {d.character}
@@ -69,20 +69,20 @@ export function DialectSheet({ isOpen, dialect, onSelectDialect, onClose }: Dial
                         dialect === d.value && d.available
                           ? "text-brand-blue"
                           : d.available
-                            ? "text-zinc-700"
-                            : "text-zinc-400"
+                            ? "text-foreground/90"
+                            : "text-faint"
                       }`}
                     >
                       {d.label}
                     </p>
-                    {!d.available && <p className="text-xs text-zinc-400">Coming soon</p>}
+                    {!d.available && <p className="text-xs text-faint">Coming soon</p>}
                     {d.available && d.experimental && (
                       <p className="text-xs text-amber-600">Experimental — text only</p>
                     )}
                   </div>
                   {dialect === d.value && d.available && (
                     <div className="w-5 h-5 rounded-full bg-brand-blue/100 flex items-center justify-center flex-shrink-0">
-                      <div className="w-2 h-2 rounded-full bg-white" />
+                      <div className="w-2 h-2 rounded-full bg-card" />
                     </div>
                   )}
                 </button>

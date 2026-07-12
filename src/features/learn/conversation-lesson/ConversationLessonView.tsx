@@ -50,18 +50,18 @@ export function ConversationLessonView({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0 }}
         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-        className="absolute inset-0 bg-zinc-50 z-20 flex flex-col"
+        className="absolute inset-0 bg-background z-20 flex flex-col"
       >
-        <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+        <div className="flex items-center gap-3 p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30">
           <button
             onClick={() => savePhase("listen")}
-            className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+            className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-lg text-zinc-800 leading-tight">{lesson.title}</h2>
-            <p className="text-xs text-zinc-400">Flashcards — flip to reveal</p>
+            <h2 className="font-bold text-lg text-foreground leading-tight">{lesson.title}</h2>
+            <p className="text-xs text-faint">Flashcards — flip to reveal</p>
           </div>
           <button
             onClick={() => savePhase("done")}
@@ -83,17 +83,17 @@ export function ConversationLessonView({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-      className="absolute inset-0 bg-zinc-50 z-20 flex flex-col"
+      className="absolute inset-0 bg-background z-20 flex flex-col"
     >
-      <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-30">
+      <div className="flex items-center gap-3 p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+          className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-lg text-zinc-800 leading-tight truncate">{lesson.title}</h2>
+          <h2 className="font-bold text-lg text-foreground leading-tight truncate">{lesson.title}</h2>
         </div>
         {phase === "listen" && (
           <button
@@ -114,12 +114,12 @@ export function ConversationLessonView({
             <div className="w-20 h-20 rounded-full bg-brand-blue/15 flex items-center justify-center mb-2">
               <CheckCircle size={40} className="text-brand-blue" />
             </div>
-            <h3 className="text-xl font-extrabold text-zinc-800">Ready for the Exam!</h3>
-            <p className="text-sm text-zinc-500 text-center max-w-xs">
+            <h3 className="text-xl font-extrabold text-foreground">Ready for the Exam!</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-xs">
               You've completed all practice phases. Take the final exam to earn your score.
             </p>
             {lesson.examBestScore !== undefined && (
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-faint">
                 Your best score: <span className="font-bold text-brand-blue">{lesson.examBestScore}%</span>
               </p>
             )}
@@ -129,7 +129,7 @@ export function ConversationLessonView({
             >
               Take Final Exam
             </button>
-            <button onClick={() => savePhase("listen")} className="text-sm text-zinc-400 hover:text-zinc-600">
+            <button onClick={() => savePhase("listen")} className="text-sm text-faint hover:text-muted-foreground">
               Review phrases again
             </button>
           </div>

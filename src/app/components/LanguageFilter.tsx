@@ -28,7 +28,7 @@ export function LanguageFilter() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-full px-3 py-1.5 text-sm font-medium text-zinc-700 hover:border-brand-blue/50 hover:text-brand-blue transition-colors shadow-sm"
+        className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5 text-sm font-medium text-foreground/90 hover:border-brand-blue/50 hover:text-brand-blue transition-colors shadow-sm"
       >
         <span className="text-xs font-bold">{activePack.character}</span>
         {activePack.label}
@@ -36,7 +36,7 @@ export function LanguageFilter() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-zinc-100 overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-2 w-48 bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50">
           {DIALECTS.map((d) => (
             <button
               key={d.value}
@@ -50,15 +50,15 @@ export function LanguageFilter() {
               className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors
                 ${
                   d.available
-                    ? "text-zinc-800 hover:bg-brand-blue/10 hover:text-brand-blue"
-                    : "text-zinc-300 cursor-not-allowed"
+                    ? "text-foreground hover:bg-brand-blue/10 hover:text-brand-blue"
+                    : "text-faint cursor-not-allowed"
                 }`}
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-xs font-bold w-5 text-center">{d.character}</span>
                 <div className="text-left">
                   <p className="font-medium leading-tight">{d.label}</p>
-                  {!d.available && <p className="text-[10px] text-zinc-300 leading-tight">Coming soon</p>}
+                  {!d.available && <p className="text-[10px] text-faint leading-tight">Coming soon</p>}
                   {d.available && d.experimental && (
                     <p className="text-[10px] text-amber-600 leading-tight">Experimental — text only</p>
                   )}

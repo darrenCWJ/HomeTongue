@@ -8,11 +8,11 @@ export function ChatBubble({ turn, dimmed }: { turn: ConversationTurn; dimmed?: 
         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
           isUser
             ? "bg-brand-blue/100 text-white rounded-br-sm"
-            : "bg-white border border-zinc-100 text-zinc-800 rounded-bl-sm"
+            : "bg-card border border-border-subtle text-foreground rounded-bl-sm"
         }`}
       >
-        <p className={`text-sm font-semibold ${isUser ? "text-white" : "text-zinc-800"}`}>{turn.dialect}</p>
-        <p className={`text-xs mt-0.5 ${isUser ? "text-brand-blue/60" : "text-zinc-400"}`}>
+        <p className={`text-sm font-semibold ${isUser ? "text-white" : "text-foreground"}`}>{turn.dialect}</p>
+        <p className={`text-xs mt-0.5 ${isUser ? "text-brand-blue/60" : "text-faint"}`}>
           {turn.romanization}
         </p>
       </div>

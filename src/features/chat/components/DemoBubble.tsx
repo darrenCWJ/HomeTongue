@@ -10,20 +10,20 @@ export function DemoBubble() {
         <div className="flex flex-col max-w-[78%]">
           <div
             data-tour="chat-message-bubble"
-            className="relative bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3"
+            className="relative bg-card rounded-2xl rounded-bl-sm shadow-sm border border-border px-4 py-3"
           >
             <button
               data-tour="chat-bookmark-button"
-              className="absolute top-2 right-2 text-zinc-300 hover:text-zinc-500 transition-colors"
+              className="absolute top-2 right-2 text-faint hover:text-muted-foreground transition-colors"
             >
               <Bookmark size={14} />
             </button>
-            <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">你好，好高興認識你！</p>
+            <p className="text-lg font-semibold text-foreground leading-snug pr-5">你好，好高興認識你！</p>
             <p className="text-xs text-brand-blue mt-1 font-medium">Hello, nice to meet you!</p>
-            <div className="mt-2 pt-2 border-t border-zinc-100">
+            <div className="mt-2 pt-2 border-t border-border-subtle">
               <button
                 data-tour="chat-replay-button"
-                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                className="flex items-center gap-1 text-xs text-faint hover:text-muted-foreground transition-colors"
               >
                 <RotateCcw size={12} />
                 Replay

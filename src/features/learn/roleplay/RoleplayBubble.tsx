@@ -17,7 +17,7 @@ function coachChipClasses(score: number): string {
 function CoachChip({ turn }: { turn: RoleplayTurn }) {
   if (turn.isCoachPending) {
     return (
-      <div className="flex items-center gap-1.5 mt-1 text-[11px] text-zinc-400">
+      <div className="flex items-center gap-1.5 mt-1 text-[11px] text-faint">
         <Loader2 size={11} className="animate-spin" />
         Coaching…
       </div>
@@ -68,18 +68,18 @@ export function RoleplayBubble({ turn }: { turn: RoleplayTurn }) {
       <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0 mb-1 text-xs font-bold text-brand-red">
         {character}
       </div>
-      <div className="max-w-[78%] bg-white rounded-2xl rounded-bl-sm shadow-sm border border-zinc-200 px-4 py-3">
-        <p className="text-base font-semibold text-zinc-900 leading-snug">{turn.text}</p>
+      <div className="max-w-[78%] bg-card rounded-2xl rounded-bl-sm shadow-sm border border-border px-4 py-3">
+        <p className="text-base font-semibold text-foreground leading-snug">{turn.text}</p>
         {turn.romanization && (
           <p className="text-xs font-mono text-brand-blue/60 mt-1">{turn.romanization}</p>
         )}
-        <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center gap-2">
+        <div className="mt-2 pt-2 border-t border-border-subtle flex items-center gap-2">
           <PlayButtonDark text={turn.text} size="sm" />
           {turn.english && (
             <button
               onClick={() => setIsGlossVisible((v) => !v)}
               className={`flex items-center gap-1 text-xs rounded-full px-2 py-1 transition-colors ${
-                isGlossVisible ? "bg-brand-blue/10 text-brand-blue" : "text-zinc-400 hover:text-zinc-600"
+                isGlossVisible ? "bg-brand-blue/10 text-brand-blue" : "text-faint hover:text-muted-foreground"
               }`}
             >
               <Languages size={12} />

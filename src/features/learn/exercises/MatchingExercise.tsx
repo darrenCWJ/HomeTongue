@@ -63,8 +63,8 @@ export function MatchingExercise({
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <p className="text-sm text-zinc-500 text-center">Tap English, then its dialect match.</p>
-      <p className="text-xs text-zinc-400 text-center">
+      <p className="text-sm text-muted-foreground text-center">Tap English, then its dialect match.</p>
+      <p className="text-xs text-faint text-center">
         Round {batchIndex + 1} / {totalBatches}
       </p>
 
@@ -83,7 +83,7 @@ export function MatchingExercise({
                   ${isMatched ? "bg-green-50 border-green-300 text-green-700 opacity-60" : ""}
                   ${isSelected && !isMatched ? "bg-brand-blue/10 border-brand-blue text-brand-blue" : ""}
                   ${isWrong ? "bg-red-50 border-red-400 text-red-600" : ""}
-                  ${!isMatched && !isSelected && !isWrong ? "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50" : ""}
+                  ${!isMatched && !isSelected && !isWrong ? "bg-card border-border text-foreground/90 hover:border-brand-blue/50" : ""}
                 `}
               >
                 {item.english}
@@ -105,14 +105,14 @@ export function MatchingExercise({
                 className={`p-3 rounded-xl text-sm font-bold text-center border-2 transition-all
                   ${isMatched ? "bg-green-50 border-green-300 text-green-700 opacity-60" : ""}
                   ${isWrong ? "bg-red-50 border-red-400 text-red-600" : ""}
-                  ${!isMatched && !isWrong ? "bg-white border-zinc-200 text-zinc-700 hover:border-brand-blue/50" : ""}
+                  ${!isMatched && !isWrong ? "bg-card border-border text-foreground/90 hover:border-brand-blue/50" : ""}
                 `}
               >
                 <div className="flex items-center justify-center gap-1">
                   <span>{item.dialect}</span>
                   <PlayButtonDark text={item.dialect} size="sm" />
                 </div>
-                <div className="text-xs font-mono text-zinc-400">{item.romanization}</div>
+                <div className="text-xs font-mono text-faint">{item.romanization}</div>
               </button>
             );
           })}

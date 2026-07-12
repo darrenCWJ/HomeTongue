@@ -28,14 +28,14 @@ export function PendingEnglishOverlay({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col items-center"
+          className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-border-subtle z-30 pt-8 pb-12 px-6 flex flex-col items-center"
         >
           <div className="text-center mb-6 w-full">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-3 bg-brand-blue/15 text-brand-blue">
               Non-Dialect speaker
             </div>
-            <h3 className="text-2xl font-bold text-zinc-800 mb-1">Did you say this?</h3>
-            <p className="text-sm text-zinc-500">Check your recording, then send in Cantonese</p>
+            <h3 className="text-2xl font-bold text-foreground mb-1">Did you say this?</h3>
+            <p className="text-sm text-muted-foreground">Check your recording, then send in Cantonese</p>
           </div>
           <div className="w-full max-w-md mb-8">
             {isEditingPending ? (
@@ -50,11 +50,11 @@ export function PendingEnglishOverlay({
                   }
                 }}
                 autoFocus
-                className="w-full bg-brand-blue/10 border-2 border-brand-blue rounded-2xl px-5 py-4 text-lg font-semibold text-zinc-900 text-center focus:outline-none"
+                className="w-full bg-brand-blue/10 border-2 border-brand-blue rounded-2xl px-5 py-4 text-lg font-semibold text-foreground text-center focus:outline-none"
               />
             ) : (
               <div className="flex items-center gap-3 bg-brand-blue/10 border border-brand-blue/20 rounded-2xl px-5 py-4">
-                <p className="flex-1 text-lg font-semibold text-zinc-900 text-center">{pendingEditText}</p>
+                <p className="flex-1 text-lg font-semibold text-foreground text-center">{pendingEditText}</p>
                 <button
                   onClick={() => setIsEditingPending(true)}
                   className="flex-shrink-0 p-1.5 rounded-lg text-brand-blue/60 hover:text-brand-blue hover:bg-brand-blue/15 transition-colors"
@@ -70,7 +70,7 @@ export function PendingEnglishOverlay({
           >
             Send in Cantonese
           </button>
-          <button onClick={onCancel} className="mt-4 text-zinc-400 font-medium text-sm hover:text-zinc-600">
+          <button onClick={onCancel} className="mt-4 text-faint font-medium text-sm hover:text-muted-foreground">
             Cancel
           </button>
         </motion.div>

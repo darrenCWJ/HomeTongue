@@ -21,31 +21,31 @@ export function SessionMenu({
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 bg-white rounded-xl shadow-lg border border-zinc-200 py-1.5 w-44"
+        className="fixed z-50 bg-card rounded-xl shadow-lg border border-border py-1.5 w-44"
         style={{ top: menuPosition.top, right: menuPosition.right }}
       >
         <button
           onClick={onEditName}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/90 hover:bg-background transition-colors"
         >
-          <Pencil size={14} className="text-zinc-400" />
+          <Pencil size={14} className="text-faint" />
           Edit Name
         </button>
         <button
           onClick={onEditLabel}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/90 hover:bg-background transition-colors"
         >
-          <TagIcon size={14} className="text-zinc-400" />
+          <TagIcon size={14} className="text-faint" />
           Edit Label
         </button>
         <button
           onClick={onAddNote}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/90 hover:bg-background transition-colors"
         >
-          <StickyNote size={14} className="text-zinc-400" />
+          <StickyNote size={14} className="text-faint" />
           Add Note
         </button>
-        <div className="my-1 border-t border-zinc-100" />
+        <div className="my-1 border-t border-border-subtle" />
         <button
           onClick={onDelete}
           className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"

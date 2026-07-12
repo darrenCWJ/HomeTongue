@@ -28,11 +28,11 @@ export function TypingOverlay({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-100 z-30 pt-8 pb-12 px-6 flex flex-col items-center"
+          className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-border-subtle z-30 pt-8 pb-12 px-6 flex flex-col items-center"
         >
           <div className="text-center mb-6 w-full">
-            <h3 className="text-2xl font-bold text-zinc-800 mb-1">Your reply</h3>
-            <p className="text-sm text-zinc-500">
+            <h3 className="text-2xl font-bold text-foreground mb-1">Your reply</h3>
+            <p className="text-sm text-muted-foreground">
               {ttsEnabled
                 ? "Type in English — it will be spoken in their dialect"
                 : "Type in English — it will be translated into their dialect"}
@@ -51,7 +51,7 @@ export function TypingOverlay({
               }}
               placeholder="e.g. Nice to meet you!"
               autoFocus
-              className="w-full px-4 py-3 pr-12 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-zinc-800"
+              className="w-full px-4 py-3 pr-12 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground"
             />
             <button
               onClick={onSubmit}
@@ -61,7 +61,7 @@ export function TypingOverlay({
               <Send size={18} />
             </button>
           </div>
-          <button onClick={onClose} className="mt-8 text-zinc-400 font-medium text-sm hover:text-zinc-600">
+          <button onClick={onClose} className="mt-8 text-faint font-medium text-sm hover:text-muted-foreground">
             Cancel
           </button>
         </motion.div>

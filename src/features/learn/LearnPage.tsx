@@ -155,7 +155,7 @@ export function LearnPage() {
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-zinc-50">
+    <div className="relative h-full w-full overflow-hidden bg-background">
       <AnimatePresence initial={false} mode="wait">
         {view === "main" && (
           <motion.div
@@ -170,8 +170,8 @@ export function LearnPage() {
             <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 scrollbar-none">
               <div className="flex items-start justify-between mb-6 mt-2">
                 <div>
-                  <h1 className="text-2xl font-bold text-zinc-800">Learn</h1>
-                  <p className="text-sm text-zinc-500">Master your saved phrases</p>
+                  <h1 className="text-2xl font-bold text-foreground">Learn</h1>
+                  <p className="text-sm text-muted-foreground">Master your saved phrases</p>
                 </div>
                 <div data-tour="learn-language-filter">
                   <LanguageFilter />
@@ -181,27 +181,27 @@ export function LearnPage() {
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div
                   data-tour="learn-lessons-done"
-                  className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center"
+                  className="bg-card p-2.5 rounded-xl shadow-sm border border-border-subtle flex flex-col items-center justify-center"
                 >
                   <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1.5">
                     <Trophy size={16} className="text-green-500" />
                   </div>
-                  <span className="text-xl font-bold text-zinc-800">{totalLessonsDone}</span>
-                  <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">
+                  <span className="text-xl font-bold text-foreground">{totalLessonsDone}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
                     Lessons Done
                   </span>
                 </div>
                 <div
                   data-tour="learn-dialect-fluency"
-                  className="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 flex flex-col items-center justify-center"
+                  className="bg-card p-2.5 rounded-xl shadow-sm border border-border-subtle flex flex-col items-center justify-center"
                 >
                   <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center mb-1.5">
                     <Star size={16} className="text-brand-red" />
                   </div>
-                  <span className="text-xl font-bold text-zinc-800">
+                  <span className="text-xl font-bold text-foreground">
                     {avgScore !== null ? `${avgScore}%` : "–"}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
                     Dialect Fluency
                   </span>
                 </div>
@@ -210,15 +210,15 @@ export function LearnPage() {
               <button
                 data-tour="learn-practice-phrases"
                 onClick={() => setView("practice")}
-                className="w-full bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center justify-between mb-3 hover:border-brand-blue/40 active:scale-[0.99] transition-all text-left"
+                className="w-full bg-card rounded-2xl p-3.5 shadow-sm border border-border-subtle flex items-center justify-between mb-3 hover:border-brand-blue/40 active:scale-[0.99] transition-all text-left"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-brand-blue/15 flex items-center justify-center flex-shrink-0">
                     <Repeat size={18} className="text-brand-blue" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-zinc-800">Practice my phrases</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-sm font-bold text-foreground">Practice my phrases</p>
+                    <p className="text-xs text-muted-foreground">
                       {review.isLoading
                         ? "Loading…"
                         : review.dueCount > 0
@@ -243,15 +243,15 @@ export function LearnPage() {
                 <button
                   data-tour="learn-roleplay"
                   onClick={() => setView("roleplay-picker")}
-                  className="w-full bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center justify-between mb-3 hover:border-brand-red/40 active:scale-[0.99] transition-all text-left"
+                  className="w-full bg-card rounded-2xl p-3.5 shadow-sm border border-border-subtle flex items-center justify-between mb-3 hover:border-brand-red/40 active:scale-[0.99] transition-all text-left"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0">
                       <Drama size={18} className="text-brand-red" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-zinc-800">Rehearse a conversation</p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-sm font-bold text-foreground">Rehearse a conversation</p>
+                      <p className="text-xs text-muted-foreground">
                         Roleplay real-life scenarios before the real thing
                       </p>
                     </div>
@@ -278,14 +278,14 @@ export function LearnPage() {
               {/* Tab switcher */}
               <div
                 data-tour="learn-tab-switcher"
-                className="flex bg-zinc-100 rounded-2xl p-1 mb-4 sticky top-0 z-10"
+                className="flex bg-muted rounded-2xl p-1 mb-4 sticky top-0 z-10"
               >
                 <button
                   onClick={() => setMainTab("standard")}
                   className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
                     mainTab === "standard"
-                      ? "bg-white text-zinc-800 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-700"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground/90"
                   }`}
                 >
                   Standard Lesson
@@ -294,8 +294,8 @@ export function LearnPage() {
                   onClick={() => setMainTab("custom")}
                   className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
                     mainTab === "custom"
-                      ? "bg-white text-zinc-800 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-700"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground/90"
                   }`}
                 >
                   Custom Conversation
@@ -332,10 +332,10 @@ export function LearnPage() {
               {mainTab === "custom" && (
                 <div data-tour="learn-conversation-lessons">
                   {personalLessons.length === 0 ? (
-                    <div className="bg-white rounded-2xl p-8 text-center border border-zinc-100 shadow-sm">
-                      <BookOpen size={32} className="text-zinc-300 mx-auto mb-3" />
-                      <p className="text-sm font-semibold text-zinc-500 mb-1">No custom lessons yet</p>
-                      <p className="text-xs text-zinc-400">
+                    <div className="bg-card rounded-2xl p-8 text-center border border-border-subtle shadow-sm">
+                      <BookOpen size={32} className="text-faint mx-auto mb-3" />
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">No custom lessons yet</p>
+                      <p className="text-xs text-faint">
                         Go to Saved Conversations and tap the bookmark icon to convert a chat into a lesson.
                       </p>
                     </div>

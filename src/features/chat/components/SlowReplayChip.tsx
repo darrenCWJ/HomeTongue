@@ -17,7 +17,7 @@ export function SlowReplayChip({ disabled, variant, onPlay }: SlowReplayChipProp
   const colors =
     variant === "dark"
       ? "border-white/25 text-white/60 hover:text-white"
-      : "border-zinc-200 text-zinc-400 hover:text-zinc-600";
+      : "border-border text-faint hover:text-muted-foreground";
   return (
     <button
       onClick={onPlay}
