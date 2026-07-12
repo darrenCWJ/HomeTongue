@@ -18,6 +18,12 @@ out/
 !src/assets/**
 .playwright-mcp/
 
+# Playwright E2E artifacts
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
 # Android local config and build output
 android/local.properties
 android/app/build/

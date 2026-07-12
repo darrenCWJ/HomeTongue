@@ -31,7 +31,14 @@ export async function prepareTranslation(
 ): Promise<PreparedTranslation> {
   const result = await translate({ text: englishText, preferredTone: tone });
   const variant = result[tone];
-  const { audioDataUrl, play } = await speakTextAndCapture(variant.text, voiceId);
+  // A TTS failure (e.g. the keyless offline mode, where the server has no
+  // GOOGLE_API_JSON and /api/tts errors) must not discard a successful
+  // translation — degrade to the same silent no-op contract voice-less packs
+  // get from speakTextAndCapture (empty audio, resolved play).
+  const { audioDataUrl, play } = await speakTextAndCapture(variant.text, voiceId).catch(() => ({
+    audioDataUrl: "",
+    play: () => Promise.resolve(),
+  }));
   const phrase: Phrase = {
     id: phraseId,
     original: englishText,

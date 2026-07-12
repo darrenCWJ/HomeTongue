@@ -47,3 +47,38 @@ jobs:
             echo "supabase-js leaked into the local-mode bundle" && exit 1
           fi
           echo "Bundle clean."
+
+  # Playwright E2E — separate job so the fast unit gates above are never
+  # blocked behind a browser download. Deterministic and key-free: the
+  # webServer env in playwright.config.ts blanks every AI credential, so the
+  # client exercises the offline mock translator (see docs/E2E.md).
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E suite
+        run: pnpm e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
