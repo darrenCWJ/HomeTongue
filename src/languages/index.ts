@@ -1,10 +1,14 @@
 import type { LanguagePack } from "./types";
 import { CANTONESE_PACK } from "./yue-HK";
+import { HOKKIEN_PACK } from "./nan-TW";
 
 export type { DisplayVoice, GoogleTTSVoice, LanguagePack } from "./types";
 
 export const LANGUAGE_PACKS = {
   "yue-HK": CANTONESE_PACK,
+  // EXPERIMENTAL text-first pack: capabilities { tts: false, stt: false } —
+  // voice UI is capability-gated, translation/lessons work normally.
+  "nan-TW": HOKKIEN_PACK,
 } satisfies Record<string, LanguagePack>;
 
 export type LanguageCode = keyof typeof LANGUAGE_PACKS;
@@ -39,6 +43,14 @@ let activeLanguagePack: LanguagePack = LANGUAGE_PACKS[DEFAULT_LANGUAGE];
 /** The currently active language pack (module-level, not reactive). */
 export function getActiveLanguagePack(): LanguagePack {
   return activeLanguagePack;
+}
+
+/**
+ * Capabilities of the currently active pack. `tts`/`stt` false means no
+ * usable vendor model exists yet — UI must hide or disable those controls.
+ */
+export function getActiveCapabilities(): LanguagePack["capabilities"] {
+  return activeLanguagePack.capabilities;
 }
 
 /** Switch the active language pack; unknown codes fall back to the default. */

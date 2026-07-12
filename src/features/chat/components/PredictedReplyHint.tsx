@@ -6,6 +6,8 @@ interface PredictedReplyHintProps {
   text: string;
   isPlaying: boolean;
   playDisabled: boolean;
+  /** Active pack's TTS capability — the play button is hidden when false. */
+  showPlay: boolean;
   onPlay: () => void;
 }
 
@@ -14,7 +16,13 @@ interface PredictedReplyHintProps {
  * model's predicted reply from the other speaker. Dismissal is local state,
  * so a new prediction (new component instance keyed by message) resets it.
  */
-export function PredictedReplyHint({ text, isPlaying, playDisabled, onPlay }: PredictedReplyHintProps) {
+export function PredictedReplyHint({
+  text,
+  isPlaying,
+  playDisabled,
+  showPlay,
+  onPlay,
+}: PredictedReplyHintProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   if (isDismissed) return null;
 
@@ -31,14 +39,16 @@ export function PredictedReplyHint({ text, isPlaying, playDisabled, onPlay }: Pr
           </span>
           <span className="block text-sm font-medium text-zinc-600 leading-snug">{text}</span>
         </div>
-        <button
-          onClick={onPlay}
-          disabled={playDisabled}
-          aria-label="Play predicted reply"
-          className="flex-shrink-0 p-1 rounded-full text-zinc-400 hover:text-brand-blue disabled:opacity-50 transition-colors"
-        >
-          <Volume2 size={14} className={isPlaying ? "animate-pulse text-brand-blue" : ""} />
-        </button>
+        {showPlay && (
+          <button
+            onClick={onPlay}
+            disabled={playDisabled}
+            aria-label="Play predicted reply"
+            className="flex-shrink-0 p-1 rounded-full text-zinc-400 hover:text-brand-blue disabled:opacity-50 transition-colors"
+          >
+            <Volume2 size={14} className={isPlaying ? "animate-pulse text-brand-blue" : ""} />
+          </button>
+        )}
         <button
           onClick={() => setIsDismissed(true)}
           aria-label="Dismiss predicted reply"

@@ -6,10 +6,14 @@
 // Files under api/_lib are not exposed as routes by Vercel.
 
 import { fetchWithTimeout, UpstreamTimeoutError } from "./fetchWithTimeout.js";
+import { resolveBaseUrl } from "./languageManifest.js";
 
 // Model-provider switch (docs/ML_TRAINING_PLAN.md): point LLM_BASE_URL at any
 // OpenAI-compatible endpoint (vLLM on Modal, Together, etc.) to serve a
 // custom fine-tuned model. Defaults to OpenAI; the client never changes.
+// Per-language routing: LLM_BASE_URL_<SUFFIX> (e.g. LLM_BASE_URL_YUE_HK)
+// overrides the global value when the request body carries that pack's
+// `language` code — see api/_lib/languageManifest.js for the scheme.
 const DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1";
 
 const MAX_TOTAL_CHARS = 24_000;
@@ -20,10 +24,12 @@ const UPSTREAM_TIMEOUT_MS = 20_000;
 /**
  * Pure request core: no req/res, no rate limiting, no process.env.
  *
- * @param {unknown} body parsed JSON request body
+ * @param {unknown} body parsed JSON request body (optional `language` = pack
+ *   languageCode, e.g. "yue-HK", used only for per-language base-URL routing;
+ *   unknown values are ignored so older/newer clients interoperate)
  * @param {Record<string, string | undefined>} env reads LLM_API_KEY,
- *   OPENAI_API_KEY, VITE_OPENAI_API_KEY, LLM_BASE_URL, OPENAI_MODEL,
- *   VITE_OPENAI_MODEL
+ *   OPENAI_API_KEY, VITE_OPENAI_API_KEY, LLM_BASE_URL, LLM_BASE_URL_<SUFFIX>,
+ *   OPENAI_MODEL, VITE_OPENAI_MODEL
  * @returns {Promise<{ status: number, body: Record<string, unknown> }>}
  */
 export async function chatCore(body, env) {
@@ -34,7 +40,7 @@ export async function chatCore(body, env) {
     return { status: 503, body: { error: "Translation service is not configured" } };
   }
 
-  const { messages, temperature, max_tokens, response_format } = body ?? {};
+  const { messages, temperature, max_tokens, response_format, language } = body ?? {};
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
     return { status: 400, body: { error: "messages must be a non-empty array (max 20)" } };
   }
@@ -53,7 +59,11 @@ export async function chatCore(body, env) {
     return { status: 400, body: { error: "Request too large" } };
   }
 
-  const llmBaseUrl = (env.LLM_BASE_URL ?? DEFAULT_LLM_BASE_URL).replace(/\/$/, "");
+  // Per-language model routing: known pack codes may resolve to a dedicated
+  // fine-tuned endpoint; unknown/missing codes fall back to the global
+  // LLM_BASE_URL, then to the OpenAI default.
+  const routedBaseUrl = resolveBaseUrl("llm", typeof language === "string" ? language : undefined, env);
+  const llmBaseUrl = (routedBaseUrl ?? DEFAULT_LLM_BASE_URL).replace(/\/$/, "");
   const model = env.OPENAI_MODEL ?? env.VITE_OPENAI_MODEL ?? DEFAULT_MODEL;
 
   let upstream;

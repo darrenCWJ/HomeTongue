@@ -21,6 +21,8 @@ interface MessageListProps extends BubblePointerHandlers {
   suggestions: Phrase[];
   showSuggestions: boolean;
   isBusy: boolean;
+  /** Active pack's TTS capability — replay/play controls are hidden when false. */
+  ttsEnabled: boolean;
   onReply: (englishText: string) => void;
   onToggleBookmark: (id: string, displayedVariant?: TranslationVariant) => void;
   onReplay: (id: string, text: string) => void;
@@ -39,6 +41,7 @@ export function MessageList({
   suggestions,
   showSuggestions,
   isBusy,
+  ttsEnabled,
   onReply,
   onToggleBookmark,
   onReplay,
@@ -75,6 +78,7 @@ export function MessageList({
               isPlaying={isPlaying}
               playingId={playingId}
               isBookmarked={isBookmarked}
+              ttsEnabled={ttsEnabled}
               onToggleBookmark={onToggleBookmark}
               onReplay={onReplay}
               onUpdateMessage={onUpdateMessage}
@@ -97,6 +101,7 @@ export function MessageList({
                 isPlaying={isPlaying}
                 playingId={playingId}
                 isBookmarked={isBookmarked}
+                ttsEnabled={ttsEnabled}
                 onToggleBookmark={onToggleBookmark}
                 onReplay={onReplay}
                 onUpdateMessage={onUpdateMessage}
@@ -109,6 +114,7 @@ export function MessageList({
                   text={predictedResponse}
                   isPlaying={playingId === `predicted-${msg.id}`}
                   playDisabled={!!playingId}
+                  showPlay={ttsEnabled}
                   onPlay={() => onReplay(`predicted-${msg.id}`, predictedResponse)}
                 />
               )}

@@ -37,6 +37,18 @@ export interface LanguagePack {
   /** Single-character glyph shown in the dialect picker, e.g. "粵". */
   character: string;
 
+  /**
+   * Vendor speech-model availability for this pack.
+   *
+   * `false` = no usable vendor/self-hosted model yet — UI must hide or
+   * disable the affected controls, and the plumbing no-ops safely
+   * (useGoogleTTS skips synthesis instead of calling /api/tts).
+   */
+  capabilities: {
+    tts: boolean;
+    stt: boolean;
+  };
+
   tts: {
     /** `languageCode` sent to /api/tts. */
     languageCode: string;
@@ -86,5 +98,12 @@ export interface LanguagePack {
     charEquivalents: Readonly<Record<string, string>>;
     /** Interchangeable sentence-final particles; the first entry is canonical. */
     particleGroups: ReadonlyArray<readonly string[]>;
+    /**
+     * Offline pronunciation-match fallback used when the LLM scoring call
+     * fails. Pure and network-free; returns 0–100. Han-script packs use a
+     * character-overlap heuristic; romanized-script packs (Tâi-lô, Peng'im)
+     * should use `romanizedFallbackMatch` from src/languages/romanizedFallback.ts.
+     */
+    fallbackMatch(expected: string, actual: string): number;
   };
 }

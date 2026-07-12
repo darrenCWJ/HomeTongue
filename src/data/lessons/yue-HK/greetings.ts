@@ -1,4 +1,4 @@
-import type { Lesson } from "../../types";
+import type { Lesson } from "../../../types";
 
 // Greetings & Basics lessons — extracted from lessons.ts to stay under the 800-line file cap
 // (scripts/check-file-sizes.mjs). Aggregated in src/data/lessons.ts.

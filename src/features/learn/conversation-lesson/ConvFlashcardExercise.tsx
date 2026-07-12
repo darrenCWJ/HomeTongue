@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Bookmark } from "lucide-react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
+import { getActiveLanguagePack } from "../../../languages";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { VocabItem } from "../../../types";
 import { PlayButton } from "../shared";
@@ -42,6 +43,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
         pronunciation: current.pronunciation,
         isBookmarked: true,
         context: "Conversation Lesson",
+        languageCode: getActiveLanguagePack().code,
       });
     } else {
       toggleBookmark(phraseId);

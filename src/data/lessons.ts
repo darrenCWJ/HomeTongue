@@ -1,8 +1,37 @@
 import type { Lesson, LessonCategory, LessonLevel } from "../types";
-import { FOOD_LESSONS } from "./lessons/food";
-import { GREETINGS_LESSONS } from "./lessons/greetings";
-import { SLANG_LESSONS } from "./lessons/slang";
-import { TRANSPORT_LESSONS } from "./lessons/transport";
+import { NAN_TW_LESSON_CONTENT } from "./lessons/nan-TW";
+import { YUE_HK_LESSON_CONTENT } from "./lessons/yue-HK";
+
+/** Static lesson curriculum for one language pack. */
+export interface LessonContent {
+  categories: LessonCategory[];
+  lessons: Lesson[];
+}
+
+/**
+ * Per-language static lesson registry.
+ *
+ * Lesson id convention: yue-HK lesson ids are historical and unprefixed
+ * ("greetings", "food-1", …) and MUST stay exactly as-is so existing
+ * LessonProgress rows keep matching. Every FUTURE language must prefix its
+ * lesson ids with its language code (e.g. "nan-greetings") so ids stay
+ * globally unique and LessonProgress never needs a language column.
+ */
+const LESSON_CONTENT_BY_LANGUAGE: Readonly<Record<string, LessonContent>> = {
+  "yue-HK": YUE_HK_LESSON_CONTENT,
+  "nan-TW": NAN_TW_LESSON_CONTENT,
+};
+
+const EMPTY_LESSON_CONTENT: LessonContent = { categories: [], lessons: [] };
+
+/**
+ * Returns the static lesson curriculum for a language, or empty content for
+ * languages that have no authored lessons yet (the Learn UI renders no
+ * standard-lesson cards in that case rather than falling back to Cantonese).
+ */
+export function getLessonContent(languageCode: string): LessonContent {
+  return LESSON_CONTENT_BY_LANGUAGE[languageCode] ?? EMPTY_LESSON_CONTENT;
+}
 
 /**
  * Returns the playable levels for a lesson.
@@ -26,38 +55,14 @@ export function getLessonLevels(lesson: Lesson): LessonLevel[] {
   ];
 }
 
-export const LESSON_CATEGORIES: LessonCategory[] = [
-  {
-    id: "greetings",
-    title: "Greetings & Basics",
-    description: "Essential phrases for everyday use",
-    icon: "👋",
-  },
-  {
-    id: "food",
-    title: "Ordering Food",
-    description: "Navigate restaurants with ease",
-    icon: "🍜",
-  },
-  {
-    id: "transport",
-    title: "Getting Around",
-    description: "Navigate the city like a local",
-    icon: "🚇",
-  },
-  {
-    id: "slang",
-    title: "Street Slang",
-    description: "Sound like a true local",
-    icon: "🤙",
-  },
-];
+/**
+ * @deprecated yue-HK snapshot kept for backward compatibility. Use
+ * `getLessonContent(languageCode).categories` with the active language code.
+ */
+export const LESSON_CATEGORIES: LessonCategory[] = YUE_HK_LESSON_CONTENT.categories;
 
-// Lesson content lives in per-topic modules under src/data/lessons/ so each
-// file stays under the 800-line cap enforced by scripts/check-file-sizes.mjs.
-export const LESSONS: Lesson[] = [
-  ...GREETINGS_LESSONS,
-  ...FOOD_LESSONS,
-  ...TRANSPORT_LESSONS,
-  ...SLANG_LESSONS,
-];
+/**
+ * @deprecated yue-HK snapshot kept for backward compatibility. Use
+ * `getLessonContent(languageCode).lessons` with the active language code.
+ */
+export const LESSONS: Lesson[] = YUE_HK_LESSON_CONTENT.lessons;

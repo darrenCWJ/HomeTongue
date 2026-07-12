@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bookmark, BookmarkCheck, MessageCircle, Star } from "lucide-react";
 import { motion } from "motion/react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
+import { getActiveLanguagePack } from "../../../languages";
 import { newId } from "../../../utils/id";
 import type { RoleplayScenario, RoleplayTurn } from "../../../services/roleplayService";
 
@@ -31,6 +32,7 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
       pronunciation: turn.jyutping ?? "",
       isBookmarked: true,
       context: `Roleplay: ${scenario.title}`,
+      languageCode: getActiveLanguagePack().code,
     });
     setSavedTurnIds((prev) => {
       const next = new Set(prev);

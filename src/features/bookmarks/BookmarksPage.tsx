@@ -8,6 +8,8 @@ import { speakText } from "../../hooks/useGoogleTTS";
 import { toast } from "sonner";
 import { extractVocabFromMessages } from "../../utils/vocab";
 import { newId } from "../../utils/id";
+import { DEFAULT_LANGUAGE_CODE, filterByLanguage } from "../../languages/scope";
+import { useActiveLanguageCode } from "../../hooks/useActiveLanguageCode";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
 import { useTour } from "../../app/components/tour/TourProvider";
 import { PhraseTagFilterBar } from "./components/PhraseTagFilterBar";
@@ -39,6 +41,7 @@ export function BookmarksPage() {
     setPhraseTags,
     setSessionTags,
   } = useLibrary();
+  const activeLanguageCode = useActiveLanguageCode();
   const { isActive: isTourActive, activeTour, currentStep } = useTour();
   const isTourMode = isTourActive && activeTour === "bookmarks";
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
@@ -113,7 +116,13 @@ export function BookmarksPage() {
     [deleteTag]
   );
 
-  const allBookmarked = phrases.filter((p) => p.isBookmarked || (p.tags?.length ?? 0) > 0);
+  // All saved-content lists are scoped to the active language; a dialect
+  // switch must never show mixed-language data (see src/languages/scope.ts).
+  const scopedPhrases = filterByLanguage(phrases, activeLanguageCode);
+  const scopedSessions = filterByLanguage(sessions, activeLanguageCode);
+  const scopedConversationLessons = filterByLanguage(conversationLessons, activeLanguageCode);
+
+  const allBookmarked = scopedPhrases.filter((p) => p.isBookmarked || (p.tags?.length ?? 0) > 0);
   const searchLower = searchQuery.toLowerCase().trim();
   const bookmarkedPhrases = allBookmarked
     .filter((p) => selectedTagFilters.size === 0 || p.tags?.some((t) => selectedTagFilters.has(t)))
@@ -178,6 +187,9 @@ export function BookmarksPage() {
       vocabulary: vocab,
       examCompleted: false,
       examAttempts: 0,
+      // A lesson derives from its source session, so it inherits the
+      // session's language rather than whatever pack is active right now.
+      languageCode: session.languageCode ?? DEFAULT_LANGUAGE_CODE,
     });
     setPendingConvertSession(null);
     toast.success("Added to Learn!");
@@ -209,6 +221,7 @@ export function BookmarksPage() {
         context: "",
         audioDataUrl: urls[0],
         audioDataUrls: urls.length > 1 ? urls : undefined,
+        languageCode: activeLanguageCode,
       });
     }
   };
@@ -249,6 +262,7 @@ export function BookmarksPage() {
       pronunciation: "",
       isBookmarked: true,
       context: "",
+      languageCode: activeLanguageCode,
     });
     setPhraseSelectionData(null);
     setPhraseSelectionText("");
@@ -456,13 +470,13 @@ export function BookmarksPage() {
           />
         ) : (
           <SessionsTab
-            sessions={sessions}
+            sessions={scopedSessions}
             sessionPersonaFilters={sessionPersonaFilters}
             sessionTagFilters={sessionTagFilters}
             searchLower={searchLower}
             isTourMode={isTourMode}
             sessionTags={sessionTags}
-            conversationLessons={conversationLessons}
+            conversationLessons={scopedConversationLessons}
             expandedSessionId={expandedSessionId}
             setExpandedSessionId={setExpandedSessionId}
             editingSessionId={editingSessionId}

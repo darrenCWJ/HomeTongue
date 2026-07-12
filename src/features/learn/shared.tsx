@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Loader2, Volume2 } from "lucide-react";
 import { useProfile } from "../../app/context/ProfileProvider";
+import { useActiveCapabilities } from "../../hooks/useActiveLanguageCode";
 import { playDataUrl } from "../../hooks/audio";
 import { speakText, GOOGLE_TTS_VOICES, DEFAULT_VOICE } from "../../hooks/useGoogleTTS";
 import type { VoiceKey } from "../../hooks/useGoogleTTS";
@@ -19,7 +20,12 @@ export function PlayButton({
   audioDataUrl?: string;
 }) {
   const { userProfile } = useProfile();
+  const { tts } = useActiveCapabilities();
   const [isPlaying, setIsPlaying] = useState(false);
+  // Voice-less packs (capabilities.tts false): speakText would silently
+  // no-op, which reads as a broken button — render nothing instead. Cached
+  // audio (recordings / previously captured TTS) stays playable.
+  if (!tts && !audioDataUrl) return null;
 
   const handlePlay = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,8 +72,11 @@ export function PlayButtonDark({
   disabled?: boolean;
 }) {
   const { userProfile } = useProfile();
+  const { tts } = useActiveCapabilities();
   const [isPlaying, setIsPlaying] = useState(false);
   const disabled = isPlaying || !!externalDisabled;
+  // Same capability gate as PlayButton above.
+  if (!tts && !audioDataUrl) return null;
 
   const handlePlay = async (e: React.MouseEvent) => {
     e.stopPropagation();

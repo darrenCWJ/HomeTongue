@@ -106,6 +106,69 @@ describe("chatCore", () => {
     expect(JSON.parse(init.body).model).toBe("custom-model");
   });
 
+  describe("per-language model routing", () => {
+    const MESSAGES = [{ role: "user", content: "hi" }];
+
+    it("routes to the per-language base URL when its env var is set (trailing slash stripped)", async () => {
+      const fetchMock = stubFetch(async () => jsonResponse({ choices: [] }));
+
+      await chatCore(
+        { messages: MESSAGES, language: "yue-HK" },
+        {
+          ...ENV,
+          LLM_BASE_URL: "https://global.example.com/v1",
+          LLM_BASE_URL_YUE_HK: "https://yue.example.com/v1/",
+        }
+      );
+
+      expect(fetchMock.mock.calls[0][0]).toBe("https://yue.example.com/v1/chat/completions");
+    });
+
+    it("falls back to the global LLM_BASE_URL when no per-language var is set", async () => {
+      const fetchMock = stubFetch(async () => jsonResponse({ choices: [] }));
+
+      await chatCore(
+        { messages: MESSAGES, language: "yue-HK" },
+        { ...ENV, LLM_BASE_URL: "https://global.example.com/v1" }
+      );
+
+      expect(fetchMock.mock.calls[0][0]).toBe("https://global.example.com/v1/chat/completions");
+    });
+
+    it("falls back to the OpenAI default when neither base URL is set", async () => {
+      const fetchMock = stubFetch(async () => jsonResponse({ choices: [] }));
+
+      await chatCore({ messages: MESSAGES, language: "yue-HK" }, ENV);
+
+      expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/chat/completions");
+    });
+
+    it("ignores an unknown language and keeps global routing (no rejection)", async () => {
+      const fetchMock = stubFetch(async () => jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const result = await chatCore(
+        { messages: MESSAGES, language: "xx-XX" },
+        {
+          ...ENV,
+          LLM_BASE_URL: "https://global.example.com/v1",
+          LLM_BASE_URL_YUE_HK: "https://yue.example.com/v1",
+        }
+      );
+
+      expect(result.status).toBe(200);
+      expect(fetchMock.mock.calls[0][0]).toBe("https://global.example.com/v1/chat/completions");
+    });
+
+    it("ignores a non-string language field", async () => {
+      const fetchMock = stubFetch(async () => jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const result = await chatCore({ messages: MESSAGES, language: 42 }, ENV);
+
+      expect(result.status).toBe(200);
+      expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/chat/completions");
+    });
+  });
+
   it("returns 502 when the upstream responds with an error", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     stubFetch(async () => jsonResponse({ error: "boom" }, { ok: false, status: 500 }));

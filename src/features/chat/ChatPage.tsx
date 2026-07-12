@@ -13,6 +13,8 @@ import {
 } from "../../services/translationService";
 import { prepareTranslation, type PreparedTranslation } from "./utils/prepareTranslation";
 import { getSuggestions } from "../../services/suggestionService";
+import { filterByLanguage } from "../../languages/scope";
+import { useActiveCapabilities, useActiveLanguageCode } from "../../hooks/useActiveLanguageCode";
 import { newId } from "../../utils/id";
 import { recordCorrection, consentFromProfile } from "../../services/speechSampleService";
 import { useTour } from "../../app/components/tour/TourProvider";
@@ -34,6 +36,12 @@ export function ChatPage() {
     useLibrary();
   const { messages, addMessage, addBotSuggestions, updateMessage, removeMessage, saveSession, discardChat } =
     useChat();
+  const activeLanguageCode = useActiveLanguageCode();
+  // Reactive capability gating (never the module-level accessor in render —
+  // that lags one render behind a dialect switch): voice-less packs hide the
+  // dialect mic (stt) and every TTS play/replay control (tts). The underlying
+  // plumbing already no-ops, but the controls should not render at all.
+  const { tts: ttsEnabled, stt: sttEnabled } = useActiveCapabilities();
   const { isActive: isTourActive, activeTour } = useTour();
   const showDemoBubble =
     isTourActive &&
@@ -144,8 +152,9 @@ export function ChatPage() {
     }
     // Retrieval-lite personalization from the user's own data: bookmarked
     // vocabulary + replies they rated up in this conversation history.
+    // Scoped to the active language so suggestions never mix dialects.
     const personalization = {
-      savedPhrases: phrases
+      savedPhrases: filterByLanguage(phrases, activeLanguageCode)
         .filter((p) => p.isBookmarked)
         .slice(-10)
         .map((p) => `${p.original} — ${p.dialect}`),
@@ -263,6 +272,7 @@ export function ChatPage() {
             context: existingPhrase?.context ?? "",
             audioDataUrl: accumulatedUrls[0],
             audioDataUrls: accumulatedUrls,
+            languageCode: existingPhrase?.languageCode ?? activeLanguageCode,
           });
           const prevSuggestionMsgId = prev.suggestionMsgId;
           lastRecordRef.current = {
@@ -287,6 +297,7 @@ export function ChatPage() {
             context: "",
             audioDataUrl,
             audioDataUrls: [audioDataUrl],
+            languageCode: activeLanguageCode,
           });
           addMessage({
             id: msgId,
@@ -402,6 +413,7 @@ export function ChatPage() {
           audioDataUrl: urls[0],
           audioDataUrls: urls.length > 1 ? urls : undefined,
           tags: phraseTagSelection,
+          languageCode: activeLanguageCode,
         });
         for (const url of urls) {
           try {
@@ -421,6 +433,7 @@ export function ChatPage() {
           context: "",
           audioDataUrl,
           tags: phraseTagSelection,
+          languageCode: activeLanguageCode,
         });
         await play();
       }
@@ -628,6 +641,7 @@ export function ChatPage() {
             !isListening
           }
           isBusy={isBusy}
+          ttsEnabled={ttsEnabled}
           onReply={handleReply}
           onToggleBookmark={handleToggleBookmark}
           onReplay={replayPhrase}
@@ -648,6 +662,8 @@ export function ChatPage() {
           listeningMode={listeningMode}
           isTapMode={isTapMode}
           isListening={isListening}
+          dialectMicEnabled={sttEnabled}
+          dialectLabel={dialect}
           onDialectPointerDown={() => handleMicPointerDown(startListeningCantonese, "cantonese")}
           onEnglishPointerDown={() => handleMicPointerDown(startListeningEnglish, "english")}
           onMicPointerUp={handleMicPointerUp}

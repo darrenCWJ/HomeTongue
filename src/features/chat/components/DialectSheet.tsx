@@ -76,6 +76,9 @@ export function DialectSheet({ isOpen, dialect, onSelectDialect, onClose }: Dial
                       {d.label}
                     </p>
                     {!d.available && <p className="text-xs text-zinc-400">Coming soon</p>}
+                    {d.available && d.experimental && (
+                      <p className="text-xs text-amber-600">Experimental — text only</p>
+                    )}
                   </div>
                   {dialect === d.value && d.available && (
                     <div className="w-5 h-5 rounded-full bg-brand-blue/100 flex items-center justify-center flex-shrink-0">

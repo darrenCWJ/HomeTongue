@@ -2,28 +2,32 @@ import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
 import { useProfile } from "../context/ProfileProvider";
-import { getDisplayVoices } from "../../hooks/useGoogleTTS";
+import { useActiveLanguagePack } from "../../hooks/useActiveLanguageCode";
 import { previewVoice } from "../../utils/voicePreviewCache";
 import type { WorkJobTitle, PersonaType } from "../../types";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
 type Step = "name" | "voice" | "persona" | "video";
-const STEPS: Step[] = ["name", "voice", "persona", "video"];
 
 export function OnboardingPage() {
   const { updateUserProfile } = useProfile();
-  const displayVoices = getDisplayVoices();
+  // Reactive pack resolution (not the module-level accessor): voice-less
+  // packs (capabilities.tts false) have no display voices, so the voice step
+  // is skipped entirely rather than rendering an empty picker.
+  const displayVoices = useActiveLanguagePack().tts.displayVoices;
+  const hasVoices = displayVoices.length > 0;
+  const steps: Step[] = hasVoices ? ["name", "voice", "persona", "video"] : ["name", "persona", "video"];
   const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
-  const [voiceId, setVoiceId] = useState(displayVoices[0].key);
+  const [voiceId, setVoiceId] = useState(displayVoices[0]?.key ?? "");
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>("personal");
   const [selectedJobTitle] = useState<WorkJobTitle | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const stepIndex = STEPS.indexOf(step);
+  const stepIndex = steps.indexOf(step);
 
   const handlePreview = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -38,24 +42,26 @@ export function OnboardingPage() {
     }
   };
 
+  const goToNextStep = () => {
+    const next = steps[steps.indexOf(step) + 1];
+    if (next) setStep(next);
+  };
+
   const handleNameNext = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    setStep("voice");
+    goToNextStep();
   };
 
-  const handleVoiceNext = () => {
-    setStep("persona");
-  };
+  const handleVoiceNext = goToNextStep;
 
-  const handlePersonaNext = () => {
-    setStep("video");
-  };
+  const handlePersonaNext = goToNextStep;
 
   const handleFinish = () => {
     const updates: Parameters<typeof updateUserProfile>[0] = {
       name: name.trim(),
-      preferredVoiceId: voiceId,
+      // Voice-less packs skip the voice step and store no preference.
+      ...(voiceId ? { preferredVoiceId: voiceId } : {}),
       activePersona: selectedPersona,
     };
     if (selectedPersona === "work" && selectedJobTitle) {
@@ -119,7 +125,7 @@ export function OnboardingPage() {
 
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-6">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all duration-300 ${

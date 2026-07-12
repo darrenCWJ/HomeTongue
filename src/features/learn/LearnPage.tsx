@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Play, BookOpen, Star, Trophy, Repeat, Drama } from "lucide-react";
 import { useLibrary } from "../../app/context/LibraryProvider";
+import { useProfile } from "../../app/context/ProfileProvider";
 import { motion, AnimatePresence } from "motion/react";
-import { LESSON_CATEGORIES, LESSONS, getLessonLevels } from "../../data/lessons";
+import { getLessonContent, getLessonLevels } from "../../data/lessons";
+import { resolveLanguagePackByLabel } from "../../languages";
+import { filterByLanguage, type LanguageScoped } from "../../languages/scope";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
 import type { LessonLevel, VocabItem, ConversationLesson } from "../../types";
 import { getDailyVocab } from "./dailyVocab";
@@ -31,7 +34,26 @@ interface ActiveLevel {
 export function LearnPage() {
   const { lessonProgress, conversationLessons, updateConversationLesson, deleteConversationLesson } =
     useLibrary();
-  const personalLessons = conversationLessons.filter((l) => !l.persona || l.persona === "personal");
+  const { dialect } = useProfile();
+
+  // Render-synchronous language derivation: ProfileProvider pushes the dialect
+  // into setActiveLanguage() inside an effect (post-render), so reading
+  // getActiveLanguagePack() here would lag one render behind a dialect switch.
+  // Deriving the code straight from the profile dialect keeps lesson content
+  // in lockstep with the render that reflects the new dialect.
+  const languageCode = resolveLanguagePackByLabel(dialect).code;
+  const { categories: lessonCategories, lessons } = getLessonContent(languageCode);
+  const hasDailyVocab = lessons.some((l) => l.content.vocabulary.length > 0);
+
+  // Conversation lessons without a languageCode are legacy Cantonese data
+  // (see src/languages/scope.ts). The cast bridges until the optional
+  // `languageCode` field lands on ConversationLesson in src/types.ts — drop
+  // it once that field exists.
+  const scopedConversationLessons = filterByLanguage(
+    conversationLessons as Array<ConversationLesson & LanguageScoped>,
+    languageCode
+  );
+  const personalLessons = scopedConversationLessons.filter((l) => !l.persona || l.persona === "personal");
 
   const [view, setView] = useState<View>("main");
   const [mainTab, setMainTab] = useState<"standard" | "custom">("standard");
@@ -46,10 +68,10 @@ export function LearnPage() {
   const review = useReviewQueue();
 
   const activeCategoryTitle =
-    LESSON_CATEGORIES.find((c) => c.id === activeCategoryId)?.title ?? activeCategoryId ?? "";
+    lessonCategories.find((c) => c.id === activeCategoryId)?.title ?? activeCategoryId ?? "";
 
   const completedConvLessons = personalLessons.filter((l) => l.examCompleted).length;
-  const completedStandardLessons = LESSONS.filter((lesson) => {
+  const completedStandardLessons = lessons.filter((lesson) => {
     const prog = lessonProgress[lesson.id];
     return prog ? prog.completedLevels >= prog.totalLevels : false;
   }).length;
@@ -57,11 +79,16 @@ export function LearnPage() {
 
   // Honest fluency stat: average conversation-lesson exam scores AND the last
   // graded accuracy of standard lessons, so users who only do standard
-  // lessons still see a real number instead of a permanent blank.
+  // lessons still see a real number instead of a permanent blank. Both inputs
+  // are scoped to the active language (conversation lessons via
+  // filterByLanguage above; standard-lesson progress via the active lesson
+  // id set, since lesson ids are globally unique across languages).
+  const activeLessonIds = new Set(lessons.map((l) => l.id));
   const convScores = personalLessons
     .map((l) => l.examBestScore)
     .filter((s): s is number => typeof s === "number");
   const standardScores = Object.values(lessonProgress)
+    .filter((p) => activeLessonIds.has(p.lessonId))
     .map((p) => p.lastAccuracy)
     .filter((a): a is number => typeof a === "number");
   const allScores = [...convScores, ...standardScores];
@@ -207,37 +234,45 @@ export function LearnPage() {
                 )}
               </button>
 
-              <button
-                data-tour="learn-roleplay"
-                onClick={() => setView("roleplay-picker")}
-                className="w-full bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center justify-between mb-3 hover:border-brand-red/40 active:scale-[0.99] transition-all text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0">
-                    <Drama size={18} className="text-brand-red" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-zinc-800">Rehearse a conversation</p>
-                    <p className="text-xs text-zinc-500">
-                      Roleplay real-life scenarios before the real thing
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              <div
-                data-tour="learn-word-of-day"
-                className="bg-gradient-to-br from-brand-blue to-brand-red rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3"
-              >
-                <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
-                <p className="text-sm font-bold relative z-10">Word of the Day</p>
+              {/* Roleplay content currently ships only in the Cantonese pack
+                  (roleplayService imports src/languages/yue-HK/roleplay.ts
+                  directly), so the entry card is gated to yue-HK until
+                  scenarios move into the LanguagePack contract. */}
+              {languageCode === "yue-HK" && (
                 <button
-                  onClick={() => setDailyCard(getDailyVocab())}
-                  className="bg-white text-brand-blue rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
+                  data-tour="learn-roleplay"
+                  onClick={() => setView("roleplay-picker")}
+                  className="w-full bg-white rounded-2xl p-3.5 shadow-sm border border-zinc-100 flex items-center justify-between mb-3 hover:border-brand-red/40 active:scale-[0.99] transition-all text-left"
                 >
-                  <Play size={16} className="fill-brand-blue ml-0.5" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-brand-red/15 flex items-center justify-center flex-shrink-0">
+                      <Drama size={18} className="text-brand-red" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-zinc-800">Rehearse a conversation</p>
+                      <p className="text-xs text-zinc-500">
+                        Roleplay real-life scenarios before the real thing
+                      </p>
+                    </div>
+                  </div>
                 </button>
-              </div>
+              )}
+
+              {hasDailyVocab && (
+                <div
+                  data-tour="learn-word-of-day"
+                  className="bg-gradient-to-br from-brand-blue to-brand-red rounded-2xl py-3 px-4 text-white shadow-md mb-4 relative overflow-hidden flex items-center justify-between gap-3"
+                >
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-12 -mt-12 blur-2xl" />
+                  <p className="text-sm font-bold relative z-10">Word of the Day</p>
+                  <button
+                    onClick={() => setDailyCard(getDailyVocab(languageCode))}
+                    className="bg-white text-brand-blue rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 active:scale-95 transition-transform z-10 relative"
+                  >
+                    <Play size={16} className="fill-brand-blue ml-0.5" />
+                  </button>
+                </div>
+              )}
 
               {/* Tab switcher */}
               <div
@@ -267,27 +302,29 @@ export function LearnPage() {
               </div>
               {mainTab === "standard" && (
                 <div data-tour="learn-lesson-cards" className="space-y-3">
-                  {LESSON_CATEGORIES.filter((cat) =>
-                    LESSONS.some((l) => l.categoryId === cat.id && getLessonLevels(l).length > 0)
-                  ).map((cat) => {
-                    const catLessons = LESSONS.filter((l) => l.categoryId === cat.id);
-                    const totalLevels = catLessons.reduce((sum, l) => sum + getLessonLevels(l).length, 0);
-                    const completedLevels = catLessons.reduce((sum, l) => {
-                      const prog = lessonProgress[l.id];
-                      return sum + Math.min(prog?.completedLevels ?? 0, getLessonLevels(l).length);
-                    }, 0);
-                    const progressPct =
-                      totalLevels > 0 ? Math.round((completedLevels / totalLevels) * 100) : 0;
-                    return (
-                      <LessonCard
-                        key={cat.id}
-                        title={cat.title}
-                        subtitle={cat.description}
-                        progress={progressPct}
-                        onClick={() => handleSelectCategory(cat.id)}
-                      />
-                    );
-                  })}
+                  {lessonCategories
+                    .filter((cat) =>
+                      lessons.some((l) => l.categoryId === cat.id && getLessonLevels(l).length > 0)
+                    )
+                    .map((cat) => {
+                      const catLessons = lessons.filter((l) => l.categoryId === cat.id);
+                      const totalLevels = catLessons.reduce((sum, l) => sum + getLessonLevels(l).length, 0);
+                      const completedLevels = catLessons.reduce((sum, l) => {
+                        const prog = lessonProgress[l.id];
+                        return sum + Math.min(prog?.completedLevels ?? 0, getLessonLevels(l).length);
+                      }, 0);
+                      const progressPct =
+                        totalLevels > 0 ? Math.round((completedLevels / totalLevels) * 100) : 0;
+                      return (
+                        <LessonCard
+                          key={cat.id}
+                          title={cat.title}
+                          subtitle={cat.description}
+                          progress={progressPct}
+                          onClick={() => handleSelectCategory(cat.id)}
+                        />
+                      );
+                    })}
                 </div>
               )}
 

@@ -9,6 +9,7 @@ import type {
   Tag,
 } from "../../types";
 import type { PhraseReviewState } from "../../types";
+import { DEFAULT_LANGUAGE_CODE } from "../../languages/scope";
 
 interface ProfileRow {
   key: "singleton";
@@ -94,6 +95,22 @@ class HomeTongueDB extends Dexie {
           .modify((row) => {
             migrateMessages(row.messages);
           }),
+      ]).then(() => undefined);
+    });
+    // v8: multi-language scoping — Phrase, Session, and ConversationLesson
+    // gained an optional languageCode. Backfills existing rows with the
+    // default ("yue-HK"): every row written before this version is legacy
+    // Cantonese data (see src/languages/scope.ts). Idempotent: rows that
+    // already carry a languageCode pass through untouched. No index needed —
+    // consumers filter in memory.
+    this.version(8).upgrade((tx) => {
+      const backfillLanguageCode = (row: { languageCode?: unknown }): void => {
+        if (typeof row.languageCode !== "string") row.languageCode = DEFAULT_LANGUAGE_CODE;
+      };
+      return Promise.all([
+        tx.table("phrases").toCollection().modify(backfillLanguageCode),
+        tx.table("sessions").toCollection().modify(backfillLanguageCode),
+        tx.table("conversationLessons").toCollection().modify(backfillLanguageCode),
       ]).then(() => undefined);
     });
   }

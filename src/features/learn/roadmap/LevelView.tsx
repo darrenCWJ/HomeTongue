@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle, RotateCcw } from "lucide-react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
+import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion } from "motion/react";
-import { LESSONS, getLessonLevels } from "../../../data/lessons";
+import { getLessonContent, getLessonLevels } from "../../../data/lessons";
+import { resolveLanguagePackByLabel } from "../../../languages";
 import type { LessonLevel, LessonProgress } from "../../../types";
 import { FlashcardExercise } from "../exercises/FlashcardExercise";
 import { MatchingExercise } from "../exercises/MatchingExercise";
@@ -31,6 +33,11 @@ export function LevelView({
   onBack: () => void;
 }) {
   const { lessonProgress, updateLessonProgress } = useLibrary();
+  const { dialect } = useProfile();
+  // Active language's curriculum, derived from the profile dialect (see
+  // LearnPage for why this is read per-render instead of via the module-level
+  // active pack).
+  const { lessons } = getLessonContent(resolveLanguagePackByLabel(dialect).code);
   const [result, setResult] = useState<AttemptResult | null>(null);
   // Bumped on retry so the active exercise remounts with fresh state.
   const [attemptKey, setAttemptKey] = useState(0);
@@ -43,7 +50,7 @@ export function LevelView({
     const graded = typeof accuracy === "number";
     const passed = !graded || accuracy >= PASS_THRESHOLD;
     const prev = lessonProgress[lessonId];
-    const lesson = LESSONS.find((l) => l.id === lessonId);
+    const lesson = lessons.find((l) => l.id === lessonId);
     const previousCompleted = prev?.completedLevels ?? 0;
     const progress: LessonProgress = {
       lessonId,

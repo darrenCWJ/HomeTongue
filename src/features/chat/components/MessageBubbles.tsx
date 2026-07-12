@@ -16,6 +16,8 @@ interface IncomingCantoneseBubbleProps extends BubblePointerHandlers {
   isPlaying: boolean;
   playingId: string | null;
   isBookmarked: boolean;
+  /** Active pack's TTS capability — replay controls are hidden when false. */
+  ttsEnabled: boolean;
   onToggleBookmark: (id: string) => void;
   onReplay: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
@@ -27,6 +29,7 @@ export function IncomingCantoneseBubble({
   isPlaying,
   playingId,
   isBookmarked,
+  ttsEnabled,
   onToggleBookmark,
   onReplay,
   onUpdateMessage,
@@ -63,18 +66,20 @@ export function IncomingCantoneseBubble({
           </button>
           <p className="text-lg font-semibold text-zinc-900 leading-snug pr-5">{msg.text}</p>
           <p className="text-xs text-brand-blue mt-1 font-medium">{msg.englishTranslation}</p>
-          <div className="mt-2 pt-2 border-t border-zinc-100">
-            <button
-              {...(isFirstBotMsg ? { "data-tour": "chat-replay-button" } : {})}
-              onClick={() => onReplay(msg.id, msg.text)}
-              onPointerDown={(e) => e.stopPropagation()}
-              disabled={!!playingId}
-              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 transition-colors"
-            >
-              {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
-              {isPlaying ? "Playing..." : "Replay"}
-            </button>
-          </div>
+          {ttsEnabled && (
+            <div className="mt-2 pt-2 border-t border-zinc-100">
+              <button
+                {...(isFirstBotMsg ? { "data-tour": "chat-replay-button" } : {})}
+                onClick={() => onReplay(msg.id, msg.text)}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={!!playingId}
+                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 transition-colors"
+              >
+                {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
+                {isPlaying ? "Playing..." : "Replay"}
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1 mt-1 ml-1">
           <button
@@ -101,6 +106,8 @@ interface OutgoingReplyBubbleProps extends BubblePointerHandlers {
   isPlaying: boolean;
   playingId: string | null;
   isBookmarked: boolean;
+  /** Active pack's TTS capability — replay controls are hidden when false. */
+  ttsEnabled: boolean;
   onToggleBookmark: (id: string, displayedVariant?: TranslationVariant) => void;
   onReplay: (id: string, text: string) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
@@ -112,6 +119,7 @@ export function OutgoingReplyBubble({
   isPlaying,
   playingId,
   isBookmarked,
+  ttsEnabled,
   onToggleBookmark,
   onReplay,
   onUpdateMessage,
@@ -150,17 +158,19 @@ export function OutgoingReplyBubble({
           {dialectText && <p className="text-white/80 text-base font-semibold mt-1">{dialectText}</p>}
           {pronunciationText && <p className="text-white/50 text-xs font-mono mt-0.5">{pronunciationText}</p>}
           {msg.variants && <RegisterChips selected={selectedTone} onSelect={setSelectedTone} />}
-          <div className="mt-2 pt-2 border-t border-white/20">
-            <button
-              onClick={() => dialectText && onReplay(msg.id, dialectText)}
-              onPointerDown={(e) => e.stopPropagation()}
-              disabled={!!playingId}
-              className="flex items-center gap-1 text-xs text-white/60 hover:text-white disabled:opacity-50"
-            >
-              {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
-              {isPlaying ? "Playing..." : "Replay"}
-            </button>
-          </div>
+          {ttsEnabled && (
+            <div className="mt-2 pt-2 border-t border-white/20">
+              <button
+                onClick={() => dialectText && onReplay(msg.id, dialectText)}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={!!playingId}
+                className="flex items-center gap-1 text-xs text-white/60 hover:text-white disabled:opacity-50"
+              >
+                {isPlaying ? <Volume2 size={12} className="animate-pulse" /> : <RotateCcw size={12} />}
+                {isPlaying ? "Playing..." : "Replay"}
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1 mt-1 mr-1">
           <button

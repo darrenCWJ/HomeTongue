@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
 import { repositories } from "../../../repositories";
+import { filterByLanguage } from "../../../languages/scope";
+import { useActiveLanguageCode } from "../../../hooks/useActiveLanguageCode";
 import type { Phrase, PhraseReviewState, ReviewGrade } from "../../../types";
 import { applyReviewGrade, createInitialReviewState, isDue } from "./scheduler";
 
@@ -28,6 +30,7 @@ export interface ReviewQueue {
 
 export function useReviewQueue(): ReviewQueue {
   const { phrases } = useLibrary();
+  const activeLanguageCode = useActiveLanguageCode();
   const [states, setStates] = useState<Record<string, PhraseReviewState>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -52,7 +55,12 @@ export function useReviewQueue(): ReviewQueue {
     };
   }, []);
 
-  const bookmarked = useMemo(() => phrases.filter((p) => p.isBookmarked), [phrases]);
+  // The practice queue is scoped to the active language so a dialect switch
+  // never mixes review cards from different packs.
+  const bookmarked = useMemo(
+    () => filterByLanguage(phrases, activeLanguageCode).filter((p) => p.isBookmarked),
+    [phrases, activeLanguageCode]
+  );
 
   const dueCards = useMemo<ReviewCard[]>(() => {
     const now = new Date();

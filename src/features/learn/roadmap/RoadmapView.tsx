@@ -1,7 +1,9 @@
 import { ChevronRight, ArrowLeft, CheckCircle, Star } from "lucide-react";
 import { useLibrary } from "../../../app/context/LibraryProvider";
+import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion } from "motion/react";
-import { LESSONS, getLessonLevels } from "../../../data/lessons";
+import { getLessonContent, getLessonLevels } from "../../../data/lessons";
+import { resolveLanguagePackByLabel } from "../../../languages";
 import type { Lesson, LessonLevel } from "../../../types";
 
 // ─── RoadmapView ──────────────────────────────────────────────────────────────
@@ -92,7 +94,12 @@ export function RoadmapView({
   onSelectLevel: (lessonId: string, level: LessonLevel) => void;
 }) {
   const { lessonProgress } = useLibrary();
-  const lessonEntries: LessonEntry[] = LESSONS.filter((l) => l.categoryId === categoryId)
+  const { dialect } = useProfile();
+  // Derived from the profile dialect so a language switch re-renders with the
+  // right curriculum in the same pass (see LearnPage for the full rationale).
+  const { lessons } = getLessonContent(resolveLanguagePackByLabel(dialect).code);
+  const lessonEntries: LessonEntry[] = lessons
+    .filter((l) => l.categoryId === categoryId)
     .map((lesson) => ({ lesson, levels: getLessonLevels(lesson) }))
     .filter((entry) => entry.levels.length > 0);
 

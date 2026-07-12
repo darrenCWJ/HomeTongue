@@ -58,7 +58,25 @@ export function asVoiceKey(id: string | undefined | null): VoiceKey {
 // ──────────────────────────────────────────────────────────
 const TTS_TIMEOUT_MS = 15_000;
 
+// Packs without a usable TTS model (capabilities.tts === false) must never
+// hit /api/tts and must never throw — callers just get silence. Warn once
+// per session so the skipped synthesis is still visible to developers.
+let hasWarnedTtsUnavailable = false;
+
+function isTtsUnavailable(): boolean {
+  const pack = getActiveLanguagePack();
+  if (pack.capabilities.tts) return false;
+  if (!hasWarnedTtsUnavailable) {
+    hasWarnedTtsUnavailable = true;
+    console.warn(
+      `[useGoogleTTS] Language pack "${pack.code}" has no TTS model (capabilities.tts=false); skipping synthesis.`
+    );
+  }
+  return true;
+}
+
 async function synthesizeToBlob(text: string, voiceKey: VoiceKey): Promise<Blob> {
+  if (isTtsUnavailable()) return new Blob([], { type: "audio/mpeg" });
   const pack = getActiveLanguagePack();
   const voice = pack.tts.voices[voiceKey] ?? pack.tts.voices[pack.tts.defaultVoice];
   const voiceName = voice.name;
@@ -106,6 +124,9 @@ export async function speakTextAndCapture(
   text: string,
   voice: string = DEFAULT_VOICE
 ): Promise<{ audioDataUrl: string; play: () => Promise<void> }> {
+  if (isTtsUnavailable()) {
+    return { audioDataUrl: "", play: () => Promise.resolve() };
+  }
   const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
   const audioDataUrl = await blobToDataUrl(audioBlob);
   const audioUrl = URL.createObjectURL(audioBlob);
@@ -128,6 +149,7 @@ export async function speakTextAndCapture(
 }
 
 export async function speakText(text: string, voice: string = DEFAULT_VOICE): Promise<void> {
+  if (isTtsUnavailable()) return;
   const audioBlob = await synthesizeToBlob(text, asVoiceKey(voice));
   const audioUrl = URL.createObjectURL(audioBlob);
 

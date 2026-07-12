@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileProvider";
 import { type PersonaType } from "../../types";
-import { getDisplayVoices } from "../../hooks/useGoogleTTS";
+import { useActiveLanguagePack } from "../../hooks/useActiveLanguageCode";
 import { previewVoice } from "../../utils/voicePreviewCache";
 import { importLocalDataToCloud } from "../../services/cloudImportService";
 import { useTour } from "../components/tour/TourProvider";
@@ -31,7 +31,9 @@ const PREVIEW_TEXT = "你好，好高興認識你！";
 export function ProfilePage() {
   const { isCloudAuthEnabled, authUser, signOut } = useAuth();
   const { setIsSignedIn, userProfile, updateUserProfile, activePersona } = useProfile();
-  const displayVoices = getDisplayVoices();
+  // Reactive pack resolution (not the module-level accessor): voice-less
+  // packs have no display voices and the whole Voice section is hidden.
+  const displayVoices = useActiveLanguagePack().tts.displayVoices;
   const { startTour } = useTour();
   const navigate = useNavigate();
 
@@ -322,77 +324,81 @@ export function ProfilePage() {
           </div>
         </section>
 
-        {/* Voice Selector */}
-        <section data-tour="profile-voice-selection">
-          <div className="flex items-center gap-2 mb-3 px-2">
-            <Volume2 size={18} className="text-zinc-400" />
-            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Voice</h2>
-          </div>
+        {/* Voice Selector — hidden for voice-less packs (no display voices) */}
+        {displayVoices.length > 0 && (
+          <section data-tour="profile-voice-selection">
+            <div className="flex items-center gap-2 mb-3 px-2">
+              <Volume2 size={18} className="text-zinc-400" />
+              <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Voice</h2>
+            </div>
 
-          {/* Voice tabs */}
-          <div className="flex bg-zinc-100 rounded-xl p-1 mb-3">
-            {(["female", "male"] as const).map((g) => (
-              <button
-                key={g}
-                onClick={() => setVoiceGenderTab(g)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
-                  voiceGenderTab === g
-                    ? "bg-white text-brand-blue shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-700"
-                }`}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
+            {/* Voice tabs */}
+            <div className="flex bg-zinc-100 rounded-xl p-1 mb-3">
+              {(["female", "male"] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setVoiceGenderTab(g)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
+                    voiceGenderTab === g
+                      ? "bg-white text-brand-blue shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
-            {displayVoices
-              .filter((v) => v.gender === voiceGenderTab)
-              .map((voice) => {
-                const selected = (userProfile?.preferredVoiceId ?? displayVoices[0].key) === voice.key;
-                return (
-                  <label
-                    key={voice.key}
-                    className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
-                          {voice.label}
-                        </h3>
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => handlePreview(e, voice.key)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
-                        previewingId === voice.key ? "bg-brand-blue/15" : "bg-zinc-100 hover:bg-brand-blue/15"
-                      }`}
+            <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden divide-y divide-zinc-100">
+              {displayVoices
+                .filter((v) => v.gender === voiceGenderTab)
+                .map((voice) => {
+                  const selected = (userProfile?.preferredVoiceId ?? displayVoices[0].key) === voice.key;
+                  return (
+                    <label
+                      key={voice.key}
+                      className="flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
                     >
-                      {previewingId === voice.key ? (
-                        <Loader2 size={14} className="text-brand-blue animate-spin" />
-                      ) : (
-                        <Volume2 size={14} className="text-zinc-500" />
-                      )}
-                    </button>
-                    <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
-                      <input
-                        type="radio"
-                        name="voice"
-                        value={voice.key}
-                        checked={selected}
-                        onChange={() => updateUserProfile({ preferredVoiceId: voice.key })}
-                        className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-brand-blue transition-colors cursor-pointer"
-                      />
-                      {selected && (
-                        <div className="absolute w-2.5 h-2.5 bg-brand-blue rounded-full pointer-events-none" />
-                      )}
-                    </div>
-                  </label>
-                );
-              })}
-          </div>
-        </section>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className={`font-medium ${selected ? "text-brand-blue" : "text-zinc-800"}`}>
+                            {voice.label}
+                          </h3>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => handlePreview(e, voice.key)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 transition-colors ${
+                          previewingId === voice.key
+                            ? "bg-brand-blue/15"
+                            : "bg-zinc-100 hover:bg-brand-blue/15"
+                        }`}
+                      >
+                        {previewingId === voice.key ? (
+                          <Loader2 size={14} className="text-brand-blue animate-spin" />
+                        ) : (
+                          <Volume2 size={14} className="text-zinc-500" />
+                        )}
+                      </button>
+                      <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
+                        <input
+                          type="radio"
+                          name="voice"
+                          value={voice.key}
+                          checked={selected}
+                          onChange={() => updateUserProfile({ preferredVoiceId: voice.key })}
+                          className="peer appearance-none w-5 h-5 border-2 border-zinc-300 rounded-full checked:border-brand-blue transition-colors cursor-pointer"
+                        />
+                        {selected && (
+                          <div className="absolute w-2.5 h-2.5 bg-brand-blue rounded-full pointer-events-none" />
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+            </div>
+          </section>
+        )}
 
         {/* Replay Tour */}
         <section data-tour="profile-tour-replay">

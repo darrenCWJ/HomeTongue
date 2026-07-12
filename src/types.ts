@@ -7,11 +7,16 @@ export interface DialectOption {
   label: string;
   character: string;
   available: boolean;
+  /**
+   * Selectable but text-only: the pack lacks TTS and/or STT models
+   * (capabilities flags), so voice controls are hidden and pickers show an
+   * "Experimental — text only" note.
+   */
+  experimental?: boolean;
 }
 
 /** Dialects on the roadmap that do not have a language pack yet. */
 const UPCOMING_DIALECTS: DialectOption[] = [
-  { value: "Hokkien", label: "Hokkien", character: "閩", available: false },
   { value: "Hakka", label: "Hakka", character: "客", available: false },
   { value: "Teochew", label: "Teochew", character: "潮", available: false },
 ];
@@ -26,6 +31,7 @@ export const DIALECTS: DialectOption[] = [
     label: pack.label,
     character: pack.character,
     available: true,
+    experimental: !pack.capabilities.tts || !pack.capabilities.stt,
   })),
   ...UPCOMING_DIALECTS,
 ];
@@ -72,6 +78,8 @@ export interface Phrase {
   audioDataUrls?: string[];
   tags?: string[];
   createdAt?: string;
+  /** Language pack this phrase belongs to. Absent = legacy yue-HK data; see src/languages/scope.ts. */
+  languageCode?: string;
 }
 
 export interface Message {
@@ -104,6 +112,8 @@ export interface Session {
   messages: Message[];
   persona?: PersonaType;
   tags?: string[];
+  /** Language pack this session belongs to. Absent = legacy yue-HK data; see src/languages/scope.ts. */
+  languageCode?: string;
 }
 
 export interface ConversationLesson {
@@ -117,6 +127,8 @@ export interface ConversationLesson {
   examAttempts: number;
   persona?: PersonaType;
   currentPhase?: "listen" | "flashcard" | "done";
+  /** Language pack this lesson belongs to. Absent = legacy yue-HK data; see src/languages/scope.ts. */
+  languageCode?: string;
 }
 
 export type TourPageId = "chat" | "learn" | "bookmarks" | "profile";

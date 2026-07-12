@@ -3,6 +3,7 @@ import { Bookmark, Loader2 } from "lucide-react";
 import { useProfile } from "../../../app/context/ProfileProvider";
 import { useLibrary } from "../../../app/context/LibraryProvider";
 import { getExampleMeta } from "../../../services/translationService";
+import { getActiveLanguagePack } from "../../../languages";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { LessonLevel } from "../../../types";
 import { PlayButton, personalise } from "../shared";
@@ -55,6 +56,7 @@ export function FlashcardExercise({
         pronunciation: current.pronunciation,
         isBookmarked: true,
         context: level.title,
+        languageCode: getActiveLanguagePack().code,
       });
     } else {
       toggleBookmark(phraseId);

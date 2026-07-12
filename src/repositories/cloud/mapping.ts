@@ -37,6 +37,8 @@ export interface PhraseRow {
   audio_data_urls: string[] | null;
   tags: string[] | null;
   created_at: string | null;
+  /** Null = legacy yue-HK data, mirroring the client's absent-field convention. */
+  language_code: string | null;
 }
 
 /**
@@ -56,6 +58,8 @@ export interface SessionRow {
   persona: PersonaType | null;
   tags: string[] | null;
   created_at: string | null;
+  /** Null = legacy yue-HK data, mirroring the client's absent-field convention. */
+  language_code: string | null;
 }
 
 export interface ProfileRow {
@@ -104,6 +108,8 @@ export interface ConversationLessonRow {
   persona: PersonaType | null;
   current_phase: "listen" | "flashcard" | "done" | null;
   created_at: string;
+  /** Null = legacy yue-HK data, mirroring the client's absent-field convention. */
+  language_code: string | null;
 }
 
 export interface LessonProgressRow {
@@ -139,6 +145,7 @@ export function phraseToRow(phrase: Phrase, userId: string): PhraseRow {
     audio_data_urls: phrase.audioDataUrls ?? null,
     tags: phrase.tags ?? null,
     created_at: phrase.createdAt ?? null,
+    language_code: phrase.languageCode ?? null,
   };
 }
 
@@ -154,6 +161,7 @@ export function rowToPhrase(row: PhraseRow): Phrase {
     ...(row.audio_data_urls !== null ? { audioDataUrls: row.audio_data_urls } : {}),
     ...(row.tags !== null ? { tags: row.tags } : {}),
     ...(row.created_at !== null ? { createdAt: row.created_at } : {}),
+    ...(row.language_code !== null ? { languageCode: row.language_code } : {}),
   };
 }
 
@@ -181,6 +189,7 @@ export function sessionToRow(session: Session, userId: string): SessionRow {
     persona: session.persona ?? null,
     tags: session.tags ?? null,
     created_at: session.createdAt ?? null,
+    language_code: session.languageCode ?? null,
   };
 }
 
@@ -193,6 +202,7 @@ export function rowToSession(row: SessionRow): Session {
     ...(row.created_at !== null ? { createdAt: row.created_at } : {}),
     ...(row.persona !== null ? { persona: row.persona } : {}),
     ...(row.tags !== null ? { tags: row.tags } : {}),
+    ...(row.language_code !== null ? { languageCode: row.language_code } : {}),
   };
 }
 
@@ -282,6 +292,7 @@ export function conversationLessonToRow(lesson: ConversationLesson, userId: stri
     persona: lesson.persona ?? null,
     current_phase: lesson.currentPhase ?? null,
     created_at: lesson.createdAt,
+    language_code: lesson.languageCode ?? null,
   };
 }
 
@@ -297,6 +308,7 @@ export function rowToConversationLesson(row: ConversationLessonRow): Conversatio
     ...(row.exam_best_score !== null ? { examBestScore: row.exam_best_score } : {}),
     ...(row.persona !== null ? { persona: row.persona } : {}),
     ...(row.current_phase !== null ? { currentPhase: row.current_phase } : {}),
+    ...(row.language_code !== null ? { languageCode: row.language_code } : {}),
   };
 }
 

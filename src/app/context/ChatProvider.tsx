@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { db } from "../../repositories/local/db";
 import type { Phrase, Message, Session } from "../../types";
+import { getActiveLanguagePack } from "../../languages";
 import { newId } from "../../utils/id";
 import { isCloudStorageMode } from "../../repositories";
 import { useAuth } from "./AuthProvider";
@@ -108,6 +109,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         messages: msgs,
         persona: activePersona,
         tags: sessionTags,
+        // Stamp the language the conversation happened in (absent = legacy
+        // yue-HK; see src/languages/scope.ts). Called from an event handler,
+        // so the module-level active pack is already in sync with the profile.
+        languageCode: getActiveLanguagePack().code,
       };
       addSessionRecord(newSession);
       updatePersonaInBackground(msgs);

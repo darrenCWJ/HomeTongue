@@ -2,7 +2,7 @@ import type { Tone, TranslationResult, WordChunk } from "../types";
 import { blobToWav, blobToDataUrl } from "../hooks/audio";
 import { postJson, ApiError } from "../lib/api";
 import { parseModelJson } from "../utils/modelJson";
-import { getActiveLanguagePack, type LanguagePack } from "../languages";
+import { getActiveLanguagePack, getLanguagePack } from "../languages";
 
 // The active pack is read at USE time (inside each function) rather than
 // bound at import time, so a per-user language selection change takes effect
@@ -22,7 +22,13 @@ interface ChatMessage {
 
 /** All OpenAI chat calls go through the server-side /api/chat proxy. */
 async function chatCompletion(messages: ChatMessage[], options: ChatRequestOptions = {}): Promise<string> {
-  const { content } = await postJson<{ content: string }>("/api/chat", { messages, ...options });
+  const { content } = await postJson<{ content: string }>("/api/chat", {
+    messages,
+    // Multi-language routing field: the active pack's BCP-47 code. The
+    // server tolerates its absence (unknown fields were always ignored).
+    language: getActiveLanguagePack().code,
+    ...options,
+  });
   return content;
 }
 
@@ -131,6 +137,13 @@ async function blobToBase64(blob: Blob): Promise<string> {
 // so guard before uploading. 4MB of base64 ≈ 3MB of 16kHz WAV ≈ 90+ seconds.
 const MAX_UPLOAD_BASE64_CHARS = 4 * 1024 * 1024;
 
+/**
+ * `language` follows the /api/transcribe contract (api/_lib/transcribeCore.js):
+ * - a pack languageCode (e.g. "yue-HK") routes to that language's STT model
+ *   and derives the Whisper hint from the server manifest (dialect speech);
+ * - a plain ISO-639-1 hint (e.g. "en") passes through unchanged;
+ * - null omits the field entirely (auto-detect, global routing).
+ */
 async function transcribeAudio(blob: Blob, language: string | null, prompt?: string): Promise<string> {
   const wavBlob = await blobToWav(blob);
   const audio = await blobToBase64(wavBlob);
@@ -166,7 +179,10 @@ export function isPromptHallucination(text: string, prompt: string): boolean {
 
 export async function transcribeDialect(blob: Blob): Promise<string> {
   const pack = getActiveLanguagePack();
-  const result = await transcribeAudio(blob, pack.stt.language, pack.stt.prompt);
+  // Send the pack code (not pack.stt.language): the server routes to the
+  // per-language STT model and resolves the Whisper hint from its manifest,
+  // which keeps the old hint semantics (yue-HK -> "zh") intact.
+  const result = await transcribeAudio(blob, pack.code, pack.stt.prompt);
   return isPromptHallucination(result, pack.stt.prompt) ? "" : result;
 }
 
@@ -223,42 +239,23 @@ export async function generateWordBreakdown(
   }
 }
 
-function normalizeChar(ch: string, pack: LanguagePack): string {
-  // Map Mandarin equivalents first, then fold particle-group variants, so
-  // e.g. 是→係 and a literal 係 both normalize to the same character.
-  const mapped = pack.scoring.charEquivalents[ch] ?? ch;
-  for (const group of pack.scoring.particleGroups) {
-    if (group.includes(mapped)) return group[0];
-  }
-  return mapped;
-}
-
+/**
+ * @deprecated Cantonese-specific offline scorer, kept as a thin re-export for
+ * existing tests/callers. The implementation moved into the yue-HK pack
+ * (`scoring.fallbackMatch`); new code should call the ACTIVE pack's
+ * `scoring.fallbackMatch` instead (see scoreDialectAccuracy).
+ */
 export function charMatchScore(expected: string, actual: string): number {
-  const pack = getActiveLanguagePack();
-  const CHINESE = /[一-鿿㐀-䶿]/g;
-  const expectedChars = (expected.match(CHINESE) ?? []).map((ch) => normalizeChar(ch, pack));
-  if (expectedChars.length === 0) return 0;
-  const actualChars = (actual.match(CHINESE) ?? []).map((ch) => normalizeChar(ch, pack));
-  if (actualChars.length === 0) return 0;
-
-  const pool = [...actualChars];
-  let matched = 0;
-  for (const ch of expectedChars) {
-    const i = pool.indexOf(ch);
-    if (i !== -1) {
-      matched++;
-      pool.splice(i, 1);
-    }
-  }
-  return Math.round((matched / expectedChars.length) * 100);
+  return getLanguagePack("yue-HK").scoring.fallbackMatch(expected, actual);
 }
 
 export async function scoreDialectAccuracy(expected: string, actual: string): Promise<number> {
+  const pack = getActiveLanguagePack();
   const charCount = [...expected.replace(/[，。！？、；：""''（）\s]/g, "")].length;
   try {
     const raw = await chatCompletion(
       [
-        { role: "system", content: getActiveLanguagePack().prompts.buildScoringSystem(charCount) },
+        { role: "system", content: pack.prompts.buildScoringSystem(charCount) },
         { role: "user", content: `Expected: ${expected}\nStudent said: ${actual}` },
       ],
       { temperature: 0, max_tokens: 20 }
@@ -266,9 +263,9 @@ export async function scoreDialectAccuracy(expected: string, actual: string): Pr
     const parsed = parseModelJson<{ score?: number }>(raw);
     return typeof parsed.score === "number"
       ? Math.min(100, Math.max(0, Math.round(parsed.score)))
-      : charMatchScore(expected, actual);
+      : pack.scoring.fallbackMatch(expected, actual);
   } catch {
-    return charMatchScore(expected, actual);
+    return pack.scoring.fallbackMatch(expected, actual);
   }
 }
 

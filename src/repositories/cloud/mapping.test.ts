@@ -42,6 +42,7 @@ describe("phrase mapping", () => {
       audioDataUrls: ["data:audio/mp3;base64,AAA=", "data:audio/mp3;base64,BBB="],
       tags: ["p-greetings", "p-transport"],
       createdAt: "2026-07-01T10:00:00.000Z",
+      languageCode: "yue-HK",
     };
 
     // Act
@@ -50,6 +51,7 @@ describe("phrase mapping", () => {
 
     // Assert
     expect(row.user_id).toBe(USER_ID);
+    expect(row.language_code).toBe("yue-HK");
     expect(restored).toStrictEqual(phrase);
   });
 
@@ -68,12 +70,15 @@ describe("phrase mapping", () => {
     const row = phraseToRow(phrase, USER_ID);
     const restored = rowToPhrase(row);
 
-    // Assert
+    // Assert — a legacy phrase without languageCode stores NULL and comes
+    // back with the field omitted (absent = legacy yue-HK).
     expect(row.audio_data_url).toBeNull();
     expect(row.audio_data_urls).toBeNull();
     expect(row.tags).toBeNull();
     expect(row.created_at).toBeNull();
+    expect(row.language_code).toBeNull();
     expect(restored).toStrictEqual(phrase);
+    expect(restored.languageCode).toBeUndefined();
   });
 });
 
@@ -110,12 +115,15 @@ describe("session mapping", () => {
       ],
       persona: "personal",
       tags: ["s-daily"],
+      languageCode: "yue-HK",
     };
 
     // Act
-    const restored = rowToSession(sessionToRow(session, USER_ID));
+    const row = sessionToRow(session, USER_ID);
+    const restored = rowToSession(row);
 
     // Assert
+    expect(row.language_code).toBe("yue-HK");
     expect(restored).toStrictEqual(session);
   });
 
@@ -140,6 +148,7 @@ describe("session mapping", () => {
       persona: "personal",
       tags: null,
       created_at: "2026-06-01T10:00:00.000Z",
+      language_code: null,
     };
 
     // Act
@@ -173,12 +182,14 @@ describe("session mapping", () => {
     const row = sessionToRow(session, USER_ID);
     const restored = rowToSession(row);
 
-    // Assert
+    // Assert — languageCode is also absent on legacy sessions (null column).
     expect(row.title).toBeNull();
     expect(row.created_at).toBeNull();
     expect(row.persona).toBeNull();
     expect(row.tags).toBeNull();
+    expect(row.language_code).toBeNull();
     expect(restored).toStrictEqual(session);
+    expect(restored.languageCode).toBeUndefined();
   });
 });
 
@@ -394,12 +405,15 @@ describe("conversation lesson mapping", () => {
       examAttempts: 3,
       persona: "personal",
       currentPhase: "done",
+      languageCode: "yue-HK",
     };
 
     // Act
-    const restored = rowToConversationLesson(conversationLessonToRow(lesson, USER_ID));
+    const row = conversationLessonToRow(lesson, USER_ID);
+    const restored = rowToConversationLesson(row);
 
     // Assert
+    expect(row.language_code).toBe("yue-HK");
     expect(restored).toStrictEqual(lesson);
   });
 
@@ -419,11 +433,13 @@ describe("conversation lesson mapping", () => {
     const row = conversationLessonToRow(lesson, USER_ID);
     const restored = rowToConversationLesson(row);
 
-    // Assert
+    // Assert — languageCode is also absent on legacy lessons (null column).
     expect(row.exam_best_score).toBeNull();
     expect(row.persona).toBeNull();
     expect(row.current_phase).toBeNull();
+    expect(row.language_code).toBeNull();
     expect(restored).toStrictEqual(lesson);
+    expect(restored.languageCode).toBeUndefined();
   });
 });
 

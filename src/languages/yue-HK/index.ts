@@ -155,10 +155,48 @@ const PARTICLE_GROUPS: string[][] = [
   ["喺", "系", "係"],
 ];
 
+// Map Mandarin equivalents first, then fold particle-group variants, so
+// e.g. 是→係 and a literal 係 both normalize to the same character.
+function normalizeChar(ch: string): string {
+  const mapped = MANDARIN_TO_CANTONESE[ch] ?? ch;
+  for (const group of PARTICLE_GROUPS) {
+    if (group.includes(mapped)) return group[0];
+  }
+  return mapped;
+}
+
+/**
+ * Offline character-overlap score for Han-script phrases (0–100), used when
+ * the LLM scoring call fails. Moved verbatim from
+ * translationService.charMatchScore (which now delegates here).
+ */
+function charMatchScore(expected: string, actual: string): number {
+  const CHINESE = /[一-鿿㐀-䶿]/g;
+  const expectedChars = (expected.match(CHINESE) ?? []).map(normalizeChar);
+  if (expectedChars.length === 0) return 0;
+  const actualChars = (actual.match(CHINESE) ?? []).map(normalizeChar);
+  if (actualChars.length === 0) return 0;
+
+  const pool = [...actualChars];
+  let matched = 0;
+  for (const ch of expectedChars) {
+    const i = pool.indexOf(ch);
+    if (i !== -1) {
+      matched++;
+      pool.splice(i, 1);
+    }
+  }
+  return Math.round((matched / expectedChars.length) * 100);
+}
+
 export const CANTONESE_PACK = {
   code: "yue-HK",
   label: DIALECT_LABEL,
   character: "粵",
+  capabilities: {
+    tts: true,
+    stt: true,
+  },
   tts: {
     languageCode: "yue-HK",
     voices: VOICES,
@@ -185,5 +223,6 @@ export const CANTONESE_PACK = {
   scoring: {
     charEquivalents: MANDARIN_TO_CANTONESE,
     particleGroups: PARTICLE_GROUPS,
+    fallbackMatch: charMatchScore,
   },
 } satisfies LanguagePack;

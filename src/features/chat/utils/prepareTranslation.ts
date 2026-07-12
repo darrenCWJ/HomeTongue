@@ -1,6 +1,7 @@
 import type { MessageVariants, Phrase, Tone } from "../../../types";
 import { translate } from "../../../services/translationService";
 import { speakTextAndCapture } from "../../../hooks/useGoogleTTS";
+import { getActiveLanguagePack } from "../../../languages";
 import { newId } from "../../../utils/id";
 
 /**
@@ -38,6 +39,7 @@ export async function prepareTranslation(
     pronunciation: variant.pronunciation,
     isBookmarked: false,
     context: result.context,
+    languageCode: getActiveLanguagePack().code,
   };
   return {
     phrase,

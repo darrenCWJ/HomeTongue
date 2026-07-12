@@ -1,5 +1,6 @@
 import type { Message, UserProfile, Phrase } from "../types";
 import { postJson } from "../lib/api";
+import { getActiveLanguagePack } from "../languages";
 import { newId } from "../utils/id";
 import { parseModelJson, truncateForLog } from "../utils/modelJson";
 
@@ -123,5 +124,8 @@ export async function getSuggestions(
     pronunciation: item.pronunciation,
     isBookmarked: false,
     context: item.context,
+    // Suggestions are persisted via mergeSuggestedPhrases, so they carry the
+    // language they were generated in.
+    languageCode: getActiveLanguagePack().code,
   }));
 }
