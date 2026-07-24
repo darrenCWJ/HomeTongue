@@ -54,7 +54,17 @@ describe("parseVtt malformed input", () => {
 
 describe("parseSrt", () => {
   test("parses indexed blocks with comma milliseconds and multi-line text", () => {
-    const srt = ["1", "00:00:01,000 --> 00:00:02,000", "first line", "second line", "", "2", "00:00:03,000 --> 00:00:04,500", "next cue", ""].join("\n");
+    const srt = [
+      "1",
+      "00:00:01,000 --> 00:00:02,000",
+      "first line",
+      "second line",
+      "",
+      "2",
+      "00:00:03,000 --> 00:00:04,500",
+      "next cue",
+      "",
+    ].join("\n");
     const cues = parseSrt(srt);
     expect(cues).toEqual([
       { start: 1, end: 2, text: "first line\nsecond line" },
@@ -66,7 +76,9 @@ describe("parseSrt", () => {
 describe("parseSubtitles", () => {
   test("auto-detects format by the WEBVTT header", () => {
     expect(parseSubtitles(fixture)).toHaveLength(9);
-    expect(parseSubtitles("1\n00:00:01,000 --> 00:00:02,000\nhello\n")).toEqual([{ start: 1, end: 2, text: "hello" }]);
+    expect(parseSubtitles("1\n00:00:01,000 --> 00:00:02,000\nhello\n")).toEqual([
+      { start: 1, end: 2, text: "hello" },
+    ]);
   });
 });
 
