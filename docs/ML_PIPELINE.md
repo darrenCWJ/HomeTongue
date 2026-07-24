@@ -35,11 +35,26 @@ node scripts/export-training-data.mjs --language yue-HK --out training-export/
 
 Produces `speech_samples.jsonl` + `corrections.jsonl` with user ids replaced by per-export salted hashes (speaker grouping without identity). The service-role key must never be committed or shipped — run this from a trusted machine/CI secret only.
 
+## External drop-in video corpus
+
+The consented in-app corpus is the clean core, but it accumulates slowly. To
+bootstrap (and to cover dialects with no public dataset), subtitled dialect
+video can be dropped into [`ml/data/video/`](../ml/data/video/README.md):
+`ingest-videos.mjs` takes YouTube URLs or local files, cuts audio clips along
+manual subtitle cues, optionally rejects clips the ASR disagrees with
+(CER-based `--verify` against `/api/transcribe`), and emits train-manifest
+rows that append onto `prepare_data.py`'s **train split only** — validation
+stays real learner audio. Provenance and license are recorded per source;
+see the README's licensing policy (CC/owned/licensed for anything
+redistributable, never DRM sources).
+
 ## Training path (future)
 
 1. **STT**: Whisper (or gpt-4o-transcribe-class distillation) LoRA fine-tune on `expected_text`/audio pairs, evaluated against the held-out exam scores.
 2. **Translation/reply quality**: SLM (e.g. Qwen-class) fine-tuned on correction pairs and rated suggestions.
 3. **Serving**: swap models behind the existing `/api/chat` + `/api/transcribe` contracts — the client never changes.
+4. **Tone & accuracy scoring**: acoustic tone detector + LoRA SLM judge with a
+   data flywheel — full design in [ML_TONE_ACCURACY_DESIGN.md](ML_TONE_ACCURACY_DESIGN.md).
 
 The run scaffolding for these steps lives in [`ml/train/`](../ml/train/README.md): dataset preparation (tested against checked-in fixtures), Whisper-LoRA and SLM SFT/DPO training scripts with `--dry-run` plumbing checks, an STT serving stub matching the `transcribeCore` contract, and the pronunciation-scorer design. Note the corpus currently has **zero samples** — the training scripts are documented scaffolds that cannot run against real data yet; `ml/train/README.md` lists the per-step data gates, costs, and the export → prepare → train → eval-gate → env-flip sequence (companion plan: `docs/ML_TRAINING_PLAN.md`).
 
@@ -52,6 +67,7 @@ flowchart TD
     TABLES --> EXPORT["Anonymized JSONL export (scripts/export-training-data.mjs)"]
     REVIEW -->|"verdicts joined; rejected excluded"| EXPORT
     EXPORT --> TRAIN["ml/train — prepare + fine-tune (Whisper LoRA / SLM)"]
+    VIDEO["Drop-in subtitled video (ml/data/video ingest)"] -->|"train split only"| TRAIN
     TRAIN --> GATE["Eval gate (ml/eval CER benchmark)"]
     GATE --> FLIP["Per-language env flip (STT_BASE_URL_YUE_HK)"]
     FLIP --> BETTER["Better model behind the same /api contracts"]

@@ -4,6 +4,10 @@
 > (docs/ML_TRAINING_PLAN.md step 4, "after 1–2"). It depends on the Whisper
 > fine-tune infrastructure (step 2) and on a much larger consented audio
 > corpus than the current **zero samples**.
+>
+> **Expanded by [docs/ML_TONE_ACCURACY_DESIGN.md](../../../docs/ML_TONE_ACCURACY_DESIGN.md)**
+> — the full architecture, data-integration, and reinforcement-loop report
+> (tiered corpus, PyTorch/LoRA training stages, eval gates, diagrams).
 
 ## Why
 
