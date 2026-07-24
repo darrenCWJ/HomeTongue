@@ -56,7 +56,9 @@ STT model actually better".
    training-export/` (service-role key; trusted machine only), plus a mirror of
    the `recordings` bucket for audio.
 5. **Prepare** — `whisper-lora/prepare_data.py` (speaker-hash split manifests),
-   `slm-dialogue/prepare_sft_data.py` + `prepare_dpo_data.py`.
+   `slm-dialogue/prepare_sft_data.py` + `prepare_dpo_data.py`. Optionally
+   append an external video corpus (`ml/data/video/`, see its README) onto
+   `train.jsonl` — never onto val, which stays real learner audio.
 6. **Train** — `whisper-lora/train.py`, `slm-dialogue/train_sft.py` /
    `train_dpo.py`; always `--dry-run` first on the GPU box.
 7. **Eval-gate with the existing harness** — for STT:

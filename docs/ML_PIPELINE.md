@@ -35,6 +35,19 @@ node scripts/export-training-data.mjs --language yue-HK --out training-export/
 
 Produces `speech_samples.jsonl` + `corrections.jsonl` with user ids replaced by per-export salted hashes (speaker grouping without identity). The service-role key must never be committed or shipped — run this from a trusted machine/CI secret only.
 
+## External drop-in video corpus
+
+The consented in-app corpus is the clean core, but it accumulates slowly. To
+bootstrap (and to cover dialects with no public dataset), subtitled dialect
+video can be dropped into [`ml/data/video/`](../ml/data/video/README.md):
+`ingest-videos.mjs` takes YouTube URLs or local files, cuts audio clips along
+manual subtitle cues, optionally rejects clips the ASR disagrees with
+(CER-based `--verify` against `/api/transcribe`), and emits train-manifest
+rows that append onto `prepare_data.py`'s **train split only** — validation
+stays real learner audio. Provenance and license are recorded per source;
+see the README's licensing policy (CC/owned/licensed for anything
+redistributable, never DRM sources).
+
 ## Training path (future)
 
 1. **STT**: Whisper (or gpt-4o-transcribe-class distillation) LoRA fine-tune on `expected_text`/audio pairs, evaluated against the held-out exam scores.
@@ -52,6 +65,7 @@ flowchart TD
     TABLES --> EXPORT["Anonymized JSONL export (scripts/export-training-data.mjs)"]
     REVIEW -->|"verdicts joined; rejected excluded"| EXPORT
     EXPORT --> TRAIN["ml/train — prepare + fine-tune (Whisper LoRA / SLM)"]
+    VIDEO["Drop-in subtitled video (ml/data/video ingest)"] -->|"train split only"| TRAIN
     TRAIN --> GATE["Eval gate (ml/eval CER benchmark)"]
     GATE --> FLIP["Per-language env flip (STT_BASE_URL_YUE_HK)"]
     FLIP --> BETTER["Better model behind the same /api contracts"]
