@@ -9,6 +9,7 @@ import {
   cleanCueText,
   planClips,
 } from "../ml/data/video/subtitles.mjs";
+import { verifyOutcome } from "../ml/data/video/verify.mjs";
 
 const fixture = readFileSync("ml/data/video/fixtures/sample.vtt", "utf8");
 
@@ -32,6 +33,22 @@ describe("parseVtt", () => {
     expect(cues).toHaveLength(9);
     expect(cues[0]).toEqual({ start: 1, end: 2.2, text: "<v 阿嫲><i>你食咗飯未呀？</i></v>" });
     expect(cues[8].text).toBe("MC: Welcome back to the show");
+  });
+});
+
+describe("parseVtt malformed input", () => {
+  test("a malformed timing line loses only its own cue, never the next one", () => {
+    const vtt = [
+      "WEBVTT",
+      "",
+      "00:00:05.000 --> 00:00:05.000", // zero-duration → rejected
+      "orphaned text of the bad cue",
+      "",
+      "00:00:06.000 --> 00:00:07.000",
+      "world",
+      "",
+    ].join("\n");
+    expect(parseVtt(vtt)).toEqual([{ start: 6, end: 7, text: "world" }]);
   });
 });
 
@@ -128,11 +145,44 @@ describe("planClips", () => {
     expect(clips[0].end).toBeCloseTo(5, 3);
   });
 
+  test("clips split only by maxClipSec never overlap (halved-gap padding)", () => {
+    // Continuous dialogue: 4.5s cues with 0.2s gaps. Merging is capped by
+    // maxClipSec, so consecutive clips share gaps smaller than 2×padSec.
+    const cues = Array.from({ length: 10 }, (_, i) => ({
+      start: i * 4.7,
+      end: i * 4.7 + 4.5,
+      text: `第${i}句對白內容係咁樣`,
+    }));
+    const clips = planClips(cues);
+    expect(clips.length).toBeGreaterThan(1);
+    for (let i = 1; i < clips.length; i++) {
+      expect(clips[i].start).toBeGreaterThanOrEqual(clips[i - 1].end);
+    }
+  });
+
   test("joins latin cue boundaries with a space", () => {
     const cues = [
       { start: 0, end: 2, text: "welcome back" },
       { start: 2.1, end: 4, text: "to the show" },
     ];
     expect(planClips(cues)[0].text).toBe("welcome back to the show");
+  });
+});
+
+describe("verifyOutcome", () => {
+  test("keeps unverified clips only when verification was not requested", () => {
+    expect(verifyOutcome(null, 0.6)).toBe("kept");
+    expect(verifyOutcome(undefined, 0.6)).toBe("kept");
+  });
+
+  test("gates on the CER budget when a score exists", () => {
+    expect(verifyOutcome({ transcript: "你好", cer: 0 }, 0.6)).toBe("kept");
+    expect(verifyOutcome({ transcript: "你好", cer: 0.6 }, 0.6)).toBe("kept");
+    expect(verifyOutcome({ transcript: "亂講嘢", cer: 0.61 }, 0.6)).toBe("rejected");
+  });
+
+  test("fails closed on endpoint errors and unscorable references", () => {
+    expect(verifyOutcome({ error: "transcribe 503: …" }, 0.6)).toBe("unscored");
+    expect(verifyOutcome({ transcript: "…", cer: null }, 0.6)).toBe("unscored");
   });
 });

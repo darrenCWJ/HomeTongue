@@ -19,6 +19,11 @@ app corpus is small — especially for languages with no public dataset
 
 Neither is needed for `--dry-run` planning against local subtitle files.
 
+Use native executables on PATH (the installers above provide them), not
+`.bat`/`.cmd` wrapper shims — batch shims make Node re-invoke through
+`cmd.exe`, which on Node versions before the CVE-2024-27980 fix
+(18.20.4 / 20.15.1 / 22.5.1) escaped arguments unsafely.
+
 ## Usage
 
 Scope a video first (downloads subtitles only, plans clips, writes nothing):
@@ -52,7 +57,9 @@ Run with no arguments to see the full usage text.
 - `corpus.jsonl` — train-manifest rows: `{ audio, text, speaker: "video:<id>",
   language, source: "video", start, end, origin, verify, created_at }`
 - `val.jsonl` — only with `--val-pct > 0`
-- `rejected.jsonl` — clips the verifier rejected (CER > `--max-cer`), kept for inspection
+- `rejected.jsonl` — clips the verifier rejected (CER > `--max-cer`) or could
+  not score (endpoint error / unscorable text) — the gate **fails closed**;
+  rows carry the transcript/CER or error for inspection
 - `manifest.json` — per-source provenance (url/file, title, license, subtitle
   language) + drop stats
 

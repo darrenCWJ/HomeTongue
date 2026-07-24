@@ -51,13 +51,15 @@ export function parseVtt(content) {
     }
     const timing = parseTimingLine(line);
     i++;
-    if (!timing) continue;
+    // Always consume the cue's text block, even when the timing line is
+    // malformed — otherwise the orphaned text desyncs the scanner and can
+    // swallow the NEXT cue too. A bad timestamp loses only its own cue.
     const text = [];
     while (i < lines.length && lines[i].trim() !== "") {
       text.push(lines[i].trim());
       i++;
     }
-    cues.push({ ...timing, text: text.join("\n") });
+    if (timing) cues.push({ ...timing, text: text.join("\n") });
   }
   return cues;
 }
@@ -79,13 +81,13 @@ export function parseSrt(content) {
     }
     const timing = parseTimingLine(line);
     i++;
-    if (!timing) continue;
+    // Same malformed-timing rule as parseVtt: consume the text block either way.
     const text = [];
     while (i < lines.length && lines[i].trim() !== "") {
       text.push(lines[i].trim());
       i++;
     }
-    cues.push({ ...timing, text: text.join("\n") });
+    if (timing) cues.push({ ...timing, text: text.join("\n") });
   }
   return cues;
 }
@@ -178,20 +180,28 @@ export function planClips(cues, options = {}) {
     }
   }
 
+  // Padding rule: against a WALL (start of media, end of media) a clip may
+  // pad into the full free space; against a NEIGHBOURING cue each side gets
+  // at most HALF the gap. Halving matters when a tight cue run was split
+  // only by maxClipSec — the gap is then smaller than 2×padSec, and both
+  // sides padding independently would claim the same audio twice.
+  const pad = (gap, isWall) => Math.max(0, Math.min(opts.padSec, isWall ? gap : gap / 2));
   const clips = [];
+  let prevKeptEnd = 0; // safety net for overlapping cues in the source file
   for (let i = 0; i < merged.length; i++) {
     const clip = merged[i];
     if (clip.end - clip.start < opts.minClipSec) continue;
     if ([...clip.text].length < opts.minTextChars) continue;
-    // Pad within the free space around the clip. Neighbours' UNPADDED edges
-    // are the clamp, so two kept clips can never overlap (gap > mergeGapSec
-    // > 2×padSec always holds for adjacent kept clips).
-    const prevEnd = i > 0 ? merged[i - 1].end : 0;
-    const nextStart = i < merged.length - 1 ? merged[i + 1].start : opts.mediaDurationSec;
-    const start = Math.max(0, prevEnd, clip.start - opts.padSec);
-    const end = Math.min(opts.mediaDurationSec, nextStart, clip.end + opts.padSec);
+    // Dropped neighbours still clamp: their audio contains speech that is
+    // not in this clip's label, so padding must never bleed into them.
+    const gapBefore = clip.start - (i > 0 ? merged[i - 1].end : 0);
+    const gapAfter = (i < merged.length - 1 ? merged[i + 1].start : opts.mediaDurationSec) - clip.end;
+    const start = Math.max(prevKeptEnd, 0, clip.start - pad(gapBefore, i === 0));
+    const end = Math.min(opts.mediaDurationSec, clip.end + pad(gapAfter, i === merged.length - 1));
     if (end - start < opts.minClipSec) continue;
-    clips.push({ start: round3(start), end: round3(end), text: clip.text, cueCount: clip.cueCount });
+    const rounded = { start: round3(start), end: round3(end), text: clip.text, cueCount: clip.cueCount };
+    prevKeptEnd = rounded.end;
+    clips.push(rounded);
   }
   return clips;
 }

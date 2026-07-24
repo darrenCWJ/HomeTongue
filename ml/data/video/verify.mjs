@@ -45,3 +45,16 @@ export async function transcribeClip(endpoint, wavPath, language) {
   const data = await res.json();
   return typeof data.text === "string" ? data.text : "";
 }
+
+/**
+ * Fail-closed verification gate. "kept" only when verification was not
+ * requested at all, or the clip scored within the CER budget. Endpoint
+ * errors and unscorable references (CER null — e.g. punctuation-only text)
+ * come back "unscored" so callers exclude them from the corpus instead of
+ * silently treating "couldn't check" as "checked clean".
+ */
+export function verifyOutcome(verify, maxCer) {
+  if (verify === null || verify === undefined) return "kept"; // --verify not enabled
+  if (typeof verify.cer === "number") return verify.cer <= maxCer ? "kept" : "rejected";
+  return "unscored";
+}

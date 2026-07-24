@@ -36,7 +36,7 @@ import { basename, dirname, extname, join } from "path";
 import { createHash } from "crypto";
 import { fileURLToPath } from "url";
 import { parseSubtitles, planClips, DEFAULT_PLANNER_OPTIONS } from "./subtitles.mjs";
-import { loadNormalizer, transcribeClip } from "./verify.mjs";
+import { loadNormalizer, transcribeClip, verifyOutcome } from "./verify.mjs";
 import { characterErrorRate } from "../../eval/cer.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -221,6 +221,7 @@ async function cutAndVerify(source, clips, normalize, runTimestamp) {
   const kept = [];
   const rejected = [];
   let verifyErrors = 0;
+  let verifySuccesses = 0;
   for (let n = 0; n < clips.length; n++) {
     const clip = clips[n];
     const clipName = `${String(n + 1).padStart(4, "0")}.wav`;
@@ -233,9 +234,13 @@ async function cutAndVerify(source, clips, normalize, runTimestamp) {
         const transcript = await transcribeClip(options.verifyEndpoint, clipPath, options.language);
         const cer = characterErrorRate(clip.text, transcript, normalize);
         verify = { transcript, cer };
+        verifySuccesses++;
       } catch (err) {
         verify = { error: String(err.message ?? err) };
         verifyErrors++;
+        if (verifySuccesses === 0 && verifyErrors >= 3) {
+          throw new Error(`verify endpoint failed the first ${verifyErrors} calls (${verify.error}) — is the dev server running?`);
+        }
       }
     }
 
@@ -251,10 +256,16 @@ async function cutAndVerify(source, clips, normalize, runTimestamp) {
       verify,
       created_at: runTimestamp,
     };
-    if (verify && typeof verify.cer === "number" && verify.cer > options.maxCer) {
-      rejected.push({ ...row, rejection: `CER ${verify.cer.toFixed(3)} > ${options.maxCer}` });
-    } else {
+    // Fail closed: a clip the verifier could not score never enters the corpus.
+    const outcome = verifyOutcome(verify, options.maxCer);
+    if (outcome === "kept") {
       kept.push(row);
+    } else {
+      const rejection =
+        outcome === "rejected"
+          ? `CER ${verify.cer.toFixed(3)} > ${options.maxCer}`
+          : `unscored: ${verify.error ?? "reference text unscorable after normalization"}`;
+      rejected.push({ ...row, rejection });
     }
   }
   return { kept, rejected, verifyErrors };
@@ -307,9 +318,13 @@ async function main() {
 
         if (!options.dryRun) {
           const { kept, rejected, verifyErrors } = await cutAndVerify(source, clips, normalize, runTimestamp);
+          // Same hash-bucket approach as prepare_data.py's speaker split; the
+          // digest is truncated to 13 hex chars (52 bits) so the modulo stays
+          // exact within JS number precision.
           const isVal =
             options.valPct > 0 &&
-            parseInt(createHash("sha256").update(source.id).digest("hex"), 16) % VAL_HASH_BUCKETS < options.valPct;
+            parseInt(createHash("sha256").update(source.id).digest("hex").slice(0, 13), 16) % VAL_HASH_BUCKETS <
+              options.valPct;
           (isVal ? valRows : corpusRows).push(...kept);
           rejectedRows.push(...rejected);
           summary.stats = { ...summary.stats, kept: kept.length, verifyRejected: rejected.length, verifyErrors, split: isVal ? "val" : "train" };
