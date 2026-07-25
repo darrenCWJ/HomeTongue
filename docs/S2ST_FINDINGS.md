@@ -122,15 +122,15 @@ base to adapt *from*.
 
 ### Why the NSC hours cell says "not stated"
 
-IMDA publishes no hours figure for the National Speech Corpus, so far as a direct fetch can
-confirm. Its own landing page [5] states the size as approximately 1.2 TB across six parts;
-the strings "hour", "hrs", "10,600" and "10600" do not appear in the fetched page content.
-**That check has a limit worth stating.** The NSC page is substantially client-rendered: a
-direct fetch returns its navigation and section headers (About, Benefits, FAQs, Contact) but
-not the body copy under them, which loads separately rather than appearing in the static
-HTML. So the absence of an hours figure is confirmed for the static page shell that a direct
-fetch retrieves, not for content that only a rendered browser would show — this document
-cannot rule out an hours figure appearing in that body text. The only primary publication
+IMDA publishes no hours figure in its own primary publications. The landing page [5] states
+the size as approximately 1.2 TB across six parts — a figure recovered by decoding the
+client-rendered payload. However, this retrieval method has a limit worth stating. The NSC
+page is substantially client-rendered: a plain HTTP fetch returns its navigation and section
+headers (About, Benefits, FAQs, Contact) but not the body copy under them, which loads
+separately rather than appearing in the static HTML. The absence of an hours figure in
+static-page content is therefore confirmed for the fetched shell, not for content that only
+a rendered browser would show — this document cannot rule out an hours figure appearing in
+that body text. The only primary publication
 with a citable hours figure, Koh et al. at Interspeech 2019 [17], describes "more than 2000
 hours" of orthographically transcribed read speech with a further 1,000 hours of
 conversational speech planned for a second release — a figure for an earlier version of the
@@ -419,10 +419,13 @@ Cantonese 14.3%, Hakka 8.6%, Hainanese 6.1%, of 3,006,769 Chinese residents. The
 [16] are kept alongside to show the trend: Hokkien 41.1%, Teochew 21.0%, Cantonese 15.4%,
 Hakka 7.9%, Hainanese 6.7%, of 2,513,847. **The rank order is unchanged across both
 censuses** — Hokkien > Teochew > Cantonese > Hakka > Hainanese — so the coverage argument
-below holds under either year; if anything it is slightly stronger under the fresher data,
-because Cantonese's share fell further in relative terms than Hokkien's (15.4%→14.3% vs.
-41.1%→39.3%), widening the gap between the fully-supported pack and the largest unserved
-group.
+below holds under either year; if anything it is slightly stronger under the fresher data.
+Cantonese's share fell proportionally faster than Hokkien's (15.4%→14.3% vs. 41.1%→39.3%),
+widening the ratio gap from 2.67× to 2.75× — meaning Cantonese is now an even larger
+minority of Hokkien's size. The percentage-point difference between the two narrowed
+slightly (25.7 to 25.0 points), but the relative disparity grew. The coverage argument rests
+on the ratio: the largest dialect group has only text support, while the third-largest has
+full speech support.
 
 Against that, the repo ships exactly two packs. Cantonese (`yue-HK`) is fully supported —
 Chirp 3: HD TTS plus STT. Hokkien (`nan-TW`) is text-only. Teochew, Hakka and Hainanese have
