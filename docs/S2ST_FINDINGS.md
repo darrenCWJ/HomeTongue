@@ -68,7 +68,7 @@ primary source gives no hours figure and none was inferred.
 | Common Voice `yue` / `zh-HK` [20] | Cantonese | 210.70 / 108.54 validated (CV 26.0) | CC0-1.0 | The only unambiguously commercial-safe Cantonese audio in this table |
 | MCE [21] | Cantonese–English code-switch | 34.8 (abstract); 40 in body | **none declared** | Code-switch evaluation only; scripts are LLM-generated, not naturally occurring |
 | MERLIon CCS [22] | Mandarin–English code-switch (SG) | >25 h EN + >5 h ZH child-directed speech | signed challenge agreement, redistribution forbidden | Closest match to SG code-switching; not usable in a shipped product |
-| TaigiSpeech [23] | Taiwanese Hokkien | **not stated** (3,079 utterances, 21 speakers) | CC BY 4.0 | **Not an ASR corpus** — 8-class intent classification; not a `nan-TW` speech starting point |
+| TaigiSpeech [23] | Taiwanese Hokkien | ~6.1 (3,079 utterances, 21 speakers) | CC BY 4.0 | **Not an ASR corpus** — 8-class intent classification; not a `nan-TW` speech starting point |
 | WenetSpeech-Wu [24] | Wu | ~8,000 | Apache-2.0 | Not applicable; listed to show the method generalises — and that licences differ within one lab |
 
 ### Two figures, because the licence splits the answer
@@ -122,19 +122,27 @@ base to adapt *from*.
 
 ### Why the NSC hours cell says "not stated"
 
-IMDA publishes no hours figure for the National Speech Corpus. Its own pages [5] give the
-size as approximately 1.2 TB across six parts and never state a duration; the strings
-"hour", "hrs", "10,600" and "10600" do not appear on them. The only primary publication,
-Koh et al. at Interspeech 2019 [17], describes "more than 2000 hours" of orthographically
-transcribed read speech with a further 1,000 hours of conversational speech planned for a
-second release — a far smaller and much older figure that does not cover the parts added
-since.
+IMDA publishes no hours figure for the National Speech Corpus, so far as a direct fetch can
+confirm. Its own landing page [5] states the size as approximately 1.2 TB across six parts;
+the strings "hour", "hrs", "10,600" and "10600" do not appear in the fetched page content.
+**That check has a limit worth stating.** The NSC page is substantially client-rendered: a
+direct fetch returns its navigation and section headers (About, Benefits, FAQs, Contact) but
+not the body copy under them, which loads separately rather than appearing in the static
+HTML. So the absence of an hours figure is confirmed for the static page shell that a direct
+fetch retrieves, not for content that only a rendered browser would show — this document
+cannot rule out an hours figure appearing in that body text. The only primary publication
+with a citable hours figure, Koh et al. at Interspeech 2019 [17], describes "more than 2000
+hours" of orthographically transcribed read speech with a further 1,000 hours of
+conversational speech planned for a second release — a figure for an earlier version of the
+corpus, far smaller than the current release and not covering the parts added since.
 
-A figure of ~10,600 hours circulates widely in dataset mirrors and secondary write-ups. **It
-was not adopted here**, because no IMDA source states it and this document does not carry
-numbers it cannot trace to a primary source. The honest cell is `not stated`. Anyone needing
-the real duration should measure it after download, and that measurement should be recorded
-here when it exists.
+A figure of ~10,600 hours circulates widely in dataset mirrors and secondary write-ups, and
+traces only to those secondary sources — no IMDA publication found in this pass states it.
+**It was not adopted here**, because this document does not carry numbers it cannot trace to
+a primary source. The honest cell for the current corpus is `not stated`, with the 2019
+figure cited for the version it actually describes. Anyone needing the current duration
+should measure it after download, and that measurement should be recorded here when it
+exists.
 
 ### The IMDA NSC licence — actionable, with one open step
 
@@ -234,22 +242,31 @@ It does not apply here, for reasons that are structural rather than incidental:
 - **Wrong language pair.** The released checkpoint's model card states support for French,
   Spanish, Portuguese and German [2]. None is Sinitic. The abstract of [1] describes "five
   X-to-English tasks" — the fifth is Italian→English, demonstrated in the paper as a
-  low-resource adaptation experiment (under 1,000 hours of unaligned speech) rather than in
-  the main results. Either way the source-language set is European.
+  low-resource adaptation experiment (under 1,000 hours of coarse-aligned speech) rather than
+  in the main results. Either way the source-language set is European.
 - **Wrong direction.** Every supported task is X→**English**. HomeTongue's primary direction
   is English→Cantonese: an English-speaking heritage learner producing dialect output. The
   model translates *out of* the low-resource language; this product needs to generate *into*
   it.
-- **The adaptation figure is not a shortcut for us.** "<1,000 hours of unaligned speech" is
-  a genuinely low threshold, and it is the survey's strongest practical claim. But it is a
-  threshold for adding a *source* language to an X→English model. It does not describe
-  adding a target language, and it does not describe a corpus this project has.
-- **Licensing of the weights is not established.** The Hugging Face repository for the
-  checkpoint declares no licence — no `license` field in the card metadata and no LICENSE
-  file [2]. The separate code repository is MIT, which covers code and not weights. So the
-  weights are *published*, but the terms on which they may be redistributed or used
-  commercially are **not documented**. Anyone tempted to build on them should close that
-  question first.
+- **The adaptation figure is not a shortcut for us.** "<1,000 hours of coarse-aligned
+  speech" is a genuinely low threshold, and it is the survey's strongest practical claim. But
+  it is a threshold for adding a *source* language to an X→English model. It does not
+  describe adding a target language, and it does not describe a corpus this project has.
+- **The weights are CC BY-NC-SA 4.0 — declared in the card body, not the metadata.** The
+  Hugging Face repository's YAML frontmatter has no `license` field, but the card body
+  states, under "Model Details": "License: CC BY-NC-SA 4.0" [2]. The separate code repository
+  is MIT, which covers code and not weights. The weights therefore do carry a documented
+  licence, but it is non-commercial and share-alike — shipping a model built on them inside a
+  commercial product requires a separate agreement, not just attribution.
+
+**Consequence: the open ecosystem here is substantially non-commercial.** Both of the two
+major open assets this document relies on now carry non-commercial terms: WenetSpeech-Yue's
+dataset is **CC BY-NC 4.0** (Table 1, Corpus re-audit) and Hibiki-Zero's weights are **CC
+BY-NC-SA 4.0** [2]. Both are freely downloadable and usable for research or evaluation;
+neither can be built into a shipped commercial product without a separate licence from the
+rights holder. For dialect S2ST specifically, availability and usability diverge: the audio
+and the weights exist and are legally accessible, but "openly published" does not mean
+"commercially usable" here.
 
 **Citation defect in the source survey.** The survey's reference 11 is labelled "ICML 2026"
 but links `https://icml.cc/virtual/2025/poster/44512`, which is the **2025** poster for the
@@ -274,9 +291,12 @@ specific LoRA adapter, and the speech features are routed to the corresponding a
 on the known LID" [7].
 
 **Calibration.** [7] is a **challenge system-description paper**, not the origin of the
-technique, and its actual mechanism is closer to weighted fusion than to pure hard routing —
-it learns per-language parameters passed through a sigmoid to produce fusion weights
-selected by LID. Cite it as a system that *uses* per-language adapter routing, not as the
+technique — but its description of adapter selection quoted above is accurate as stated:
+routing is genuinely hard, each language pinned to one adapter. The paper's sigmoid-weighted
+mechanism belongs to a *different* component — a weighted-fusion module that combines
+dual-encoder (Whisper + MMS) outputs, where per-language trainable parameters pass through a
+sigmoid to produce fusion weights selected by LID — and should not be attributed to adapter
+selection. Cite [7] as a system that *uses* hard per-language adapter routing, not as the
 paper that established it.
 
 **Why it matters here.** The repo already resolves a per-language *base URL* —
@@ -293,9 +313,12 @@ adapter selection automatic instead of a manual environment variable. See
 ### 2. GRPO over verifiable rewards (F6)
 
 Group Relative Policy Optimization was introduced in DeepSeekMath [8] as a PPO variant that
-drops the value model, which roughly halves the memory cost of the RL phase. Its relevance
-here is narrow but real: GRPO needs a **reward function**, not preference pairs. This repo
-already has verifiable signals that could serve as one —
+drops the value model. [8] itself only says this "significantly reduc[es] training
+resources" and never quantifies it — **the "roughly halves" framing is this document's own
+inference**, from the observation that the value model is typically a second network of
+comparable size to the policy model, not a figure [8] states. Its relevance here is narrow
+but real: GRPO needs a **reward function**, not preference pairs. This repo already has
+verifiable signals that could serve as one —
 
 - the active pack's `scoring.fallbackMatch` (deterministic character-equivalence scoring),
 - the char-equivalence and particle-group maps in
@@ -325,8 +348,9 @@ protocol should be validated on our own runs rather than assumed from [9].
 ### 3. Curriculum learning and expressivity — transfers in part
 
 The survey's curriculum section describes UniSS [10], a single-stage expressive S2ST
-framework that stages training to avoid mode collapse, using a triple-tokenizer split into
-speaker, linguistic and semantic tokens.
+framework that stages training to mitigate catastrophic forgetting of the underlying LLM's
+foundational text-translation ability, using a triple-tokenizer split into speaker,
+linguistic and semantic tokens.
 
 **What transfers:** the staged-curriculum principle — introduce capabilities in an order
 that keeps the model from collapsing onto the easiest objective. That is generic training
@@ -389,19 +413,26 @@ Chirp 3: HD, this can be revisited; it should not be assumed in the meantime.
 
 **F7: pack coverage is inverted against Singapore's Chinese dialect demographics.**
 
-By the Singapore Department of Statistics *Census of Population 2000* [16], the Chinese
-resident population by dialect group was: Hokkien 41.1%, Teochew 21.0%, Cantonese 15.4%,
-Hakka 7.9%, Hainanese 6.7%.
+By the Singapore Department of Statistics *Census of Population 2020* [26] — the current
+basis — the Chinese resident population by dialect group was: Hokkien 39.3%, Teochew 19.4%,
+Cantonese 14.3%, Hakka 8.6%, Hainanese 6.1%, of 3,006,769 Chinese residents. The 2000 figures
+[16] are kept alongside to show the trend: Hokkien 41.1%, Teochew 21.0%, Cantonese 15.4%,
+Hakka 7.9%, Hainanese 6.7%, of 2,513,847. **The rank order is unchanged across both
+censuses** — Hokkien > Teochew > Cantonese > Hakka > Hainanese — so the coverage argument
+below holds under either year; if anything it is slightly stronger under the fresher data,
+because Cantonese's share fell further in relative terms than Hokkien's (15.4%→14.3% vs.
+41.1%→39.3%), widening the gap between the fully-supported pack and the largest unserved
+group.
 
 Against that, the repo ships exactly two packs. Cantonese (`yue-HK`) is fully supported —
 Chirp 3: HD TTS plus STT. Hokkien (`nan-TW`) is text-only. Teochew, Hakka and Hainanese have
-no pack at all. Mapped onto the demographics:
+no pack at all. Mapped onto the 2020 demographics:
 
-- **Hokkien, 41.1%** — `nan-TW` pack, no speech path
-- **Teochew, 21.0%** — no pack
-- **Cantonese, 15.4%** — `yue-HK` pack, full speech support
-- **Hakka, 7.9%** — no pack
-- **Hainanese, 6.7%** — no pack
+- **Hokkien, 39.3%** — `nan-TW` pack, no speech path
+- **Teochew, 19.4%** — no pack
+- **Cantonese, 14.3%** — `yue-HK` pack, full speech support
+- **Hakka, 8.6%** — no pack
+- **Hainanese, 6.1%** — no pack
 
 The fully-supported pack serves the **third**-largest group. The largest group by a wide
 margin, Hokkien, is text-only: `sttLanguages` is the empty array at
@@ -418,21 +449,24 @@ product does and what the population it serves would need.
 **And there is no corpus to close it with.** The corpus audit found **no suitable public
 Hokkien ASR corpus**. TaigiSpeech [23] was the candidate and does not qualify: it is an
 8-class spoken **intent-classification** set (3,079 short command utterances from 21 elderly
-speakers, for elder-care and smart-home commands), publishes no duration, and is not a
-general speech-recognition corpus. It is also Taiwanese Hokkien, which is related to but not
-the same as the Amoy-based Singapore Hokkien the `nan-TW` pack targets. So the Hokkien
+speakers, for elder-care and smart-home commands, totalling ~6.1 hours per the paper's own
+Table 4), and is not a general speech-recognition corpus. It is also Taiwanese Hokkien, which
+is related to but not the same as the Amoy-based Singapore Hokkien the `nan-TW` pack targets.
+So the Hokkien
 speech path is blocked twice over — no vendor model *and* no identified training corpus —
 and the honest status of `nan-TW` speech support is "no route currently identified", not
 "pending work". Finding or building a Singapore Hokkien speech corpus is a prerequisite,
 not a step.
 
-**Two caveats on the figures.** First, they are from the **2000** census and are 26 years
-old. They were verified against the primary counts and are accurate *for that census*, but
-they have not been refreshed against Census 2020 in this pass; that refresh is outstanding
-and the percentages will have shifted. Second, dialect-group ancestry is not the same as
-dialect *fluency* — the census records which group a person belongs to, not whether they
-speak the language. For a heritage-learning product the second number is the one that
-matters, and it is not in this table.
+**Two caveats on the figures.** First, Census 2020's headline **Statistical Release 1**
+(Demographic Characteristics, Education, Language and Religion) does not carry this
+dialect-group breakdown — its home-language tables lump all varieties into a single "Chinese
+Dialect" category. The percentages above come from a separate data.gov.sg table, *Chinese
+Resident Population by Age Group, Detailed Ethnic Group and Sex* [26], which is the correct
+citation for this figure. Second, dialect-group ancestry is not the same as dialect
+*fluency* — the census records which group a person belongs to, not whether they speak the
+language. For a heritage-learning product the second number is the one that matters, and it
+is not in this table.
 
 ---
 
@@ -516,7 +550,8 @@ government documentation. All checked 2026-07-26.
    Speech-to-Speech Translation Without Aligned Data* (the Hibiki-Zero paper).
    https://arxiv.org/abs/2602.11072
 2. Kyutai. `hibiki-zero-3b-pytorch-bf16` model card — the source of the four-language
-   support list; declares no licence.
+   support list; licensed **CC BY-NC-SA 4.0**, stated in the card body under "Model Details"
+   rather than the YAML metadata's `license` field, which is absent.
    https://huggingface.co/kyutai/hibiki-zero-3b-pytorch-bf16
 3. ICML 2026 poster 66094 — *Simultaneous Speech-to-Speech Translation Without Aligned
    Data*, Labiausse et al. https://icml.cc/virtual/2026/poster/66094
@@ -553,7 +588,8 @@ government documentation. All checked 2026-07-26.
     watermarked with SynthID, while that model's own reference page does not.
     https://cloud.google.com/blog/products/ai-machine-learning/gemini-3-1-flash-tts-on-google-cloud
 16. Singapore Department of Statistics. *Chinese Resident Population by Age Group, Dialect
-    Group and Sex, Census of Population 2000* — the source of the F7 percentages.
+    Group and Sex, Census of Population 2000* — the 2000 baseline kept alongside [26] to show
+    the trend behind the F7 percentages.
     https://data.gov.sg/datasets/d_7a942ef799c7a66a78835245bc581980/view
 17. Koh, J. X., et al. *Building the Singapore English National Speech Corpus* —
     Interspeech 2019. The only primary NSC publication; states "more than 2000 hours" of
@@ -580,7 +616,7 @@ government documentation. All checked 2026-07-26.
     English and over 5 hours of Mandarin child-directed speech; access requires a signed data
     use agreement and redistribution is forbidden. https://arxiv.org/abs/2305.19493
 23. *TaigiSpeech* — Taiwanese Hokkien spoken intent-classification dataset: 3,079 utterances,
-    21 speakers, 8 command classes, no duration published; CC BY 4.0.
+    21 speakers, 8 command classes, ~6.1 hours total (Table 4: 366.91 min); CC BY 4.0.
     https://arxiv.org/abs/2603.21478
 24. *WenetSpeech-Wu* — approximately 8,000 hours across eight Wu sub-dialects; Apache-2.0.
     https://arxiv.org/abs/2601.11027
@@ -588,3 +624,7 @@ government documentation. All checked 2026-07-26.
     Zeghidour, N. *Moshi: a speech-text foundation model for real-time dialogue* —
     introduces the Mimi codec on which the survey's codec section rests. Mimi is described
     in the body, not the abstract. https://arxiv.org/abs/2410.00037
+26. Singapore Department of Statistics. *Chinese Resident Population by Age Group, Detailed
+    Ethnic Group and Sex, Census of Population 2020* — the current-basis source for the F7
+    percentages; total Chinese resident population 3,006,769.
+    https://data.gov.sg/datasets/d_fb8ce4a963b3045ce9f97bafee289c0b/view
