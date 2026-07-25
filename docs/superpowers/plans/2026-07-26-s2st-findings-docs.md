@@ -44,9 +44,13 @@ import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join, resolve, dirname, relative } from "path";
 
 const DOCS_ROOT = "docs";
-// Matches [text]\(target) and [text]\(target:123) — captures target and optional line.
+// [text](target) and [text](target:123) — captures target and optional line.
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+?)(?::(\d+))?\)/g;
 const EXTERNAL_RE = /^(https?:|mailto:|#|data:)/;
+// Fenced code blocks hold example links, not references. Matches a fence of 3+
+// backticks and its same-length closing fence, so ````markdown wrappers around
+// ```mermaid blocks are removed whole rather than half-matched.
+const FENCE_RE = /^ {0,3}(`{3,})[^\n]*\n[\s\S]*?^ {0,3}\1`*[ \t]*$/gm;
 
 function* walk(dir) {
   for (const entry of readdirSync(dir)) {
@@ -59,7 +63,7 @@ function* walk(dir) {
 const offenders = [];
 for (const file of walk(DOCS_ROOT)) {
   if (!file.endsWith(".md")) continue;
-  const text = readFileSync(file, "utf8");
+  const text = readFileSync(file, "utf8").replace(FENCE_RE, "");
   for (const match of text.matchAll(LINK_RE)) {
     const [, target, lineStr] = match;
     if (EXTERNAL_RE.test(target)) continue;
@@ -96,11 +100,10 @@ If it reports offenders, they are **pre-existing rot in the current docs**. Fix 
 
 - [ ] **Step 3: Prove the checker actually fails on a bad reference**
 
-Run (add a sample broken reference to docs/SETUP.md, then check it):
+Run:
 ```bash
-printf '\n[broken](' >> docs/SETUP.md; printf '../does/not/exist.md)\n' >> docs/SETUP.md && node scripts/check-docs-refs.mjs; echo "exit=$?"
+printf '\n[broken](../does/not/exist.md)\n' >> docs/SETUP.md && node scripts/check-docs-refs.mjs; echo "exit=$?"
 ```
-
 Expected: exit=1 and a line reading `docs/SETUP.md: missing target "../does/not/exist.md"`.
 
 Then revert the probe:

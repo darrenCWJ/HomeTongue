@@ -8,6 +8,10 @@ const DOCS_ROOT = "docs";
 // [text](target) and [text](target:123) — captures target and optional line.
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+?)(?::(\d+))?\)/g;
 const EXTERNAL_RE = /^(https?:|mailto:|#|data:)/;
+// Fenced code blocks hold example links, not references. Matches a fence of 3+
+// backticks and its same-length closing fence, so ````markdown wrappers around
+// ```mermaid blocks are removed whole rather than half-matched.
+const FENCE_RE = /^ {0,3}(`{3,})[^\n]*\n[\s\S]*?^ {0,3}\1`*[ \t]*$/gm;
 
 function* walk(dir) {
   for (const entry of readdirSync(dir)) {
@@ -20,7 +24,7 @@ function* walk(dir) {
 const offenders = [];
 for (const file of walk(DOCS_ROOT)) {
   if (!file.endsWith(".md")) continue;
-  const text = readFileSync(file, "utf8");
+  const text = readFileSync(file, "utf8").replace(FENCE_RE, "");
   for (const match of text.matchAll(LINK_RE)) {
     const [, target, lineStr] = match;
     if (EXTERNAL_RE.test(target)) continue;
