@@ -28,7 +28,11 @@ for (const file of walk(DOCS_ROOT)) {
   for (const match of text.matchAll(LINK_RE)) {
     const [, target, lineStr] = match;
     if (EXTERNAL_RE.test(target)) continue;
-    const abs = resolve(dirname(file), decodeURI(target));
+    // A trailing #fragment addresses a section within the target file; strip it
+    // before resolving, or "file.md#heading" is treated as a missing path.
+    const [path_] = target.split("#");
+    if (path_ === "") continue;
+    const abs = resolve(dirname(file), decodeURI(path_));
     if (!existsSync(abs)) {
       offenders.push(`${file}: missing target "${target}"`);
       continue;
