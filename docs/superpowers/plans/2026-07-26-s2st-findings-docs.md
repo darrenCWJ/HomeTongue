@@ -44,7 +44,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join, resolve, dirname, relative } from "path";
 
 const DOCS_ROOT = "docs";
-// [text](target) and [text](target:123) — captures target and optional line.
+// Matches [text]\(target) and [text]\(target:123) — captures target and optional line.
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+?)(?::(\d+))?\)/g;
 const EXTERNAL_RE = /^(https?:|mailto:|#|data:)/;
 
@@ -96,10 +96,11 @@ If it reports offenders, they are **pre-existing rot in the current docs**. Fix 
 
 - [ ] **Step 3: Prove the checker actually fails on a bad reference**
 
-Run:
+Run (add a sample broken reference to docs/SETUP.md, then check it):
 ```bash
-printf '\n[broken](../does/not/exist.md)\n' >> docs/SETUP.md && node scripts/check-docs-refs.mjs; echo "exit=$?"
+printf '\n[broken](' >> docs/SETUP.md; printf '../does/not/exist.md)\n' >> docs/SETUP.md && node scripts/check-docs-refs.mjs; echo "exit=$?"
 ```
+
 Expected: exit=1 and a line reading `docs/SETUP.md: missing target "../does/not/exist.md"`.
 
 Then revert the probe:
