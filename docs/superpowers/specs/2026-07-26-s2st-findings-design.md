@@ -279,12 +279,68 @@ are specified within D2/D3 and implemented in a later pass.
 
 ## Open questions
 
-1. Whether Google Chirp3-HD output carries SynthID watermarking. Determines whether the
+1. ~~Whether Google Chirp3-HD output carries SynthID watermarking. Determines whether the
    governance section can claim provenance or must recommend in-app disclosure labelling as
-   a substitute. To be verified against Google Cloud documentation during D1, not assumed.
-2. Whether IMDA National Speech Corpus licence terms permit derived model weights to be
+   a substitute. To be verified against Google Cloud documentation during D1, not assumed.~~
+   **Resolved 2026-07-26:** **not documented.** No Google Cloud Text-to-Speech
+   documentation states that Chirp 3: HD output carries SynthID. The terms "SynthID" and
+   "watermark" occur zero times on the Chirp 3: HD reference page
+   (https://docs.cloud.google.com/text-to-speech/docs/chirp3-hd, page itself last updated
+   2026-07-22; checked 2026-07-26) and zero times across the supporting Cloud TTS pages
+   checked the same day: `list-voices-and-types`, `chirp3-instant-custom-voice`,
+   `gemini-tts`, `release-notes`, `basics`, `voices` and `before-you-begin`. Google's own
+   SynthID page (https://deepmind.google/science/synthid/, checked 2026-07-26) names only
+   Lyria and the NotebookLM podcast feature as watermarked **audio** products; Cloud TTS and
+   Chirp are absent. The absence is meaningful rather than merely incidental, because Google
+   *does* state watermarking where it applies to a TTS model: a Google Cloud blog post
+   records that audio from Gemini 3.1 Flash TTS "is watermarked with SynthID"
+   (https://cloud.google.com/blog/products/ai-machine-learning/gemini-3-1-flash-tts-on-google-cloud,
+   checked 2026-07-26) — a different model family from the Chirp 3: HD voices this repo
+   calls in `api/tts.js`. **Consequence for D1/D2:** the governance section must **not**
+   claim audio provenance for HomeTongue's TTS output. It recommends in-app disclosure
+   labelling as the substitute. Note the limit of this finding: undocumented is not the same
+   as absent, so the defensible claim is that provenance cannot be *relied upon* or
+   asserted — not that the audio is affirmatively unwatermarked.
+2. ~~Whether IMDA National Speech Corpus licence terms permit derived model weights to be
    used commercially without further notification. Affects whether F4 is actionable or
-   merely informational. Requires reading the licence agreement, not a search summary.
+   merely informational. Requires reading the licence agreement, not a search summary.~~
+   **Resolved 2026-07-26: F4 is actionable.** (a) **Commercial use is permitted.** IMDA's
+   own NSC page states, in FAQ item 1, that the NSC "is made available via the Singapore
+   Open Data Licence" (https://www.imda.gov.sg/how-we-can-help/national-speech-corpus,
+   checked 2026-07-26). That licence, version 1.0
+   (https://data.gov.sg/open-data-licence, checked 2026-07-26), grants a worldwide,
+   perpetual, royalty-free, non-exclusive licence and, under "What you can do", permits
+   using, modifying and adapting the datasets "or any derived analyses or applications,
+   whether commercially or non-commercially". Derived model weights fall within *derived
+   analyses or applications*, so training on the NSC and shipping the resulting model
+   commercially is within the grant. (b) **No notification is required** — the licence is
+   accepted by use and imposes no filing or approval step with the Agency. **Attribution is
+   required**: the "Additional conditions" section obliges a conspicuous source notice, plus
+   a link to the licence, in any product, application or website using the datasets.
+   Redistribution is permitted (distribute and transmit fall inside "Use"), with
+   sub-licensing allowed only so far as needed for users to use your application or site,
+   and no rights conferred on Downstream Sub-Licensees. Three limitations bind: the licence
+   grants no rights over **personal data** in the dataset, over third-party rights, or over
+   patents/trademarks/design rights, and the datasets must not be used to imply official
+   status or Agency endorsement. The personal-data carve-out is the material one for speech,
+   and D1 should carry it rather than present the licence as unconditional. Download is
+   gated on registration and a Dropbox account, which is a distribution mechanism, not a
+   licence condition.
+   **Correction to the task premise:** the PDF cited as the NSC licence
+   (https://www.imda.gov.sg/-/media/imda/files/programme/digital-service-lab/national-speech-corpus/imda-dsl--tech-licensing.pdf,
+   retrieved 2026-07-26, HTTP 200, SHA-256 `a3f5042031476ced…4754f0d0`) is **not** the
+   corpus licence. It is the IMDA Digital Services Laboratory *Technology* Licensing
+   Agreement: an unexecuted template whose Annex 1 lists the licensed technology as "Natural
+   Speech & Transcription Technologies (NSTT)", described there as a suite of tools
+   *complementary to* the NSC. Its commercial terms — duration, exclusivity,
+   sub-licensability, territory, fee and "Purposes" — are blank checkboxes negotiated per
+   licensee, so it fixes no general answer. Should NSTT tooling ever be licensed, its terms
+   are materially stricter than the Open Data Licence: clause 5.2(a) grants derivative-works
+   and commercialisation rights strictly for the agreed Purposes, clause 6.2 vests
+   Foreground IP in the licensee, clause 5.3(b) gives IMDA a right to inspect the licensee's
+   business records, and clauses 6.3 and 11.3 impose confidentiality over the technology and
+   bar public announcements without IMDA's prior written consent. None of that reaches the
+   NSC corpus data, which is governed solely by the Singapore Open Data Licence.
 3. ~~Author attribution and affiliation for the published article.~~ **Resolved
    2026-07-26:** single author, Darren Chua, no institutional affiliation; personal-project
    byline.
