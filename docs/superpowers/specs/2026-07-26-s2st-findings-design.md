@@ -285,5 +285,20 @@ are specified within D2/D3 and implemented in a later pass.
 2. Whether IMDA National Speech Corpus licence terms permit derived model weights to be
    used commercially without further notification. Affects whether F4 is actionable or
    merely informational. Requires reading the licence agreement, not a search summary.
-3. Author attribution and affiliation for the published article. Needed before D4 is
-   finalised.
+3. ~~Author attribution and affiliation for the published article.~~ **Resolved
+   2026-07-26:** single author, Darren Chua, no institutional affiliation; personal-project
+   byline.
+
+## Revision policy for the article
+
+The article is an **interim report with a stated data gate**, not a one-off publication. It
+is written to be revised into an empirical paper once a consented corpus exists.
+Consequences for D4:
+
+- Carry a version and date line under the byline (`v1.0 — 2026-07-26`).
+- State in the abstract and in §7 Limitations that no corpus exists yet and that the
+  evaluation sections are therefore unpopulated by design.
+- Structure §5 and §7 so that a later revision can add measured results without
+  restructuring the paper: the eval methodology, the ship bar (≥ 15–20 % relative CER
+  reduction, per `ML_TRAINING_PLAN.md`), and the held-out speaker-split protocol are all
+  stated up front, so v2 fills in numbers against a protocol already published in v1.
