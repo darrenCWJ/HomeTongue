@@ -130,3 +130,4 @@ Each `UserProfile` has two personas: `"personal"` and `"work"` (`activePersona` 
 - Language-specific data (prompts, voices, scoring maps) belongs in `src/languages/<code>/` — never inline dialect specifics in services or components.
 - Run `pnpm typecheck && pnpm lint && pnpm test` before committing; CI enforces all three plus the build.
 - The product roadmap (real auth, cloud DB, multi-language packs, ML data pipeline) lives in `docs/IMPROVEMENT_PLAN.md` — align new work with its phases.
+- Dialect-model findings (corpus re-audit, what transfers from the S2ST survey) live in `docs/S2ST_FINDINGS.md`; the tunable model-control surface (inference, training, routing) is catalogued in `docs/MODEL_CONTROLS.md`.

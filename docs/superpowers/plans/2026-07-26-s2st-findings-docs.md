@@ -47,6 +47,10 @@ const DOCS_ROOT = "docs";
 // [text](target) and [text](target:123) — captures target and optional line.
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+?)(?::(\d+))?\)/g;
 const EXTERNAL_RE = /^(https?:|mailto:|#|data:)/;
+// Fenced code blocks hold example links, not references. Matches a fence of 3+
+// backticks and its same-length closing fence, so ````markdown wrappers around
+// ```mermaid blocks are removed whole rather than half-matched.
+const FENCE_RE = /^ {0,3}(`{3,})[^\n]*\n[\s\S]*?^ {0,3}\1`*[ \t]*$/gm;
 
 function* walk(dir) {
   for (const entry of readdirSync(dir)) {
@@ -59,7 +63,7 @@ function* walk(dir) {
 const offenders = [];
 for (const file of walk(DOCS_ROOT)) {
   if (!file.endsWith(".md")) continue;
-  const text = readFileSync(file, "utf8");
+  const text = readFileSync(file, "utf8").replace(FENCE_RE, "");
   for (const match of text.matchAll(LINK_RE)) {
     const [, target, lineStr] = match;
     if (EXTERNAL_RE.test(target)) continue;
@@ -424,6 +428,65 @@ Resolves the forward link left open by S2ST_FINDINGS.md."
 
 ---
 
+### Task 5b: Singapore-local corpus routes — amend `docs/S2ST_FINDINGS.md`
+
+> Added 2026-07-26 mid-execution, at user request, after an in-session audit of
+> Singapore-local corpus sources ("can cultural content or uploaded videos add to the
+> corpus?"). The audit's facts are controller-verified with per-claim retrieval
+> attribution in `.superpowers/sdd/sg-corpus-verified-facts.md` (git-ignored scratch —
+> if lost, the substance is recoverable from this task's text and the commit it
+> produces). Runs after Task 5 because it links `DIALECT_CLASSIFICATION.md`
+> § Contribution surfaces.
+
+**Files:**
+- Modify: `docs/S2ST_FINDINGS.md` — amend `### Why the NSC hours cell says "not stated"`; add `### Singapore-local corpus routes` (with Table 4) at the end of `## Corpus re-audit`; extend `## Evidence`.
+
+**Interfaces:**
+- Consumes: the verified-facts file above; `DIALECT_CLASSIFICATION.md` (Task 5).
+- Produces: Table 4 and the SG-routes argument, consumed by Task 6's updates and available to the article's Discussion section (Task 7).
+
+- [ ] **Step 1: Close the NSC rendered-body caveat**
+
+The subsection currently ends "…this document cannot rule out an hours figure appearing in that body text." Replace that limitation with its resolution: a rendered-browser read on 2026-07-26 found **no hours figure anywhere in the rendered body either**; the rendered FAQ states ~1.2 TB, six parts via Dropbox re-registration, the Singapore Open Data Licence, and that the corpus has had **no updates since July 2021 with none planned**. Keep the description of the earlier plain-fetch limitation as method history, and keep the Koh 2019 figure exactly as is. The download-terms caveat (terms presented at registration never inspected) stays open — the rendered read does not close it.
+
+- [ ] **Step 2: Write Table 4 and the subsection**
+
+New H3 at the end of `## Corpus re-audit`: `### Singapore-local corpus routes`. Caption **above** the table. Rows: NAS Oral History Centre (Chinese Dialect Groups project), MagicHub ASR-SgpCCSC, MERaLiON Multitask-NSC. Columns as Table 1 (Corpus | Variety | Hours | Licence | Applicability), with the same `not stated` discipline as Table 1.
+
+Prose after the table must cover, in this order, each claim carrying its retrieval-method attribution from the verified-facts file:
+
+1. **Existing cultural media (broadcast, getai, YouTube)** — copyright- and personal-data-constrained; the WenetSpeech-Yue precedent (Table 1) is the controlling example: scraped-media corpora land at CC BY-NC because the scraper cannot confer commercial rights it never held. A route to research material at best, never to a shipping model without a negotiated licence.
+2. **NAS OHC** — dialect-project interviews exist; all rights reserved to NAS **and** access governed by per-interviewee signed agreements (two independent gates); write-in permission route via nas@nlb.gov.sg; plausible for evaluation/research use, and any ML-training use needs an agreement that also covers what the interviewee agreements allow. The "conducted in Cantonese" catalogue claim is search-indexed, not rendered-verified — phrase per the facts file.
+3. **Partnership route** (LearnDialect.sg and similar; clan associations) — fresh consented recordings with a clean chain of title and Singapore usage by construction; a route, not a commitment — no contact has been made.
+4. **User uploads** — the one commercially clean route identified; link `DIALECT_CLASSIFICATION.md` § Contribution surfaces; state the three preconditions (the `spoken_variety` label from Task 5's schema; a third-party-speaker consent design beyond the current first-person flags; per-language transcription bootstrap — Cantonese via existing STT plus admin review, Hokkien human-transcription-gated because no vendor STT exists) and what uploads change for Hokkien: "no route currently identified" becomes "a route, gated on transcription capacity". Volumes stated honestly: the 5–15 h step-2 adaptation gate is unchanged; variety-classifier and eval sets need tens of hours; thousands-of-hours scale stays licence-blocked.
+5. Close with the zero-consented-samples constraint: everything here is design; nothing is collected.
+
+- [ ] **Step 3: Extend `## Evidence`**
+
+Continue numbering from [27], in first-citation order: NAS OHC FAQ; NAS OHC About Us; the accession-000726 record page; MagicHub ASR-SgpCCSC; MERaLiON Multitask-NSC dataset card; LearnDialect.sg; Polyglot-Lion (arXiv `/abs/2603.16184` — confirm the language list against the abs page before citing). Canonical URLs only. Where a fact's method is a rendered-browser read or search-indexed text, the reference entry says so — match the style the doc already uses for client-rendered pages.
+
+- [ ] **Step 4: Verify**
+
+Run: `pnpm docs:check`
+Expected: `Documentation reference check passed.` (Task 5 has already resolved the forward link; any offender is a real defect.)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/S2ST_FINDINGS.md
+git commit -m "docs: audit Singapore-local corpus routes
+
+NAS OHC dialect interviews are permission-gated twice over (NAS rights plus
+per-interviewee agreements); the only downloadable SG-Chinese conversational
+set is Mandarin under CC BY-NC-ND; the MERaLiON NSC redistribution declares
+no licence. Existing cultural media repeats the WenetSpeech-Yue NC trap;
+consented user uploads are the one commercially clean SG-variety route and
+convert Hokkien from no-route to transcription-gated. Also closes the NSC
+rendered-body caveat: read 2026-07-26, no hours figure there either."
+```
+
+---
+
 ### Task 6: Update `ML_TRAINING_PLAN.md` and `ML_PIPELINE.md`
 
 **Files:**
@@ -431,12 +494,12 @@ Resolves the forward link left open by S2ST_FINDINGS.md."
 - Modify: `docs/ML_PIPELINE.md` (dialect label in collection and export)
 
 **Interfaces:**
-- Consumes: Table 1 from `S2ST_FINDINGS.md`; the schema from `DIALECT_CLASSIFICATION.md`.
+- Consumes: Table 1 and the Singapore-local corpus routes subsection (Table 4, Task 5b) from `S2ST_FINDINGS.md`; the schema from `DIALECT_CLASSIFICATION.md`.
 - Produces: nothing downstream; the article (Task 7) cites the updated versions.
 
 - [ ] **Step 1: Correct the step-2 corpus claim**
 
-In `docs/ML_TRAINING_PLAN.md`, the step-2 **Recipe** line currently reads "Pre-mix public native corpora (Common Voice `yue`, MDCC ~73 h)". Replace the corpus list with WenetSpeech-Yue (~21,800 h) as the primary pre-mix, keeping MDCC and Common Voice as supplementary, and link to `S2ST_FINDINGS.md` Table 1 for the full audit.
+In `docs/ML_TRAINING_PLAN.md`, the step-2 **Recipe** line currently reads "Pre-mix public native corpora (Common Voice `yue`, MDCC ~73 h)". Replace the corpus list with a licence-split pre-mix, linking `S2ST_FINDINGS.md` Table 1 for the full audit: WenetSpeech-Yue (~21,800 h, **CC BY-NC 4.0 — experiments and internal evaluation only**) as the research pre-mix, and the CC0 Common Voice subset (`yue` 210.70 h + `zh-HK` 108.54 h validated at CV 26.0) as the only unambiguously commercial-safe pre-mix; MDCC (73.6 h, signed-agreement gated) stays a supplementary baseline. Step 2 must state the shipping gate explicitly — before any NC-trained model ships, one of: a commercial licence from the corpus authors, a retrain on the CC0 subset only, or the NC-derived model stays internal. Discovering the NC term after a training run is the expensive order to discover it in.
 
 Keep the existing framing that learner-accented audio is the data moat — the public corpora are native speakers, and that argument is unaffected by the new corpus. Only the pre-mix changes.
 
@@ -450,7 +513,9 @@ State the guardrail as mandatory, not optional: early stopping on a held-out dev
 
 In the "What gets collected (when consented)" table, add a row for the spoken-variety label. In the export section, note that `spoken_variety`, `variety_source` and `variety_confidence` join the exported JSONL. Link to `DIALECT_CLASSIFICATION.md`.
 
-Do **not** claim the label is collected today — it is specified, not built. Phrase it as the specified next addition.
+Also record the **specified** upload contribution surface: user-contributed recordings (audio extracted client-side from e.g. family videos, 16 kHz WAV via the existing `blobToWav` path) as a future consented source, marked specified-only, with the third-party-speaker consent constraint named (the current two flags are first-person; an uploader cannot consent on another speaker's behalf). Link `S2ST_FINDINGS.md` § Singapore-local corpus routes for why this surface is the only commercially clean Singapore-variety route identified.
+
+Do **not** claim the label or the upload surface is collected/built today — both are specified, not built. Phrase them as the specified next additions.
 
 - [ ] **Step 4: Verify**
 
@@ -463,10 +528,13 @@ Expected: `Documentation reference check passed.`
 git add docs/ML_TRAINING_PLAN.md docs/ML_PIPELINE.md
 git commit -m "docs: correct step-2 corpus assumption, add GRPO option and dialect label
 
-Step 2 pre-mixed against MDCC ~73h; WenetSpeech-Yue provides ~21,800h. Step 3
-gains GRPO on verifiable rewards, which needs a reward function rather than
-preference pairs, with mandatory early stopping against reward collapse.
-ML_PIPELINE records the specified spoken-variety label."
+Step 2 pre-mixed against MDCC ~73h; WenetSpeech-Yue provides ~21,800h for
+experiments but is CC BY-NC 4.0 — the commercial-safe pre-mix is the ~319h
+CC0 Common Voice subset, and step 2 now states the shipping gate explicitly.
+Step 3 gains GRPO on verifiable rewards, which needs a reward function rather
+than preference pairs, with mandatory early stopping against reward collapse.
+ML_PIPELINE records the specified spoken-variety label and the specified
+upload contribution surface."
 ```
 
 ---
@@ -539,17 +607,19 @@ these three surfaces entirely"]
 
 ````markdown
 ```mermaid
-pie showData title Chinese dialect groups in Singapore (% of Chinese resident population)
-    "Hokkien" : 41.1
-    "Teochew" : 21.0
-    "Cantonese" : 15.4
-    "Hakka" : 7.9
-    "Hainanese" : 6.7
-    "Other" : 7.9
+pie showData title Chinese dialect groups in Singapore, Census 2020 (% of Chinese resident population)
+    "Hokkien" : 39.3
+    "Teochew" : 19.4
+    "Cantonese" : 14.3
+    "Hakka" : 8.6
+    "Hainanese" : 6.1
+    "Other" : 12.3
 ```
 ````
 
-In the prose immediately after the caption, state the gap plainly: the fully supported pack is Cantonese at 15.4%, while Hokkien at 41.1% is text-only with no speech recognition path.
+Figures are the Census of Population 2020 dialect-group breakdown — cite S2ST_FINDINGS.md reference [26], the granular data.gov.sg dataset; the census's headline Statistical Release 1 does **not** carry this breakdown. Do not use the 2000 figures from earlier drafts of this plan; the findings doc keeps 2000 only as a trend comparison.
+
+In the prose immediately after the caption, state the gap plainly: the fully supported pack is Cantonese at 14.3%, while Hokkien at 39.3% is text-only with no speech recognition path.
 
 - [ ] **Step 5: Write §7 Limitations with the pre-registered protocol**
 
@@ -657,7 +727,7 @@ git commit -m "docs: cross-link findings and model-controls docs"
 
 **Naming consistency.** `resolveModel(kind, languageCode, env)` is used identically in Task 4 and in spec §C1. Column names `spoken_variety` / `variety_source` / `variety_confidence` are identical in Task 5, Task 6 and spec §C2.
 
-**Table placement.** Table 1 (corpus re-audit) and Table 3 (corrections) in Task 3; Table 2 (control surface) in Task 4.
+**Table placement.** Table 1 (corpus re-audit) and Table 3 (corrections) in Task 3; Table 2 (control surface) in Task 4; Table 4 (Singapore-local corpus routes) in Task 5b.
 
 **Figure placement.** The spec assigns all five figures to the article. This plan additionally places three of them in the internal doc where each is authored, then has Task 7 Step 7 restate all five in the paper so it stands alone outside the repo:
 

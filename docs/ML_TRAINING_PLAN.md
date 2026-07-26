@@ -39,10 +39,11 @@ OPENAI_API_KEY=... node ml/data/generate-synthetic-dialogues.mjs --count 50
 
 The unique data moat: **learner-accented Cantonese** — public corpora are native speakers; our users are heritage learners, which is exactly where current STT fails.
 
-- **Recipe**: HF Transformers + PEFT LoRA on `whisper-small` → `medium`. Pre-mix public native corpora (Common Voice `yue`, MDCC ~73 h) then adapt on our exam audio (already 16 kHz mono WAV — no preprocessing needed). Split train/val **by speaker hash** to avoid leakage.
+- **Recipe**: HF Transformers + PEFT LoRA on `whisper-small` → `medium`. Pre-mix is licence-split — full audit in [S2ST_FINDINGS.md](S2ST_FINDINGS.md#corpus-re-audit) Table 1: WenetSpeech-Yue (~21,800 h, **CC BY-NC 4.0 — experiments and internal evaluation only**) as the research pre-mix; the CC0 Common Voice subset (`yue` 210.70 h + `zh-HK` 108.54 h validated at CV 26.0) as the only unambiguously commercial-safe pre-mix; MDCC (73.6 h, signed-agreement gated) stays a supplementary baseline. Then adapt on our exam audio (already 16 kHz mono WAV — no preprocessing needed). Split train/val **by speaker hash** to avoid leakage.
 - **Compute**: single A10/T4 (Modal or RunPod), roughly $20–100 per experiment.
 - **Evaluate**: step-1 harness, held-out learner audio. Ship bar: ≥ 15–20 % relative CER reduction vs the frontier baseline.
 - **Serve**: faster-whisper + LoRA on a Modal serverless GPU endpoint; `api/transcribe.js` gains `STT_PROVIDER=custom` + `CUSTOM_STT_URL/KEY` env switch (defaults to OpenAI — zero risk).
+- **Shipping gate**: before any model trained on the WenetSpeech-Yue pre-mix ships, one of — a commercial licence from the corpus authors, a retrain on the CC0 subset only, or the NC-derived model stays internal (research/eval use only). Settle this before training starts: discovering the NC term after a run is the expensive order to discover it in.
 
 ## Step 3 — Conversation SLM: SFT + DPO (at ~3–5k ratings/corrections + synthetic corpus)
 
@@ -50,6 +51,7 @@ Honest framing: below ~50k quality examples a fine-tuned small model rarely beat
 
 - **Base model**: a Cantonese-capable open model — Qwen-class instruct, or a community Cantonese LLM (Yi/Qwen-based) as the starting point. Never from scratch.
 - **Recipe**: LLaMA-Factory (or axolotl) LoRA SFT on the synthetic + corrected corpus, then **DPO** on collected ratings. Single A100-class run, ~$50–300.
+- **Option — GRPO on verifiable rewards**: rewards computed from the pack's `scoring.fallbackMatch` and [`ml/eval/normalization.json`](../ml/eval/normalization.json) rather than preference pairs — needs a reward function instead of the ~3–5k rated pairs DPO requires, which lowers the data gate but not to zero: still needs prompts to roll out against and a held-out dev set to stop on. **Mandatory guardrail**: early stopping on that held-out dev set — long GRPO schedules are prone to reward-variance collapse. See [S2ST_FINDINGS.md](S2ST_FINDINGS.md#2-grpo-over-verifiable-rewards-f6) (finding F6).
 - **Evaluate**: frontier-judge side-by-side on held-out prompts, plus a live A/B behind an env flag with real thumbs as the metric.
 - **Serve**: vLLM on Modal (or a managed custom-model host) behind an `LLM_PROVIDER` switch in `api/chat.js`.
 

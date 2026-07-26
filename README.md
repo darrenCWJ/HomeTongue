@@ -116,6 +116,9 @@ Native builds **must** set `VITE_API_BASE_URL` (e.g. `https://your-app.vercel.ap
 - [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md) — privacy policy (hosted at `/privacy.html`)
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — domain types and persistence schema
 - [`docs/ML_PIPELINE.md`](docs/ML_PIPELINE.md) — consent model and training-data pipeline
+- [`docs/S2ST_FINDINGS.md`](docs/S2ST_FINDINGS.md) — S2ST research findings: what transfers to this product, and the corpus re-audit
+- [`docs/MODEL_CONTROLS.md`](docs/MODEL_CONTROLS.md) — model-control surface across inference, training, and routing
+- [`docs/DIALECT_CLASSIFICATION.md`](docs/DIALECT_CLASSIFICATION.md) — dialect variety labelling and classification spec
 - [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) — phased roadmap and status
 - [`CLAUDE.md`](CLAUDE.md) — working conventions for AI-assisted development
 

@@ -1,0 +1,56 @@
+// Fails when a docs/ markdown link points at a repo file that does not exist,
+// or at a line number beyond that file's length. Keeps the file:line claims in
+// the ML/architecture docs honest as code moves. Stdlib only.
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
+import { join, resolve, dirname, relative } from "path";
+
+const DOCS_ROOT = "docs";
+// [text](target) and [text](target:123) — captures target and optional line.
+const LINK_RE = /\[[^\]]*\]\(([^)\s]+?)(?::(\d+))?\)/g;
+const EXTERNAL_RE = /^(https?:|mailto:|#|data:)/;
+// Fenced code blocks hold example links, not references. Matches a fence of 3+
+// backticks and its same-length closing fence, so ````markdown wrappers around
+// ```mermaid blocks are removed whole rather than half-matched.
+const FENCE_RE = /^ {0,3}(`{3,})[^\n]*\n[\s\S]*?^ {0,3}\1`*[ \t]*$/gm;
+
+function* walk(dir) {
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) yield* walk(path);
+    else yield path;
+  }
+}
+
+const offenders = [];
+for (const file of walk(DOCS_ROOT)) {
+  if (!file.endsWith(".md")) continue;
+  const text = readFileSync(file, "utf8").replace(FENCE_RE, "");
+  for (const match of text.matchAll(LINK_RE)) {
+    const [, target, lineStr] = match;
+    if (EXTERNAL_RE.test(target)) continue;
+    // A trailing #fragment addresses a section within the target file; strip it
+    // before resolving, or "file.md#heading" is treated as a missing path.
+    const [path_] = target.split("#");
+    if (path_ === "") continue;
+    const abs = resolve(dirname(file), decodeURI(path_));
+    if (!existsSync(abs)) {
+      offenders.push(`${file}: missing target "${target}"`);
+      continue;
+    }
+    if (!lineStr) continue;
+    const lineCount = readFileSync(abs, "utf8").split("\n").length;
+    const wanted = Number(lineStr);
+    if (wanted > lineCount) {
+      offenders.push(
+        `${file}: "${target}:${wanted}" exceeds ${relative(".", abs)} (${lineCount} lines)`
+      );
+    }
+  }
+}
+
+if (offenders.length > 0) {
+  console.error("Broken documentation references:");
+  for (const line of offenders) console.error(`  ${line}`);
+  process.exit(1);
+}
+console.log("Documentation reference check passed.");

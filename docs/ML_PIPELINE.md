@@ -22,8 +22,11 @@ Enforcement is layered: the app never writes without the flag, **and** the datab
 | Exam attempts | `expected_text` + `transcript` + `score` (+ audio) | Gold supervised pairs: known target vs. what STT heard |
 | Chat transcript edits | `transcript` + `corrected_text` | Human-labeled STT error corrections |
 | Suggestion ratings | thumbs up/down on AI replies | Preference data for reply-generation tuning |
+| Spoken-variety label (self-report / reviewer / classifier) | `spoken_variety` + `variety_source` + `variety_confidence` | Enables per-variety training and evaluation — **specified, not built**; schema and rollout in [DIALECT_CLASSIFICATION.md](DIALECT_CLASSIFICATION.md#schema) |
 
 Tables: `speech_samples`, `corrections` (see migration 0002). Audio lands in the private `recordings` storage bucket under `<user_id>/…`, referenced by `audio_url`.
+
+**Specified next addition — user-contributed recordings.** A consent-gated upload surface: a user contributes a recording of family speech, audio extracted **client-side** from e.g. a home video (the video itself is never uploaded) and normalised to the same 16 kHz mono WAV the recorder already produces via the existing `blobToWav` path (`src/hooks/audio.ts`), then stored, reviewed and exported through this same pipeline. **Specified, not built** — it needs a third-party-speaker consent design that does not exist yet, since the two consent flags above are first-person and an uploader cannot consent on another speaker's behalf. It is the only commercially clean route to Singapore-usage dialect audio identified so far; see [S2ST_FINDINGS.md](S2ST_FINDINGS.md#singapore-local-corpus-routes) § Singapore-local corpus routes and the full design in [DIALECT_CLASSIFICATION.md](DIALECT_CLASSIFICATION.md#contribution-surfaces).
 
 ## Export for training
 
@@ -34,6 +37,8 @@ node scripts/export-training-data.mjs --language yue-HK --out training-export/
 ```
 
 Produces `speech_samples.jsonl` + `corrections.jsonl` with user ids replaced by per-export salted hashes (speaker grouping without identity). The service-role key must never be committed or shipped — run this from a trusted machine/CI secret only.
+
+`spoken_variety`, `variety_source` and `variety_confidence` will join the per-sample JSONL object alongside the fields above once the schema lands — **specified, not built**; see [DIALECT_CLASSIFICATION.md](DIALECT_CLASSIFICATION.md#threading) for the export-side change.
 
 ## Training path (future)
 
