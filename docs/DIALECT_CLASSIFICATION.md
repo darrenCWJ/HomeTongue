@@ -120,9 +120,9 @@ value indicates a code defect rather than user input.
 ### Where the vocabulary lives
 
 Per the [CLAUDE.md](../CLAUDE.md) convention that language-specific data belongs in
-`src/languages/<code>/` and is never inlined in services or components, the variety list is declared
-by each pack on the `LanguagePack` contract
-([src/languages/types.ts:32](../src/languages/types.ts:32)). **Every pack declares its own list** —
+`src/languages/<code>/` and is never inlined in services or components, the `LanguagePack` contract
+([src/languages/types.ts:32](../src/languages/types.ts:32)) gains an optional `varieties` list, one
+per pack. **Every pack declares its own list** —
 `yue-HK` and `nan-TW` alike — and the column stores whatever string the active pack supplied. A pack
 that declares no varieties simply never produces a label, and its rows stay null, which is a
 supported state and not a defect. Keeping the vocabulary in the pack is what keeps the schema
@@ -135,8 +135,10 @@ consent-checking insert policy from migration 0002
 ([supabase/migrations/0002_ml_data_pipeline.sql:61](../supabase/migrations/0002_ml_data_pipeline.sql:61)),
 and the additive admin-read policy from 0005
 ([supabase/migrations/0005_admin_review.sql:119](../supabase/migrations/0005_admin_review.sql:119)).
-Reviewer-sourced writes gate on `is_admin`, matching the `sample_reviews` pattern of 0005
-([:107](../supabase/migrations/0005_admin_review.sql:107)).
+Reviewer-sourced writes gate on `is_admin`, matching the `sample_reviews_insert_admin` and
+`sample_reviews_update_admin` write policies of 0005
+([:109](../supabase/migrations/0005_admin_review.sql:109) and
+[:111](../supabase/migrations/0005_admin_review.sql:111)).
 
 That inheritance has a consequence the design should confront now rather than discover during
 implementation: **`speech_samples` has no `UPDATE` policy at all today.** Migration 0002 creates
@@ -228,8 +230,10 @@ to the recording and judges the transcript in `SampleCard`
 selector populated from the pack's declared list puts the judgement where the audio already is. It
 writes `variety_source = 'reviewer'` and leaves `variety_confidence` null.
 
-Access gates on `is_admin`, matching the `sample_reviews` pattern of migration 0005
-([supabase/migrations/0005_admin_review.sql:107](../supabase/migrations/0005_admin_review.sql:107)),
+Access gates on `is_admin`, matching the `sample_reviews_insert_admin` and
+`sample_reviews_update_admin` write policies of migration 0005
+([:109](../supabase/migrations/0005_admin_review.sql:109) and
+[:111](../supabase/migrations/0005_admin_review.sql:111)),
 and requires the new admin write path described in § Schema — admins have read-only access to
 `speech_samples` today.
 
@@ -239,12 +243,20 @@ than pressing a verdict button. Whether reviewers can label at the rate consente
 
 ### 2. Self-report at capture
 
-The consented capture paths — exam attempts
-([src/features/learn/exam/ExamView.tsx:101](../src/features/learn/exam/ExamView.tsx:101)) and chat
-transcription
-([src/features/chat/hooks/useReplyFlow.ts:56](../src/features/chat/hooks/useReplyFlow.ts:56)) —
-pass the variety on `SpeechSampleInput`, writing `variety_source = 'self'`. The vocabulary offered
-is the active pack's declared list, never free text.
+The exam flow
+([src/features/learn/exam/ExamView.tsx:101](../src/features/learn/exam/ExamView.tsx:101)) is today's
+only production caller of `recordSpeechSample`, and self-report rides its `SpeechSampleInput`,
+writing `variety_source = 'self'`. Chat capture is a declared-but-unused variant:
+`SpeechSampleInput.source` is already typed `"exam" | "chat"`
+([src/services/speechSampleService.ts:42](../src/services/speechSampleService.ts:42)), and the unit
+test at
+[src/services/speechSampleService.test.ts:128](../src/services/speechSampleService.test.ts:128)
+exercises the `"chat"` variant — so self-report lands wherever `recordSpeechSample` is called, today
+the exam flow, and the chat flow once a production caller exists. Chat's actual capture today is a
+different path:
+[src/features/chat/hooks/useReplyFlow.ts:56](../src/features/chat/hooks/useReplyFlow.ts:56) calls
+`recordCorrection`, which writes to the separate `corrections` table, never `SpeechSampleInput` or
+`speech_samples`. The vocabulary offered is the active pack's declared list, never free text.
 
 Two constraints shape it:
 
@@ -287,8 +299,10 @@ decodes and resamples an audio blob; pulling an audio track out of a video conta
 additional client-side step that does not exist in this repo today.
 
 **It requires a third-party-speaker consent design that does not exist.** The two consent flags are
-first-person — `data_collection_consent` and `audio_retention_consent`
-([supabase/migrations/0002_ml_data_pipeline.sql:16](../supabase/migrations/0002_ml_data_pipeline.sql:16)),
+first-person — `data_collection_consent`
+([supabase/migrations/0002_ml_data_pipeline.sql:16](../supabase/migrations/0002_ml_data_pipeline.sql:16))
+and `audio_retention_consent`
+([:17](../supabase/migrations/0002_ml_data_pipeline.sql:17)),
 toggled by the account holder for their own data
 ([src/features/profile/components/DataPrivacySection.tsx](../src/features/profile/components/DataPrivacySection.tsx))
 and described in first-person terms throughout the privacy policy: "your practice phrases,
