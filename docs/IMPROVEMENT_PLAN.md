@@ -32,7 +32,7 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 | No `userId` on any entity; profile is a singleton row | HIGH (blocks cloud) | Phase 3 |
 | Cantonese hardcoded in every layer (voices, prompts, scoring maps) | HIGH (blocks goal 1) | **Groundwork done** — extracted into `src/languages/yue-HK` pack; per-user selection remains |
 | Capacitor calls relative `/api/*` (breaks native) | HIGH (blocks goal 4) | **Fixed** — `VITE_API_BASE_URL` + `src/lib/api.ts` |
-| No tests, no lint, no CI | HIGH | Phase 1 (remaining) |
+| No tests, no lint, no CI | HIGH | **Fixed** — Vitest + ESLint + GitHub Actions CI (Phase 1) |
 
 ## Target architecture
 
@@ -56,7 +56,7 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 - [x] Bug fixes: mic stuck-state, mic stream leak on unmount, stale suggestions after New Chat, session sort order, UUID IDs, defensive JSON parsing, load-failure logging
 - [x] Android: `allowBackup=false`
 
-## Phase 1 — Secrets server-side + quality gates (✅ proxies done; CI remaining)
+## Phase 1 — Secrets server-side + quality gates (✅ code + CI done; manual key rotation + Vercel env remaining)
 
 - [x] `api/chat.js`, `api/transcribe.js` proxies; `api/tts.js` hardened (caps, allowlists, per-IP rate limit, sanitized errors)
 - [x] Client services rewritten to call `/api/*` via `src/lib/api.ts`; zero secrets in bundle (verified by grepping `dist/`)
