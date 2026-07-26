@@ -89,8 +89,8 @@ adds three nullable columns to `speech_samples`.
 **Table 5.** The variety-label columns added to `speech_samples` by migration
 `0009_spoken_variety.sql`. Numbering is shared across this document set so the companion article can
 cite every table by the same number: Tables 1 and 3 are in [S2ST_FINDINGS.md](S2ST_FINDINGS.md),
-Table 2 is in [MODEL_CONTROLS.md](MODEL_CONTROLS.md), and Table 4 is reserved for the corpus-routes
-table in the findings document.
+Table 2 is in [MODEL_CONTROLS.md](MODEL_CONTROLS.md), and Table 4 is the corpus-routes table in
+[S2ST_FINDINGS.md](S2ST_FINDINGS.md).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -285,8 +285,8 @@ audit in [S2ST_FINDINGS.md](S2ST_FINDINGS.md) found the largest Cantonese corpus
 licensed (WenetSpeech-Yue, CC BY-NC 4.0 — Table 1) and no suitable public Hokkien corpus at all
 (the "Coverage vs. demographics" section) — which leaves fresh, consented recordings as the one
 route to Singapore-usage dialect audio whose licence position is clean by construction rather than
-by negotiation. **That framing is this document's**, drawn from the audit's findings rather than
-stated by it.
+by negotiation, as [S2ST_FINDINGS.md](S2ST_FINDINGS.md) § Singapore-local corpus routes
+establishes.
 
 **What it is.** A consent-gated contribution path in the app: a user contributes a recording of
 family speech. Where the source is a video — a home recording — the audio is extracted

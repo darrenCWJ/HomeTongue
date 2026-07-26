@@ -22,9 +22,10 @@ specification, not a shipped feature or a measured result.
 ## Inference-time
 
 **Table 2.** Model-control surface across three layers: what is tunable today, with a real path in
-this repo, and what is proposed. (Table 1 and Table 3 live in
-[S2ST_FINDINGS.md](S2ST_FINDINGS.md); numbering is shared across this document set so the
-companion article can cite all three by number.)
+this repo, and what is proposed. (Table 1, Table 3, and Table 4 live in
+[S2ST_FINDINGS.md](S2ST_FINDINGS.md) — Table 4 in its Singapore-local corpus routes section — and
+Table 5 lives in [DIALECT_CLASSIFICATION.md](DIALECT_CLASSIFICATION.md). Numbering is shared
+across this document set so the companion article can reference each table by the same number.)
 
 | Layer | Control | Today | Proposed |
 |---|---|---|---|
@@ -188,8 +189,7 @@ shows this one-endpoint-per-dialect state and the proposed alternative side by s
 No classifier and no adapter-selection logic exists in this repo. **Proposed:** LID-routed adapter
 selection, where a variety classifier picks the adapter automatically instead of a human setting an
 environment variable by hand. This depends entirely on the schema and classifier specified in
-`DIALECT_CLASSIFICATION.md` (not yet written — a forward reference resolved once that document
-lands).
+[DIALECT_CLASSIFICATION.md](DIALECT_CLASSIFICATION.md).
 
 ### Eval-gated rollout
 

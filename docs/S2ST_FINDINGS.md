@@ -52,9 +52,9 @@ in order to try.
 **F3: the corpus assumptions in the training plan are stale. F4: Singapore has a national
 speech corpus under an open licence.**
 
-[ML_TRAINING_PLAN.md:42](ML_TRAINING_PLAN.md:42) budgets step 2 against "Common Voice
-`yue`, MDCC ~73 h". That was the honest state of Cantonese public data when the plan was
-written. It is no longer.
+[ML_TRAINING_PLAN.md:42](ML_TRAINING_PLAN.md:42) budgeted step 2 against "Common Voice
+`yue`, MDCC ~73 h" — the honest state of Cantonese public data when the plan was written,
+corrected in this documentation pass.
 
 **Table 1.** Public speech corpora relevant to the dialect packs, re-audited 2026-07-26.
 Hours are as stated by each corpus's own paper or repository; `not stated` means the
