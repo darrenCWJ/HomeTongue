@@ -365,8 +365,11 @@ the LID-routed multi-LoRA pattern described in the "What transfers" section of
    serving a commercial product. `resolveModel` cannot enforce this automatically; it is an
    operational responsibility of whoever sets the environment variable.
 6. **Rollback is always available and always the same mechanism.** Unset the per-language
-   environment variable; OpenAI is the always-working default and the client never changes. This
-   holds for `resolveBaseUrl` today and must continue to hold for `resolveModel`.
+   environment variable; OpenAI is the always-working default and the client never changes
+   (for the SLM path, the documented procedure also flips the global `OPENAI_MODEL` — see
+   [ml/train/README.md:69](../ml/train/README.md:69) — so rollback there must restore that
+   variable too). This holds for `resolveBaseUrl` today and must continue to hold for
+   `resolveModel`.
 7. **Audio provenance is not asserted.** Whether Google Chirp 3: HD output carries SynthID
    watermarking is undocumented — which the "Governance" subsection of
    [S2ST_FINDINGS.md](S2ST_FINDINGS.md) is careful to distinguish from *documented as absent*. No

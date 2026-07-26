@@ -1,5 +1,10 @@
 # Handover — S2ST findings documentation set
 
+> **Superseded — 2026-07-26.** This handover describes a mid-execution state. The branch has
+> since completed: Tasks 1–8 all executed and reviewed (plus the mid-execution Task 5b,
+> Singapore-local corpus routes), final whole-branch review passed, verification suite green.
+> Kept for provenance; do not resume from it.
+
 **Date:** 2026-07-26
 **Branch:** `docs/s2st-findings` (branched from `main` at `b6970b6`)
 **Working tree:** clean

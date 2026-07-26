@@ -332,6 +332,9 @@ Every statement above about contributed recordings is a statement about a design
 
 ## Why direct S2ST does not fit this product
 
+Figure 1 places the three architecture generations the survey describes alongside where
+HomeTongue deliberately sits.
+
 ```mermaid
 flowchart LR
     subgraph G1["Gen 1 — Cascaded"]
