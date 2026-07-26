@@ -31,7 +31,7 @@ companion article can cite all three by number.)
 | Inference | Voice selection | `GOOGLE_TTS_VOICES` / `asVoiceKey()` in [src/hooks/useGoogleTTS.ts:21](../src/hooks/useGoogleTTS.ts:21) / [:49](../src/hooks/useGoogleTTS.ts:49), default voice `zephyr` | unchanged |
 | Inference | Tone / register | persona tone (`personal`/`work`) → `preferredTone` → `casual`, in [src/app/context/ProfileProvider.tsx:33](../src/app/context/ProfileProvider.tsx:33) | expose per-request override |
 | Inference | SG vs HK lexicon bias | pack prompt constants in [src/languages/yue-HK/](../src/languages/yue-HK/) | make it an explicit request parameter, not a prompt constant |
-| Inference | Dialect strictness | — | new knob; the prompt-and-proxy analogue of the source survey's `--cfg-coef` parameter |
+| Inference | Dialect strictness | — | new knob; prompt-and-proxy analogue of the survey's `--cfg-coef` — see § Dialect strictness |
 | Inference | Scoring harshness | LLM-scored against a fixed rubric, invoked by `scoreDialectAccuracy` in [src/services/translationService.ts:307](../src/services/translationService.ts:307) (rubric location detailed below) | expose threshold; feeds exam difficulty |
 | Inference | Latency vs quality | — | model tier per request; depends on routing controls (below) |
 | Training | SFT on corrections | planned, [ml/train/slm-dialogue/](../ml/train/slm-dialogue/) | unchanged |
@@ -84,11 +84,12 @@ three templates, rather than three hand-maintained copies.
 ### Dialect strictness
 
 No such control exists today — not in the language packs, the chat proxy, or the client.
-**Proposed:** a new knob, modeled as the prompt-and-proxy analogue of the source survey's
-classifier-free-guidance-style `--cfg-coef` parameter: a single scalar that pushes generated
-dialect output toward stricter, more idiomatic phrasing versus more standard-Chinese-adjacent
-phrasing a learner might find easier to parse. No implementation is specified beyond this framing
-— it is the least-developed proposed control in this document.
+**Proposed:** a new knob, modeled as the prompt-and-proxy analogue of a classifier-free-guidance-
+style coefficient (the `--cfg-coef` parameter described by the source survey assessed in
+[S2ST_FINDINGS.md](S2ST_FINDINGS.md)): a single scalar that pushes generated dialect output toward
+stricter, more idiomatic phrasing versus more standard-Chinese-adjacent phrasing a learner might
+find easier to parse. No implementation is specified beyond this framing — it is the
+least-developed proposed control in this document.
 
 ### Scoring harshness
 
@@ -178,7 +179,8 @@ Today this does not exist. [api/_lib/chatCore.js:67](../api/_lib/chatCore.js:67)
 flat `env.OPENAI_MODEL ?? env.VITE_OPENAI_MODEL ?? DEFAULT_MODEL` for every language, no matter
 which base URL the request routed to. With more than one dialect pack, this forces one full
 endpoint per dialect just to change models — the cost pattern multi-LoRA serving exists to avoid,
-per the "What transfers" section of [S2ST_FINDINGS.md](S2ST_FINDINGS.md) (item 1). **Proposed:**
+per the "What transfers" section of [S2ST_FINDINGS.md](S2ST_FINDINGS.md) (item 1); Figure 3 below
+shows this one-endpoint-per-dialect state and the proposed alternative side by side. **Proposed:**
 `resolveModel(kind, languageCode, env)`, specified in full in Proposed additions in detail below.
 
 ### Adapter selection by variety
@@ -277,7 +279,13 @@ The custom-STT branch currently posts `{ audio, language: sttHint, prompt: promp
 resolved `customSttUrl`
 ([api/_lib/transcribeCore.js:100](../api/_lib/transcribeCore.js:100)). It gains a `model` field —
 the value `resolveModel("stt", language, env)` resolved, or `null` when nothing is configured — so
-a custom endpoint serving more than one fine-tune knows which one to use.
+a custom endpoint serving more than one fine-tune knows which one to use. This scoping is exact:
+`STT_MODEL_<SUFFIX>` reaches only this custom-endpoint JSON payload, which forwards no `model`
+field today — the OpenAI branch's `formData.append("model", ...)`
+([api/_lib/transcribeCore.js:107](../api/_lib/transcribeCore.js:107)) is untouched and keeps
+sending the allowlist-validated client-supplied `model` unchanged. Reading the `stt` chain above as
+global to both branches would silently override that allowlisted client choice, reproducing
+exactly the competing-sources-of-truth hazard the no-global-`STT_MODEL` rule exists to avoid.
 
 ### Dev middleware
 
