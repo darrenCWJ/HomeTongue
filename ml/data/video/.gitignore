@@ -1,0 +1,7 @@
+# Ingested media and corpus output — never commit downloaded video/audio or
+# generated corpus shards (mirrors ml/train/.gitignore hygiene).
+out/
+downloads/
+*.wav
+*.jsonl
+!fixtures/*
