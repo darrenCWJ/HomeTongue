@@ -127,11 +127,18 @@ the size as approximately 1.2 TB across six parts — a figure recovered by deco
 client-rendered payload. However, this retrieval method has a limit worth stating. The NSC
 page is substantially client-rendered: a plain HTTP fetch returns its navigation and section
 headers (About, Benefits, FAQs, Contact) but not the body copy under them, which loads
-separately rather than appearing in the static HTML. The absence of an hours figure in
-static-page content is therefore confirmed for the fetched shell, not for content that only
-a rendered browser would show — this document cannot rule out an hours figure appearing in
-that body text. The only primary publication
-with a citable hours figure, Koh et al. at Interspeech 2019 [17], describes "more than 2000
+separately rather than appearing in the static HTML. That method history is kept because it
+explains the shape of the earlier claim, but the limitation itself is now closed: the page
+was opened in a rendered browser on 2026-07-26 and its full body text read, and **no hours
+figure appears there either**. The rendered FAQ gives the size as approximately 1.2 TB,
+describes download through a Dropbox account with re-registration yielding all six parts,
+names the Singapore Open Data Licence as the corpus licence, and states that there are
+currently "no planned future updates to the baseline corpora", the last update having been
+July 2021, when three further parts were added [5]. On IMDA's own account the corpus is
+therefore static, so `not stated` is not a placeholder awaiting the next release. What the
+rendered read does **not** reach is the registration and download flow, which was still not
+completed — see qualification 2 below. The only primary publication with a citable hours
+figure, Koh et al. at Interspeech 2019 [17], describes "more than 2000
 hours" of orthographically transcribed read speech with a further 1,000 hours of
 conversational speech planned for a second release — a figure for an earlier version of the
 corpus, far smaller than the current release and not covering the parts added since.
@@ -147,11 +154,12 @@ exists.
 ### The IMDA NSC licence — actionable, with one open step
 
 The NSC is governed by the **Singapore Open Data Licence v1.0** [6], which IMDA's own NSC
-page names as the corpus licence [5]. Under "What you can do" that licence permits using,
-modifying and adapting the datasets "or any derived analyses or applications, whether
-commercially or non-commercially". On that reading, **F4 is actionable**: training on the
-NSC and shipping the resulting model commercially falls inside the grant. Three
-qualifications must travel with that conclusion:
+page names as the corpus licence [5]. The rendered read described above confirms that naming
+from the page's own body text rather than only from the decoded payload. Under "What you can
+do" that licence permits using, modifying and adapting the datasets "or any derived analyses
+or applications, whether commercially or non-commercially". On that reading, **F4 is
+actionable**: training on the NSC and shipping the resulting model commercially falls inside
+the grant. Three qualifications must travel with that conclusion:
 
 1. **The reading of "derived analyses or applications" is an interpretation.** The licence
    never defines that phrase and never mentions models, model weights, or ML training
@@ -174,6 +182,150 @@ licence**. It is an unexecuted template whose Annex 1 licenses "Natural Speech &
 Transcription Technologies (NSTT)", a suite of tools *complementary to* the NSC, and its
 "Purposes" clause is a blank placeholder. It should not be cited as the corpus licence
 anywhere in this doc set.
+
+### Singapore-local corpus routes
+
+Table 1 answers a global question: what public dialect audio exists anywhere. A separate
+question, asked because the answer differs, is whether **Singapore-local** material can add
+to the corpus — either material that already exists here, or recordings this product's users
+could contribute. Three Singapore-local sources could be checked against a primary source and
+are audited in Table 4. The rest of the answer is about routes rather than datasets, and each
+route is bounded by who holds which right.
+
+**Table 4.** Singapore-local corpus sources, checked 2026-07-26 — the three that could be
+checked against a primary source. `not stated` carries the same meaning as in Table 1: the
+primary source gives no hours figure and none was inferred. Retrieval method
+differs by row and is recorded in each reference entry — the NAS pages are client-rendered
+and were read in a rendered browser; the MagicHub and Hugging Face pages are server-rendered
+and were plain-fetched.
+
+| Corpus | Variety | Hours | Licence | Applicability |
+|---|---|---|---|---|
+| NAS Oral History Centre — *Chinese Dialect Groups* project [27] | Singapore Chinese dialect groups (oral-history interviews) | **not stated** (collection-level only: "several thousand hours" [27]; >4,000 interviews since 1979 [28]) | **none** — all rights reserved to NAS *and* access per interviewee agreement [27]; per-record conditions as narrow as "background information only" [29] | Research and evaluation plausible under written permission; ML training needs an agreement clearing both gates |
+| MagicHub ASR-SgpCCSC [30] | Singapore **Mandarin** (zh-SG) spontaneous conversation | 5 | MAGIC DATA open-source licence **and** CC BY-NC-ND 4.0 | Excluded twice over: not a dialect, and NC **and** ND — blocks a shipping model and derivative fine-tunes alike |
+| MERaLiON Multitask-NSC v1 [31] | Singapore-accented English / code-switching, derived from the NSC [5] | **not stated** (~15.19M rows, ~3 TB) | **none declared** — no `license` field in the card metadata, no terms in the card body | Evidence that the NSC is treated as ML training data at national-programme scale; for terms, register for the NSC directly rather than relying on this redistribution |
+
+**Existing cultural media repeats a trap already documented in Table 1.** The obvious idea is
+to build from material that exists already: broadcast archives, getai recordings, family
+video uploaded to YouTube. The controlling precedent is the largest row in Table 1.
+WenetSpeech-Yue's 21,800 hours are released under **CC BY-NC 4.0** [18], while the Apache-2.0
+licence its authors also applied covers the annotation pipeline code rather than the corpus —
+the split recorded above. **The mechanism this document reads into that outcome**, rather than
+one [18] states about its own terms, is that a collector cannot convey commercial rights it
+never held, so a corpus assembled from media the collector does not own arrives non-commercial
+by necessity rather than by preference. Nothing about doing the same thing with Singapore
+material changes that. Copyright is also not the only gate: these are recordings of
+identifiable people, and the personal-data carve-out in the NSC licence [6] shows that even the
+most permissive open-data terms in this doc set treat personal data as a right the licence does
+not convey — a parallel drawn here, not a legal opinion. So existing cultural media is a route
+to a **research** corpus at best, and never to a shipping model without negotiated licences —
+plural, because broadcasters, getai performers and individual uploaders are different parties
+holding different rights.
+
+**NAS Oral History Centre: dialect interviews exist, and are permission-gated twice over.**
+Dialect-focused interview material is genuinely there. The OHC's *Chinese Dialect Groups*
+project renders on the archive's own record pages — accession 000726, whose reel 4 of 4 gives
+a recording date of 22 November 1986, a running time of 26 minutes, and a synopsis concerning
+a Cantonese clan association [29]. What no page carries is a licence, and two independent
+gates sit in front of the material:
+
+- **NAS holds the rights.** The FAQ reserves all rights in the recording and transcript,
+  including copying, publication, broadcast and performance, to NAS, and directs any intended
+  use to a write-in address, nas@nlb.gov.sg [27]. The per-record notice repeats it and requires
+  written permission for any use [29].
+- **Interviewees govern access.** Access is governed by "the access conditions stipulated by
+  interviewees", and NAS states that it honours the interview agreements signed with them [27].
+  Those conditions are per record and can be narrow: this reel is marked for background
+  information only, behind a request-to-view flow [29].
+
+The consequence is the part worth carrying forward. A permission obtained from NAS would clear
+the first gate only. Interviews whose signed agreements never contemplated ML training are not
+cleared by NAS's consent, precisely because NAS's stated position is that it honours those
+agreements. **That is an inference from two FAQ items rather than a term NAS states** — but it
+is the conservative reading, and it is the one that sets the effort: the write-in route is
+plausible for evaluation and research use, while an ML-training agreement would have to be
+scoped against what the underlying interviewee agreements permit, record by record. No hours
+figure is published at project level, which is why Table 4's cell is `not stated` there while
+the collection-level figures sit in parentheses beside it.
+
+**One NAS claim is weaker than the others, and the difference is retrieval method.** The NAS
+pages are client-rendered — the same limitation this document records for the IMDA NSC page —
+so every claim above comes from a rendered-browser read on 2026-07-26 [27][28][29]. One claim
+does not: that accession 000726's interview was **conducted in Cantonese** comes from
+search-indexed text of the catalogue entry and was **not** confirmed on the rendered record
+page, which displays no language-of-interview field [29]. Read it exactly that way — the
+dialect project itself is rendered-verified, while per-record interview language is catalogued
+in the database and unverified here. Nothing in the argument above depends on that one
+record's language.
+
+**A partnership route exists with Singapore dialect organisations — a route, not a
+commitment.** Organisations producing Singapore-usage dialect speech from living speakers are
+active here: LearnDialect.sg teaches Hokkien, Cantonese and Teochew, including classes aimed
+at healthcare workers serving dialect-speaking seniors, and publishes short weekly "How Do You
+Say" episodes [32]. Clan associations are the other obvious category — the NAS synopsis above
+concerns one. Their published material is copyrighted, so this is a licensing conversation and
+not a scraping opportunity. What the route offers that scraping cannot is *fresh* recordings:
+made with the partner, under this product's own consent flags, with Singapore usage by
+construction and a clean chain of title from the outset. Two limits on how far that should be
+read. **No contact has been made with any organisation named here** — this is an identified
+possibility, not a plan, a partnership or a commitment. And the LearnDialect.sg entry rests on
+search results plus the site's landing content rather than a rendered read of the full site
+[32], which is weaker than the NAS rows above it.
+
+**User-contributed recordings are the one commercially clean route identified.** Note first
+that the gap is not closing from the literature. The most recent Singapore-focused ASR release
+found in this pass, Polyglot-Lion [33], fine-tunes Qwen3-ASR into a compact multilingual family
+covering English, Mandarin, Tamil and Malay — Singapore's four official languages, and no
+Chinese dialect. That is all it is cited for. What remains is recordings contributed through
+the app itself: the only route in this subsection whose licence position is clean by
+construction rather than by negotiation, because consent is obtained directly from the people
+whose speech it is. The design lives in
+[DIALECT_CLASSIFICATION.md](DIALECT_CLASSIFICATION.md#contribution-surfaces) § Contribution
+surfaces, as the fourth surface, and is specified there rather than here. Three preconditions
+travel with it:
+
+1. **A variety label.** Contributed audio inherits F8's label gap exactly as captured audio
+   does, so it needs the `spoken_variety` column from that document's schema. Audio labelled
+   `yue-HK` because the Cantonese pack was open is no more useful contributed than captured.
+2. **A third-party-speaker consent design that does not exist.** The two existing consent flags
+   are first-person, toggled by an account holder for their own data; **an uploader cannot
+   consent on a relative's behalf.** The minimum shape is a per-upload attestation, a consent
+   record naming the person recorded, and withdrawal that reaches both — the last of which can
+   ride the existing cascade-delete path.
+3. **A per-language transcription bootstrap, and it is asymmetric.** For Cantonese, vendor STT
+   exists, so an upload can be transcribed automatically and corrected by a reviewer — human
+   effort is correction. For Hokkien no vendor STT model exists, so every transcript must be
+   produced by a human, and human transcription capacity rather than upload volume sets the
+   rate.
+
+**What uploads change for Hokkien, stated exactly that narrowly.** "Coverage vs. demographics"
+below records the honest status of `nan-TW` speech support as "no route currently identified".
+A contribution surface would convert that into **"a route, gated on transcription capacity"**.
+That is the one place in this document where the bottom line moves, and it moves by one step:
+not a corpus, not a model, not a date — a status change from *none* to *gated*. Volumes are the
+discipline on everything else. The step-2 adaptation gate is unchanged at roughly 5–15 h of
+learner audio. A variety classifier and per-variety evaluation sets need tens of hours per
+variety, a scale contribution surfaces could plausibly reach, and neither needs a transcript —
+labelled but untranscribed audio still trains a classifier and still builds an evaluation set.
+The thousands-of-hours scale of Table 1's Cantonese rows is not reachable this way at all.
+
+**This extends the licence split, seen from the other end.** "Two figures, because the licence
+splits the answer" separates how much dialect audio exists from how much a shipping model may
+train on, and F2 draws the consequence that for dialect S2ST availability and usability
+diverge. Table 4 extends that argument rather than softening it: the one Singapore-local source
+holding actual dialect speech is the one with no licence at all, and the one route that is
+commercially clean by construction is the one that cannot reach volume. For dialect audio the
+two properties still do not meet above a few hundred hours — Common Voice's CC0 rows remain the
+ceiling on commercially safe Cantonese, and nothing in Table 4 supplies a licensed
+Singapore-dialect alternative to sit above them.
+
+**Nothing in this subsection is collected audio.** The distinction is easy to lose in a list of
+routes, so it is stated plainly: the database holds **zero consented samples**
+([ml/train/README.md:3](../ml/train/README.md:3)). No upload surface exists, no third-party
+consent flow exists, no recording has ever been contributed, and no organisation has been
+approached. Table 4's three rows are sources whose terms were read, not data this project
+holds; the partnership route is an identified possibility and the upload route is a design.
+Every statement above about contributed recordings is a statement about a design.
 
 ---
 
@@ -507,8 +659,9 @@ exists in `admin/`. The schema change, the contribution surfaces, the
 **Table 3.** Defects found in the source survey. Rows 1–6 were verified by inspecting the
 `.docx` and its embedded hyperlink relationships directly; rows 7–9 are absences, verified
 by exhaustive search of the extracted document text. (Table 2 is the model-control surface
-and lives in `docs/MODEL_CONTROLS.md`; numbering is shared across this doc set so the
-companion article can reference all three by the same numbers.)
+and lives in `docs/MODEL_CONTROLS.md`; Table 5, the variety-label columns, lives in
+`docs/DIALECT_CLASSIFICATION.md`. Numbering is shared across this doc set so the companion
+article can reference each table by the same number.)
 
 | # | Issue | Detail |
 |---|---|---|
@@ -631,3 +784,41 @@ government documentation. All checked 2026-07-26.
     Ethnic Group and Sex, Census of Population 2020* — the current-basis source for the F7
     percentages; total Chinese resident population 3,006,769.
     https://data.gov.sg/datasets/d_fb8ce4a963b3045ce9f97bafee289c0b/view
+27. National Archives of Singapore. *Oral History Interviews — FAQ* — reserves all rights in
+    the recordings and transcripts to NAS, directs intended uses to nas@nlb.gov.sg, and states
+    that access is governed by the access conditions stipulated by interviewees; gives
+    collection scale only as "several thousand hours". This page is client-rendered: a plain
+    fetch returned an empty body, so these facts come from a **rendered-browser read**.
+    https://www.nas.gov.sg/archivesonline/oral_history_interviews/faq
+28. National Archives of Singapore. *Oral History Centre — About Us* — "more than 4,000
+    interviews" collected since 1979. **Rendered-browser read**, same client-rendering
+    limitation as [27].
+    https://www.nas.gov.sg/archivesonline/oral_history_interviews/about-us
+29. National Archives of Singapore. *Chinese Dialect Groups*, Accession Number 000726 (Chui
+    Choe Shee, reel 4 of 4) — per-record all-rights-reserved notice requiring written
+    permission; recording date 22 November 1986; running time 00:26:01; conditions governing
+    access "For background information only", behind a request-to-view flow.
+    **Rendered-browser read.** The rendered page displays no language-of-interview field, so
+    the attribution of this interview to Cantonese is **search-indexed text** of the catalogue
+    entry and is not rendered-verified.
+    https://www.nas.gov.sg/archivesonline/oral_history_interviews/record-details/03ee4b77-115e-11e3-83d5-0050568939ad
+30. MagicHub. *Singaporean Chinese Conversational Speech Corpus* (ASR-SgpCCSC) — 5 hours of
+    Singaporean **Mandarin** (zh-SG) spontaneous conversation, mobile-device recordings,
+    16 kHz 16-bit mono; licensed under the MAGIC DATA open-source licence and Creative Commons
+    Attribution-NonCommercial-NoDerivatives 4.0. Server-rendered; **plain fetch**.
+    https://magichub.com/datasets/singaporean-chinese-conversational-speech-corpus/
+31. MERaLiON. *Multitask-National-Speech-Corpus-v1* dataset card — derived from IMDA's NSC;
+    Singapore-accented English and code-switching across four task families; ~15.19M rows,
+    ~3 TB. **No licence is declared**: the card's YAML metadata carries no `license` field and
+    the body states no terms, so whether NSC terms flow through is an interpretation and not a
+    stated term. **Plain fetch** of both the dataset page and the raw card.
+    https://huggingface.co/datasets/MERaLiON/Multitask-National-Speech-Corpus-v1
+32. LearnDialect.sg — a Singapore organisation teaching Hokkien, Cantonese and Teochew,
+    including classes aimed at healthcare workers serving dialect-speaking seniors, and
+    publishing short weekly "How Do You Say" episodes. **Search results plus site landing
+    content**, not a rendered read of the full site — the weakest retrieval in this list.
+    https://www.learndialect.sg/
+33. *Polyglot-Lion: Efficient Multilingual ASR for Singapore via Balanced Fine-Tuning of
+    Qwen3-ASR* — covers English, Mandarin, Tamil and Malay, and no Chinese dialect. The
+    language list was confirmed against the `/abs/` abstract before citing; cited for nothing
+    beyond what that abstract states. https://arxiv.org/abs/2603.16184
