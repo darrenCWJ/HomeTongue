@@ -6,14 +6,14 @@
 
 ## Abstract
 
-HomeTongue is a heritage-language learning application for Singapore's Chinese dialect
-communities: Cantonese with speech support, Hokkien text-only. It describes the speech pipeline
+HomeTongue is a heritage-language learning application for Singapore's Chinese dialect communities:
+Cantonese with speech support, Hokkien text-only. This paper describes the speech pipeline
 and audits the upgrade usually recommended for such systems — replacing the
 recognition → translation → synthesis cascade with a direct speech-to-speech model. That upgrade
 is inapplicable here for a product reason, not a resource one: every teaching surface is rendered
 from the intermediate transcript — the transcript the learner reads back, Jyutping romanisation,
 the word-by-word breakdown and pronunciation scoring — so a model mapping audio to audio without
-surfacing text deletes four features that constitute the product. A corpus re-audit finds roughly
+surfacing text deletes the features that constitute the product. A corpus re-audit finds roughly
 21,800 hours of Cantonese speech where the project's training plan assumed 73 — but
 non-commercially licensed, leaving about 319 hours of public-domain audio a commercial product
 may train on. Three techniques transfer: language-ID-routed multi-adapter serving, Group Relative
@@ -110,11 +110,11 @@ and voice names, and rate-limits. Persistence is on-device by default, or Postgr
 security in cloud mode. An evaluation harness and an anonymised export exist, unrun.
 
 **Reproducibility.** Nothing numeric can be reproduced, because the corpus holds zero samples.
-What is reproducible is the audit: every external claim was checked against its cited primary
-source on 2026-07-26, and unclosed claims are marked in place. Retrieval method per source, and
-all working detail, sits in four companion documents: the [findings](../S2ST_FINDINGS.md),
-[control surface](../MODEL_CONTROLS.md), [labelling design](../DIALECT_CLASSIFICATION.md) and
-[training plan](../ML_TRAINING_PLAN.md).
+What is reproducible is the numbered reference list (§10): every external claim resolves against
+its cited primary source without repo access, checked 2026-07-26; unclosed claims are marked in
+place. Retrieval method per source, and all working detail, sits in four repo-internal companion
+documents: the [findings](../S2ST_FINDINGS.md), [control surface](../MODEL_CONTROLS.md),
+[labelling design](../DIALECT_CLASSIFICATION.md) and [training plan](../ML_TRAINING_PLAN.md).
 
 ## 5. Design Rationale and Implementation
 
@@ -192,8 +192,9 @@ primary sources (Table 4, §11.3). The one holding dialect speech is permission-
 archive's reserved rights and by interviewee access conditions [18][19]; the only downloadable
 Singapore-Chinese conversational set is Mandarin under a non-commercial, no-derivatives licence
 [20]; and a redistribution of the national corpus declares no licence [21]. The national corpus's
-own licence permits commercial use of derived applications, on an interpretation its text does not
-state [16]; its duration is unpublished [6][17] and its download terms were never inspected here.
+licence permits commercial use of 'derived analyses or applications' in its text [16]; reading
+model weights into that phrase is an interpretation. Its duration is unpublished [6][17] and its
+download terms were never inspected here.
 Consented user uploads are therefore the one commercially clean Singapore-variety route
 identified — consent comes from the speaker — but that surface is a design.
 
@@ -240,9 +241,9 @@ rather than choosing one afterwards.
 Speech is biometric, and heritage recordings often capture relatives rather than the account
 holder. Two flags govern collection — `data_collection_consent` and `audio_retention_consent` —
 both default off and both re-enforced server-side by row-level security, not by a client toggle
-alone; withdrawal deletes what was collected under them. Both are first-person: an uploader cannot consent for a relative,
-so §6's upload route needs a per-upload attestation, a consent record naming the person recorded,
-and withdrawal reaching both.
+alone; withdrawal deletes what was collected under them. Both are first-person: an uploader cannot
+consent for a relative, so §6's upload route needs a per-upload attestation, a consent record
+naming the person recorded, and withdrawal reaching both.
 
 Audio provenance cannot be asserted. No documentation states that the voices used here carry
 SynthID watermarking [9], and the vendor's watermarking page omits them [22] — but undocumented
@@ -426,7 +427,8 @@ checked against a primary source.
 
 ### 11.4 Variety-label columns
 
-**Table 5.** Columns added to the speech-sample table by the labelling migration.
+**Table 5.** Columns the labelling migration would add to the speech-sample table. The migration
+is specified, not built; no column exists today.
 
 | Column | Type | Notes |
 |---|---|---|
