@@ -222,6 +222,14 @@ to a **research** corpus at best, and never to a shipping model without negotiat
 plural, because broadcasters, getai performers and individual uploaders are different parties
 holding different rights.
 
+The repo now carries an offline ingestion tool for exactly this material class —
+[ml/data/video/](../ml/data/video/README.md), merged after this subsection was audited — which
+records per-source provenance and licence, restricts redistributable corpora to
+Creative-Commons, owned or licensed sources, and refuses DRM sources outright. It
+operationalises the research route under the licence discipline above; it does not change the
+conclusion, because no Creative-Commons Singapore-dialect source set has been identified or
+audited yet, and its own policy sends anything non-redistributable to local experiments only.
+
 **NAS Oral History Centre: dialect interviews exist, and are permission-gated twice over.**
 Dialect-focused interview material is genuinely there. The OHC's *Chinese Dialect Groups*
 project renders on the archive's own record pages — accession 000726, whose reel 4 of 4 gives

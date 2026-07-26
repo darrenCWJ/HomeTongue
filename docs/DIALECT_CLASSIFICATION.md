@@ -296,7 +296,10 @@ mono WAV the recorder already produces (`blobToWav`,
 existing pipeline: `speech_samples`, `sample_reviews`, and the salted-hash export. No new storage
 bucket, no second review tool, no new export format. **One honest gap in that reuse:** `blobToWav`
 decodes and resamples an audio blob; pulling an audio track out of a video container is an
-additional client-side step that does not exist in this repo today.
+additional client-side step that does not exist in this repo today. (The offline
+training-corpus tool at [ml/data/video/](../ml/data/video/README.md) does extract audio from
+video, but with ffmpeg on a trusted machine outside the app — the in-app surface still needs a
+browser-side equivalent.)
 
 **It requires a third-party-speaker consent design that does not exist.** The two consent flags are
 first-person — `data_collection_consent`

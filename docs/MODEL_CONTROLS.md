@@ -42,7 +42,7 @@ across this document set so the companion article can reference each table by th
 | Routing | Per-language base URL | `resolveBaseUrl()` in [api/_lib/languageManifest.js:104](../api/_lib/languageManifest.js:104) | unchanged |
 | Routing | Per-language model | — | `resolveModel()` — see Proposed additions in detail |
 | Routing | Adapter selection by variety | — | LID-routed; depends on the classifier in `DIALECT_CLASSIFICATION.md` |
-| Routing | Eval-gated rollout | documented process, [ml/train/README.md:62](../ml/train/README.md:62) (steps 7–8) | unchanged |
+| Routing | Eval-gated rollout | documented process, [ml/train/README.md:64](../ml/train/README.md:64) (steps 7–8) | unchanged |
 
 The rest of this document walks the table layer by layer, then specifies the routing proposal in
 full.
@@ -194,10 +194,10 @@ environment variable by hand. This depends entirely on the schema and classifier
 ### Eval-gated rollout
 
 Already a documented process, not code. Step 7, "Eval-gate with the existing harness"
-([ml/train/README.md:62](../ml/train/README.md:62)), requires clearing the ship bar — ≥ 15–20%
+([ml/train/README.md:64](../ml/train/README.md:64)), requires clearing the ship bar — ≥ 15–20%
 relative CER reduction against the `gpt-4o-transcribe` baseline on held-out speakers for STT, or a
 frontier-judge side-by-side plus a live thumbs A/B for the dialogue SLM. Step 8, "Env flip"
-([ml/train/README.md:67](../ml/train/README.md:67)), flips the per-language env var on a preview
+([ml/train/README.md:69](../ml/train/README.md:69)), flips the per-language env var on a preview
 deployment first; rollback is unsetting that variable, since OpenAI remains the always-working
 default and the client never changes. No change is proposed to this process — `resolveModel` plugs
 into the same env-flip mechanism; it does not replace it.
@@ -367,7 +367,7 @@ the LID-routed multi-LoRA pattern described in the "What transfers" section of
 6. **Rollback is always available and always the same mechanism.** Unset the per-language
    environment variable; OpenAI is the always-working default and the client never changes
    (for the SLM path, the documented procedure also flips the global `OPENAI_MODEL` — see
-   [ml/train/README.md:69](../ml/train/README.md:69) — so rollback there must restore that
+   [ml/train/README.md:71](../ml/train/README.md:71) — so rollback there must restore that
    variable too). This holds for `resolveBaseUrl` today and must continue to hold for
    `resolveModel`.
 7. **Audio provenance is not asserted.** Whether Google Chirp 3: HD output carries SynthID
