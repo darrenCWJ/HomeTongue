@@ -1,6 +1,6 @@
 # HomeTongue — Improvement & Rebuild Plan
 
-Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phase-0-1` branch (July 2026). Later phases are designed but not yet built.
+Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phase-0-1` branch (July 2026). Phases 2, 3, and 6 are now also code-complete (July 2026; cloud mode and ML capture are config/consent-gated), Phase 4 groundwork is in place (second language pack pending), Phase 5 is partially done, and manual steps like the OpenAI key rotation and Vercel env setup are still pending.
 
 ## Where the product is going
 
