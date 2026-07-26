@@ -203,7 +203,7 @@ and were plain-fetched.
 |---|---|---|---|---|
 | NAS Oral History Centre — *Chinese Dialect Groups* project [27] | Singapore Chinese dialect groups (oral-history interviews) | **not stated** (collection-level only: "several thousand hours" [27]; >4,000 interviews since 1979 [28]) | **none** — all rights reserved to NAS *and* access per interviewee agreement [27]; per-record conditions as narrow as "background information only" [29] | Research and evaluation plausible under written permission; ML training needs an agreement clearing both gates |
 | MagicHub ASR-SgpCCSC [30] | Singapore **Mandarin** (zh-SG) spontaneous conversation | 5 | MAGIC DATA open-source licence **and** CC BY-NC-ND 4.0 | Excluded twice over: not a dialect, and NC **and** ND — blocks a shipping model and derivative fine-tunes alike |
-| MERaLiON Multitask-NSC v1 [31] | Singapore-accented English / code-switching, derived from the NSC [5] | **not stated** (~15.19M rows, ~3 TB) | **none declared** — no `license` field in the card metadata, no terms in the card body | Evidence that the NSC is treated as ML training data at national-programme scale; for terms, register for the NSC directly rather than relying on this redistribution |
+| MERaLiON Multitask-NSC v1 [31] | Singapore-accented English / code-switching, derived from the NSC [5] | **not stated** (~15.19M rows, ~3 TB) | **none declared** — no `license` field in the card metadata, no terms in the card body | Evidence that the NSC is treated as ML training data at the scale of the MERaLiON programme [4]; for terms, register for the NSC directly rather than relying on this redistribution |
 
 **Existing cultural media repeats a trap already documented in Table 1.** The obvious idea is
 to build from material that exists already: broadcast archives, getai recordings, family
@@ -226,7 +226,8 @@ holding different rights.
 Dialect-focused interview material is genuinely there. The OHC's *Chinese Dialect Groups*
 project renders on the archive's own record pages — accession 000726, whose reel 4 of 4 gives
 a recording date of 22 November 1986, a running time of 26 minutes, and a synopsis concerning
-a Cantonese clan association [29]. What no page carries is a licence, and two independent
+the Poon Yue (番禺) Association [29] — a Cantonese clan group, the characterisation being this
+document's, not the page's. What no page carries is a licence, and two independent
 gates sit in front of the material:
 
 - **NAS holds the rights.** The FAQ reserves all rights in the recording and transcript,
@@ -250,7 +251,7 @@ the collection-level figures sit in parentheses beside it.
 
 **One NAS claim is weaker than the others, and the difference is retrieval method.** The NAS
 pages are client-rendered — the same limitation this document records for the IMDA NSC page —
-so every claim above comes from a rendered-browser read on 2026-07-26 [27][28][29]. One claim
+so every NAS claim above comes from a rendered-browser read on 2026-07-26 [27][28][29]. One claim
 does not: that accession 000726's interview was **conducted in Cantonese** comes from
 search-indexed text of the catalogue entry and was **not** confirmed on the rendered record
 page, which displays no language-of-interview field [29]. Read it exactly that way — the
@@ -300,11 +301,11 @@ travel with it:
 
 **What uploads change for Hokkien, stated exactly that narrowly.** "Coverage vs. demographics"
 below records the honest status of `nan-TW` speech support as "no route currently identified".
-A contribution surface would convert that into **"a route, gated on transcription capacity"**.
+A contribution surface would convert that into **"a route, gated on human transcription capacity"**.
 That is the one place in this document where the bottom line moves, and it moves by one step:
 not a corpus, not a model, not a date — a status change from *none* to *gated*. Volumes are the
 discipline on everything else. The step-2 adaptation gate is unchanged at roughly 5–15 h of
-learner audio. A variety classifier and per-variety evaluation sets need tens of hours per
+learner audio ([ML_TRAINING_PLAN.md:38](ML_TRAINING_PLAN.md:38)). A variety classifier and per-variety evaluation sets need tens of hours per
 variety, a scale contribution surfaces could plausibly reach, and neither needs a transcript —
 labelled but untranscribed audio still trains a classifier and still builds an evaluation set.
 The thousands-of-hours scale of Table 1's Cantonese rows is not reachable this way at all.
@@ -323,7 +324,7 @@ Singapore-dialect alternative to sit above them.
 routes, so it is stated plainly: the database holds **zero consented samples**
 ([ml/train/README.md:3](../ml/train/README.md:3)). No upload surface exists, no third-party
 consent flow exists, no recording has ever been contributed, and no organisation has been
-approached. Table 4's three rows are sources whose terms were read, not data this project
+approached. Table 4's three rows are sources whose terms were checked, not data this project
 holds; the partnership route is an identified possibility and the upload route is a design.
 Every statement above about contributed recordings is a statement about a design.
 
@@ -772,7 +773,7 @@ government documentation. All checked 2026-07-26.
     English and over 5 hours of Mandarin child-directed speech; access requires a signed data
     use agreement and redistribution is forbidden. https://arxiv.org/abs/2305.19493
 23. *TaigiSpeech* — Taiwanese Hokkien spoken intent-classification dataset: 3,079 utterances,
-    21 speakers, 8 command classes, ~6.1 hours total (Table 4: 366.91 min); CC BY 4.0.
+    21 speakers, 8 command classes, ~6.1 hours total (the paper's own Table 4: 366.91 min); CC BY 4.0.
     https://arxiv.org/abs/2603.21478
 24. *WenetSpeech-Wu* — approximately 8,000 hours across eight Wu sub-dialects; Apache-2.0.
     https://arxiv.org/abs/2601.11027
