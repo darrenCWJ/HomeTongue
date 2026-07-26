@@ -12,7 +12,7 @@ pnpm generate:previews      # pre-generate Google TTS voice preview audio files
 pnpm android:sync           # build web assets and sync into the Capacitor Android project
 ```
 
-No test runner or lint script is configured yet (see docs/IMPROVEMENT_PLAN.md Phase 1).
+`pnpm test` (Vitest) and `pnpm lint` (ESLint) are configured; CI enforces typecheck, lint, test, and build on every PR (`.github/workflows/ci.yml`).
 
 ## Environment Variables
 
