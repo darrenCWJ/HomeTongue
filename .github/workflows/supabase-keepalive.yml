@@ -1,0 +1,30 @@
+# Keeps the free-tier Supabase project from auto-pausing (it pauses after
+# ~1 week without API activity, which killed cloud mode once already).
+#
+# The apikey used here is the PUBLIC anon key — it ships in the web bundle by
+# design (row-level security is the actual boundary), so it is not a secret
+# and is safe to commit.
+#
+# Caveat: GitHub disables scheduled workflows after ~60 days without repo
+# activity — re-enable from the Actions tab (or push a commit) if that happens.
+name: supabase-keepalive
+
+on:
+  schedule:
+    - cron: "17 3 * * 1,4" # Mon + Thu 03:17 UTC — well inside the ~7-day pause window
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping auth and REST so the project registers activity
+        env:
+          SUPABASE_URL: https://zcyniuqdqotejlltmnoo.supabase.co
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjeW5pdXFkcW90ZWpsbHRtbm9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3ODYwNzcsImV4cCI6MjA5OTM2MjA3N30.Ljala8Dqsbf1Qf3vD8bjB8nAZOHgiv1akhluX38DZX8
+        run: |
+          curl -sf -H "apikey: $SUPABASE_ANON_KEY" "$SUPABASE_URL/auth/v1/health"
+          curl -sf \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/profiles?select=user_id&limit=1"
