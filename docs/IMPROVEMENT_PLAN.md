@@ -61,7 +61,7 @@ Status: living document. Phase 0 and Phase 1 were executed in the `overhaul/phas
 - [x] `api/chat.js`, `api/transcribe.js` proxies; `api/tts.js` hardened (caps, allowlists, per-IP rate limit, sanitized errors)
 - [x] Client services rewritten to call `/api/*` via `src/lib/api.ts`; zero secrets in bundle (verified by grepping `dist/`)
 - [x] Dev middleware in `vite.config.ts` mirrors all three endpoints
-- [x] CSP tightened: `connect-src 'self'`, `script-src 'self'` (no unsafe-inline)
+- [x] CSP tightened: `connect-src 'self'` + the Supabase project origin (https/wss — required for cloud mode; keep in sync if the Supabase project ever changes), `script-src 'self'` (no unsafe-inline)
 - [ ] **ROTATE the OpenAI key** — the old one shipped in previously deployed bundles (manual step, do immediately)
 - [ ] Set `OPENAI_API_KEY`, `OPENAI_MODEL`, `GOOGLE_API_JSON` in Vercel project env; delete `VITE_OPENAI_API_KEY` / `VITE_ELEVEN_LABS_API` / `VITE_GOOGLE_API_JSON`
 - [x] Vitest + React Testing Library; 50 characterization tests (scoring, hallucination guard, voice keys, vocab extraction, session sort, full api/* validation)
