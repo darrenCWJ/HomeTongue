@@ -4,7 +4,7 @@
  * - Web (Vercel or `pnpm dev`): leave VITE_API_BASE_URL unset — relative
  *   paths hit the same origin (Vercel functions in prod, Vite middleware in dev).
  * - Capacitor native builds: the webview has no origin, so set
- *   VITE_API_BASE_URL to the deployed web origin (e.g. https://hometongue.vercel.app).
+ *   VITE_API_BASE_URL to the deployed web origin (e.g. https://home-tongue.vercel.app).
  */
 const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "").replace(/\/$/, "");
 
