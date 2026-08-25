@@ -8,12 +8,19 @@ function mockRes() {
   const res = {
     statusCode: 0,
     body: null,
+    headers: {},
     status(code) {
       this.statusCode = code;
       return this;
     },
     json(payload) {
       this.body = payload;
+      return this;
+    },
+    setHeader(name, value) {
+      this.headers[name] = value;
+    },
+    end() {
       return this;
     },
   };
@@ -191,6 +198,32 @@ describe("api/tts validation", () => {
       res
     );
     expect(res.statusCode).toBe(500);
+  });
+});
+
+describe("CORS for native webviews", () => {
+  test("answers an allowlisted OPTIONS preflight with 204 and reflects the origin", async () => {
+    const res = mockRes();
+    await chatHandler(
+      { method: "OPTIONS", headers: { origin: "https://localhost" }, socket: { remoteAddress: "127.0.0.1" } },
+      res
+    );
+    expect(res.statusCode).toBe(204);
+    expect(res.headers["Access-Control-Allow-Origin"]).toBe("https://localhost");
+    expect(res.headers["Access-Control-Allow-Methods"]).toBe("POST, OPTIONS");
+  });
+
+  test("gives web origins no allow-origin header and leaves POST handling unchanged", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ choices: [{ message: { content: "hello" } }] }), { status: 200 })
+    );
+    const res = mockRes();
+    const req = mockReq({ messages: [{ role: "user", content: "hi" }] });
+    req.headers.origin = "https://home-tongue.vercel.app";
+    await chatHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["Access-Control-Allow-Origin"]).toBeUndefined();
   });
 });
 

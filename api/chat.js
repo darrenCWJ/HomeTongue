@@ -3,12 +3,14 @@
 
 import { isRateLimited, requestIp } from "./_lib/rateLimit.js";
 import { chatCore } from "./_lib/chatCore.js";
+import { applyCors } from "./_lib/cors.js";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
 
 export default async function handler(req, res) {
   try {
+    if (applyCors(req, res)) return;
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
     }
