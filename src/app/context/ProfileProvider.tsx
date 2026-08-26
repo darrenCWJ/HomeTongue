@@ -1,10 +1,22 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  ReactNode,
+} from "react";
 import { repositories, isCloudStorageMode } from "../../repositories";
 import type { Tone, Message, UserProfile, PersonaType } from "../../types";
 import { updatePersona } from "../../services/personaService";
 import { newId } from "../../utils/id";
 import { resolveLanguagePackByLabel, setActiveLanguage } from "../../languages";
 import { useAuth } from "./AuthProvider";
+
+/** Where the stored profile is in its load: "loaded" also covers "none stored". */
+export type ProfileStatus = "loading" | "loaded" | "error";
 
 interface ProfileContextType {
   dialect: string;
@@ -15,6 +27,12 @@ interface ProfileContextType {
   isSignedIn: boolean;
   setIsSignedIn: (val: boolean) => void;
   userProfile: UserProfile | null;
+  /**
+   * Distinguishes "no profile stored" from "not loaded yet". Consumers must not
+   * treat a missing profile as a new user until this is "loaded".
+   */
+  profileStatus: ProfileStatus;
+  retryProfileLoad: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   updatePersonaInBackground: (msgs: Message[]) => void;
 }
@@ -23,10 +41,30 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 const DEFAULT_DIALECT = "Cantonese";
 
+/**
+ * Guards every write that would CREATE a profile out of nothing. Until the load
+ * settles, "no profile in memory" may only mean "not loaded yet", and the fresh
+ * profile would be upserted over the stored row (saveProfile conflicts on
+ * user_id). Returns true when the caller must leave state untouched.
+ */
+function shouldIgnoreUnhydratedWrite(prev: UserProfile | null, status: ProfileStatus): boolean {
+  if (prev !== null || status === "loaded") return false;
+  console.warn("[profile] write ignored: profile not hydrated yet");
+  return true;
+}
+
 export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   const { authEpoch } = useAuth();
   const [isSignedIn, setIsSignedInState] = useState(() => localStorage.getItem("ht_signed_in") === "true");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Mirror of `profileStatus` for the write guards below. They read it through
+  // a ref, not the state value, so their dep arrays stay empty and the context
+  // value keeps a stable identity across every load transition. The load effect
+  // is the only writer, and it sets both together so they cannot drift.
+  const statusRef = useRef<ProfileStatus>("loading");
 
   const activePersona: PersonaType = userProfile?.activePersona ?? "personal";
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
@@ -53,15 +91,38 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     void reloadEpoch;
+    void retryCount;
+    // An earlier run's promise may still be in flight (epoch change mid-load,
+    // or a retry). Ignore whatever it settles to: a stale "null" landing last
+    // would blank a loaded profile and hand the user straight to onboarding.
+    let cancelled = false;
+    const applyStatus = (next: ProfileStatus) => {
+      statusRef.current = next;
+      setProfileStatus(next);
+    };
+
+    applyStatus("loading");
     repositories.user
       .getProfile()
       .then((u) => {
+        if (cancelled) return;
         setUserProfile(u);
+        applyStatus("loaded");
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("Failed to load saved data from local storage:", err);
+        applyStatus("error");
       });
-  }, [reloadEpoch]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadEpoch, retryCount]);
+
+  const retryProfileLoad = useCallback(() => {
+    setRetryCount((count) => count + 1);
+  }, []);
 
   const setIsSignedIn = useCallback((val: boolean) => {
     localStorage.setItem("ht_signed_in", String(val));
@@ -70,6 +131,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
     setUserProfile((prev) => {
+      if (shouldIgnoreUnhydratedWrite(prev, statusRef.current)) return prev;
       const now = new Date().toISOString();
       const updated: UserProfile = prev
         ? { ...prev, ...updates, updatedAt: now }
@@ -127,6 +189,10 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       updatePersona(msgs, effectiveProfile).then((result) => {
         if (result) {
           setUserProfile((prev) => {
+            // By the time the summary lands the load may have settled; if it
+            // still has not, drop the summary rather than let a background job
+            // be the thing that invents a profile row.
+            if (shouldIgnoreUnhydratedWrite(prev, statusRef.current)) return prev;
             const base = prev ?? effectiveProfile;
             const existingPersonaProfile = base.personaProfiles?.[activePersona];
             const updated: UserProfile = {
@@ -167,6 +233,8 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       isSignedIn,
       setIsSignedIn,
       userProfile,
+      profileStatus,
+      retryProfileLoad,
       updateUserProfile,
       updatePersonaInBackground,
     }),
@@ -179,6 +247,8 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       isSignedIn,
       setIsSignedIn,
       userProfile,
+      profileStatus,
+      retryProfileLoad,
       updateUserProfile,
       updatePersonaInBackground,
     ]
