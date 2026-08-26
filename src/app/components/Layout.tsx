@@ -84,8 +84,9 @@ export function Layout() {
 
 function ProfileLoadingScreen() {
   return (
-    <div className="flex-1 flex items-center justify-center" role="status" aria-label="Loading your profile">
+    <div className="flex-1 flex items-center justify-center" role="status">
       <Loader2 size={24} className="animate-spin text-faint" />
+      <span className="sr-only">Loading your profile</span>
     </div>
   );
 }

@@ -24,6 +24,9 @@ const STORED: UserProfile = {
   updatedAt: "2026-01-02T00:00:00.000Z",
 };
 
+/** The profile of the account signed in after a user switch. */
+const OTHER_STORED: UserProfile = { ...STORED, id: "other-profile", name: "Wei" };
+
 interface Deferred<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
@@ -107,6 +110,7 @@ beforeEach(() => {
 // registers — unmount explicitly or the previous tree stays mounted.
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -214,6 +218,94 @@ describe("ProfileProvider hydration status", () => {
     // Assert — the summary is dropped rather than written onto an invented profile
     expect(saveProfileSpy).not.toHaveBeenCalled();
     expect(name()).toHaveTextContent("(no profile)");
+    expect(warnSpy).toHaveBeenCalledWith("[profile] write ignored: profile not hydrated yet");
+  });
+
+  test("drops a persona update that completes after a user switch", async () => {
+    // Arrange — user A is loaded and starts a background persona update
+    const loadA = deferred<UserProfile | null>();
+    getProfile = () => loadA.promise;
+    const { rerender } = renderProvider();
+    await act(async () => {
+      loadA.resolve(STORED);
+    });
+    const persona = deferred<{ personaSummary: string; characteristicPhrases: string[] }>();
+    updatePersonaSpy.mockReturnValue(persona.promise);
+    click("persona");
+
+    // Act — user B signs in and their profile finishes loading first
+    const loadB = deferred<UserProfile | null>();
+    getProfile = () => loadB.promise;
+    authEpoch = 1;
+    rerender(
+      <ProfileProvider>
+        <ProfileProbe />
+      </ProfileProvider>
+    );
+    await act(async () => {
+      loadB.resolve(OTHER_STORED);
+    });
+    expect(name()).toHaveTextContent("Wei");
+
+    // ...then A's summary lands, with B's profile in state and B's row behind
+    // the repositories
+    await act(async () => {
+      persona.resolve({ personaSummary: "warm and direct", characteristicPhrases: ["係啦"] });
+    });
+
+    // Assert — A's persona is not written into B's row
+    expect(saveProfileSpy).not.toHaveBeenCalled();
+    expect(name()).toHaveTextContent("Wei");
+  });
+
+  test("clears the previous user's profile while the next one loads", async () => {
+    // Arrange — user A is loaded
+    const loadA = deferred<UserProfile | null>();
+    getProfile = () => loadA.promise;
+    const { rerender } = renderProvider();
+    await act(async () => {
+      loadA.resolve(STORED);
+    });
+    expect(name()).toHaveTextContent("Mei");
+
+    // Act — user B signs in; their load has not resolved yet
+    const loadB = deferred<UserProfile | null>();
+    getProfile = () => loadB.promise;
+    authEpoch = 1;
+    rerender(
+      <ProfileProvider>
+        <ProfileProbe />
+      </ProfileProvider>
+    );
+
+    // Assert — A's profile is neither visible nor writable during the switch
+    expect(status()).toHaveTextContent("loading");
+    expect(name()).toHaveTextContent("(no profile)");
+    click("update name");
+    expect(saveProfileSpy).not.toHaveBeenCalled();
+
+    // ...and B's own profile arrives intact
+    await act(async () => {
+      loadB.resolve(OTHER_STORED);
+    });
+    expect(name()).toHaveTextContent("Wei");
+  });
+
+  test("falls back to the retry path when the load never settles", async () => {
+    // Arrange — getProfile hangs forever (dead network, stalled IndexedDB)
+    vi.useFakeTimers();
+    getProfile = () => new Promise<UserProfile | null>(() => {});
+    renderProvider();
+    expect(status()).toHaveTextContent("loading");
+
+    // Act
+    await act(async () => {
+      vi.advanceTimersByTime(8_000);
+    });
+
+    // Assert — an escapable error screen, not an endless spinner
+    expect(status()).toHaveTextContent("error");
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   test("a stale in-flight load cannot overwrite a newer one", async () => {

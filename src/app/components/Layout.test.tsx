@@ -88,8 +88,21 @@ describe("Layout profile gate", () => {
 
     // Assert
     expect(onboardingHeading()).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading your profile");
     expect(screen.queryByRole("link", { name: /chat/i })).not.toBeInTheDocument();
+  });
+
+  test("keeps the email gate ahead of the profile gate", () => {
+    // Arrange — email gate not passed, and the profile is still loading
+    localStorage.removeItem("ht_email_authed");
+
+    // Act
+    renderLayout();
+
+    // Assert — the earlier gate wins; no spinner, no onboarding
+    expect(screen.getByRole("heading", { name: /sign in to hometongue/i })).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(onboardingHeading()).not.toBeInTheDocument();
   });
 
   test("shows onboarding once the load settles with no stored profile", () => {
