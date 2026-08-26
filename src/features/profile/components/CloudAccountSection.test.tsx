@@ -88,6 +88,22 @@ describe("CloudAccountSection sign out", () => {
     await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("network down"));
     await waitFor(() => expect(button).not.toBeDisabled());
   });
+
+  test("blocks a second click while sign-out is still in flight", async () => {
+    let resolveSignOut: () => void = () => {};
+    mockPerformFullSignOut.mockImplementation(
+      () => new Promise<void>((resolve) => (resolveSignOut = resolve))
+    );
+    render(<CloudAccountSection authUser={authUser} signOut={mockSignOut} />);
+
+    const button = screen.getByRole("button", { name: /sign out/i });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(button).toBeDisabled());
+    fireEvent.click(button);
+    expect(mockPerformFullSignOut).toHaveBeenCalledTimes(1);
+    resolveSignOut();
+  });
 });
 
 describe("CloudAccountSection import to cloud", () => {
@@ -136,6 +152,33 @@ describe("CloudAccountSection import to cloud", () => {
 
     await waitFor(() =>
       expect(mockToastSuccess).toHaveBeenCalledWith("Imported 2 phrases, 1 sessions, 0 lessons, 0 tags.")
+    );
+  });
+
+  // Regression: the imported "total" used to sum six of the seven
+  // CloudImportCounts fields, silently dropping reviewStates. A device whose
+  // ONLY newly-imported rows were review schedules therefore read total===0
+  // and got the "already synced" toast — even though putMany had just
+  // written real rows. total must be computed over the same entity set as
+  // sourceCounts so this state is unreachable.
+  test("reports newly imported review schedules even when every other entity is already synced", async () => {
+    mockImportLocalDataToCloud.mockResolvedValue(
+      makeImportResult({
+        reviewStates: 3,
+        sourceCounts: { ...zeroCounts(), phrases: 5, reviewStates: 3 },
+      })
+    );
+    render(<CloudAccountSection authUser={authUser} signOut={mockSignOut} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /import this device's data/i }));
+
+    await waitFor(() =>
+      expect(mockToastSuccess).toHaveBeenCalledWith(
+        "Imported 0 phrases, 0 sessions, 0 lessons, 0 tags, 3 review schedules."
+      )
+    );
+    expect(mockToastSuccess).not.toHaveBeenCalledWith(
+      "Nothing new to import — your account already has this device's data."
     );
   });
 });

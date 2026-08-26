@@ -257,7 +257,15 @@ describe("importLocalDataToCloud", () => {
         profile: 1,
       },
     });
+    // Symmetric across all seven entities' write calls, not just phrases +
+    // profile: each of the six "new-rows-only" writers must receive exactly
+    // the one genuinely-new row, never the already-synced one alongside it.
     expect(mocks.phrasePutMany).toHaveBeenCalledWith([newPhrase]);
+    expect(mocks.reviewPutMany).toHaveBeenCalledWith([newReview]);
+    expect(mocks.sessionAdd).toHaveBeenCalledWith(newSession);
+    expect(mocks.tagCreate).toHaveBeenCalledWith(newTag);
+    expect(mocks.lessonSave).toHaveBeenCalledWith(newLesson);
+    expect(mocks.progressUpdate).toHaveBeenCalledWith(newProgress);
     expect(mocks.userSaveProfile).not.toHaveBeenCalled();
   });
 });

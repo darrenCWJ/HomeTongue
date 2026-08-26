@@ -3,11 +3,27 @@ import { User, Loader2, LogOut, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import type { AuthUser } from "../../../lib/authGateway";
 import { performFullSignOut } from "../../../lib/fullSignOut";
-import { importLocalDataToCloud } from "../../../services/cloudImportService";
+import { importLocalDataToCloud, type CloudImportCounts } from "../../../services/cloudImportService";
 
 interface CloudAccountSectionProps {
   authUser: AuthUser;
   signOut: () => Promise<void>;
+}
+
+// Sums every entity in a CloudImportCounts-shaped object. Shared by both the
+// imported total and the sourceCounts total below so they can never drift
+// apart over which entities they cover (see the reviewStates regression
+// test in CloudAccountSection.test.tsx).
+function totalCounts(counts: CloudImportCounts): number {
+  return (
+    counts.phrases +
+    counts.reviewStates +
+    counts.sessions +
+    counts.tags +
+    counts.conversationLessons +
+    counts.lessonProgress +
+    counts.profile
+  );
 }
 
 /**
@@ -28,32 +44,23 @@ export function CloudAccountSection({ authUser, signOut }: CloudAccountSectionPr
     setIsImporting(true);
     try {
       const counts = await importLocalDataToCloud();
-      const total =
-        counts.phrases +
-        counts.sessions +
-        counts.tags +
-        counts.conversationLessons +
-        counts.lessonProgress +
-        counts.profile;
+      const total = totalCounts(counts);
       if (total > 0) {
+        // reviewStates has no dedicated slot in the sentence above — append
+        // it only when nonzero so the message stays truthful without
+        // cluttering the common case (most imports don't touch it).
+        const reviewStatesNote =
+          counts.reviewStates > 0 ? `, ${counts.reviewStates} review schedules` : "";
         toast.success(
-          `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags.`
+          `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags${reviewStatesNote}.`
         );
       } else {
         // Nothing was newly imported — sourceCounts (total local rows, import
         // status aside) tells apart a genuinely empty device from one whose
-        // data already matches the cloud (PROF-07).
-        const { sourceCounts } = counts;
-        const sourceTotal =
-          sourceCounts.phrases +
-          sourceCounts.reviewStates +
-          sourceCounts.sessions +
-          sourceCounts.tags +
-          sourceCounts.conversationLessons +
-          sourceCounts.lessonProgress +
-          sourceCounts.profile;
+        // data already matches the cloud (PROF-07). Same totalCounts helper
+        // as above, so both totals cover the same entity set.
         toast.success(
-          sourceTotal === 0
+          totalCounts(counts.sourceCounts) === 0
             ? "This device has no local data to import."
             : "Nothing new to import — your account already has this device's data."
         );
