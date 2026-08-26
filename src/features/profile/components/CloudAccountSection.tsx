@@ -2,6 +2,7 @@ import { useState } from "react";
 import { User, Loader2, LogOut, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import type { AuthUser } from "../../../lib/authGateway";
+import { performFullSignOut } from "../../../lib/fullSignOut";
 import { importLocalDataToCloud } from "../../../services/cloudImportService";
 
 interface CloudAccountSectionProps {
@@ -34,11 +35,29 @@ export function CloudAccountSection({ authUser, signOut }: CloudAccountSectionPr
         counts.conversationLessons +
         counts.lessonProgress +
         counts.profile;
-      toast.success(
-        total === 0
-          ? "Nothing new to import — your account already has this device's data."
-          : `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags.`
-      );
+      if (total > 0) {
+        toast.success(
+          `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags.`
+        );
+      } else {
+        // Nothing was newly imported — sourceCounts (total local rows, import
+        // status aside) tells apart a genuinely empty device from one whose
+        // data already matches the cloud (PROF-07).
+        const { sourceCounts } = counts;
+        const sourceTotal =
+          sourceCounts.phrases +
+          sourceCounts.reviewStates +
+          sourceCounts.sessions +
+          sourceCounts.tags +
+          sourceCounts.conversationLessons +
+          sourceCounts.lessonProgress +
+          sourceCounts.profile;
+        toast.success(
+          sourceTotal === 0
+            ? "This device has no local data to import."
+            : "Nothing new to import — your account already has this device's data."
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Import failed. Please try again.");
     } finally {
@@ -46,16 +65,20 @@ export function CloudAccountSection({ authUser, signOut }: CloudAccountSectionPr
     }
   };
 
+  // Reuses the same full sign-out flow as the bottom Sign Out button
+  // (src/lib/fullSignOut.ts): ends the cloud session, clears both gate
+  // flags, and reloads. The reload is what flushes the signed-out user's
+  // profile/library out of React state — without it the next "Continue as
+  // Guest" on this device would still see the previous account's data.
   const handleCloudSignOut = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
-      await signOut();
-      localStorage.removeItem("ht_email_authed");
-      toast.success("Signed out of your account.");
+      await performFullSignOut({ hasCloudSession: true, signOutCloud: signOut });
+      // No success toast: the reload above navigates away before it could
+      // ever be seen.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to sign out. Please try again.");
-    } finally {
       setIsSigningOut(false);
     }
   };
