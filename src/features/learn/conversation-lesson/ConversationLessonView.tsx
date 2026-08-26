@@ -24,14 +24,14 @@ export function ConversationLessonView({
 
   const savePhase = (next: LessonPhase) => {
     setPhase(next);
-    updateConversationLesson({ ...lesson, currentPhase: next });
+    updateConversationLesson(lesson.id, { currentPhase: next });
   };
 
   const vocab = lesson.vocabulary;
 
   const handleBreakdownComplete = (cache: Record<number, WordChunk[]>) => {
     const updatedVocab = vocab.map((item, i) => (cache[i] ? { ...item, breakdown: cache[i] } : item));
-    updateConversationLesson({ ...lesson, vocabulary: updatedVocab, currentPhase: "flashcard" });
+    updateConversationLesson(lesson.id, { vocabulary: updatedVocab, currentPhase: "flashcard" });
     setPhase("flashcard");
   };
 
@@ -71,7 +71,7 @@ export function ConversationLessonView({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto scrollbar-none pb-nav">
-          <ConvFlashcardExercise vocab={vocab} onComplete={() => setPhase("done")} />
+          <ConvFlashcardExercise vocab={vocab} onComplete={() => savePhase("done")} />
         </div>
       </motion.div>
     );

@@ -62,8 +62,14 @@ export function LearnPage() {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<ActiveLevel | null>(null);
   const [dailyCard, setDailyCard] = useState<VocabItem | null>(null);
-  const [activeConversationLesson, setActiveConversationLesson] = useState<ConversationLesson | null>(null);
+  const [activeConversationLessonId, setActiveConversationLessonId] = useState<string | null>(null);
   const [activeRoleplayScenario, setActiveRoleplayScenario] = useState<RoleplayScenario | null>(null);
+
+  // Derived, never snapshotted: an opened lesson keeps changing underneath us
+  // (breakdown enrichment, phase, exam result), and a held copy would both
+  // render stale data and revert live writes when passed back to the provider.
+  const activeConversationLesson =
+    conversationLessons.find((l) => l.id === activeConversationLessonId) ?? null;
 
   // Single queue instance shared with PracticeView so the due-count badge on
   // this page stays accurate as cards are graded.
@@ -118,7 +124,7 @@ export function LearnPage() {
   const handleBackToMain = () => {
     setActiveCategoryId(null);
     setActiveLevel(null);
-    setActiveConversationLesson(null);
+    setActiveConversationLessonId(null);
     setActiveRoleplayScenario(null);
     setView("main");
   };
@@ -128,8 +134,8 @@ export function LearnPage() {
     setView("roleplay");
   };
 
-  const handleSelectConversationLesson = (lesson: ConversationLesson) => {
-    setActiveConversationLesson(lesson);
+  const handleSelectConversationLesson = (lessonId: string) => {
+    setActiveConversationLessonId(lessonId);
     setView("conversation-lesson");
   };
 
@@ -138,19 +144,17 @@ export function LearnPage() {
   };
 
   const handleExamComplete = (score: number) => {
-    if (!activeConversationLesson) return;
+    // Attempts and best score come from the lesson as it stands right now, so
+    // an exam taken after other writes counts on top of them rather than on
+    // top of whatever the lesson looked like when it was opened.
+    const current = activeConversationLesson;
+    if (!current) return;
     const passed = score >= 60;
-    const updated: ConversationLesson = {
-      ...activeConversationLesson,
-      examAttempts: activeConversationLesson.examAttempts + 1,
-      examBestScore:
-        activeConversationLesson.examBestScore === undefined
-          ? score
-          : Math.max(activeConversationLesson.examBestScore, score),
-      examCompleted: activeConversationLesson.examCompleted || passed,
-    };
-    updateConversationLesson(updated);
-    setActiveConversationLesson(updated);
+    updateConversationLesson(current.id, {
+      examAttempts: current.examAttempts + 1,
+      examBestScore: current.examBestScore === undefined ? score : Math.max(current.examBestScore, score),
+      examCompleted: current.examCompleted || passed,
+    });
     setView("conversation-lesson");
   };
 
@@ -345,10 +349,10 @@ export function LearnPage() {
                         <ConversationLessonCard
                           key={cl.id}
                           lesson={cl}
-                          onClick={() => handleSelectConversationLesson(cl)}
+                          onClick={() => handleSelectConversationLesson(cl.id)}
                           onDelete={() => deleteConversationLesson(cl.id)}
                           onEditTitle={(newTitle) => {
-                            updateConversationLesson({ ...cl, title: newTitle });
+                            updateConversationLesson(cl.id, { title: newTitle });
                           }}
                         />
                       ))}

@@ -35,7 +35,12 @@ interface LibraryContextType {
   deleteSessionMessage: (sessionId: string, messageId: string) => void;
   conversationLessons: ConversationLesson[];
   saveConversationLesson: (lesson: ConversationLesson) => void;
-  updateConversationLesson: (lesson: ConversationLesson) => void;
+  /**
+   * Patch-merge a lesson by id. Callers name only the fields they change —
+   * passing a whole lesson would replace the stored record with a snapshot
+   * that is already stale, reverting any write that landed in between.
+   */
+  updateConversationLesson: (id: string, patch: Partial<ConversationLesson>) => void;
   deleteConversationLesson: (id: string) => void;
   lessonProgress: Record<string, LessonProgress>;
   updateLessonProgress: (progress: LessonProgress) => void;
@@ -312,9 +317,20 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const updateConversationLesson = useCallback(
-    (lesson: ConversationLesson) => {
-      setConversationLessons((prev) => prev.map((l) => (l.id === lesson.id ? lesson : l)));
-      persist("updateConversationLesson", () => repositories.conversationLessons.update(lesson));
+    (id: string, patch: Partial<ConversationLesson>) => {
+      setConversationLessons((prev) => {
+        const current = prev.find((l) => l.id === id);
+        if (!current) {
+          console.warn(`[library] updateConversationLesson ignored: unknown lesson ${id}`);
+          return prev;
+        }
+        // Merge over CURRENT state, and persist the merged record: the
+        // repository replaces the whole row, so it needs every field, and the
+        // caller's patch must not carry stale copies of the ones it omits.
+        const merged = { ...current, ...patch };
+        persist("updateConversationLesson", () => repositories.conversationLessons.update(merged));
+        return prev.map((l) => (l.id === id ? merged : l));
+      });
     },
     [persist]
   );
