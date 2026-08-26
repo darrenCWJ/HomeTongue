@@ -1,5 +1,9 @@
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../../app/context/AuthProvider";
 import { useProfile } from "../../app/context/ProfileProvider";
+import { performFullSignOut } from "../../lib/fullSignOut";
 import { type PersonaType } from "../../types";
 import { useActiveLanguagePack } from "../../hooks/useActiveLanguageCode";
 import { ProfileHeader } from "./components/ProfileHeader";
@@ -14,7 +18,8 @@ import { DataPrivacySection } from "./components/DataPrivacySection";
 
 export function ProfilePage() {
   const { isCloudAuthEnabled, authUser, signOut } = useAuth();
-  const { setIsSignedIn, userProfile, updateUserProfile, activePersona } = useProfile();
+  const { userProfile, updateUserProfile, activePersona } = useProfile();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   // Reactive pack resolution (not the module-level accessor): voice-less
   // packs have no display voices and the whole Voice section is hidden.
   const displayVoices = useActiveLanguagePack().tts.displayVoices;
@@ -29,6 +34,23 @@ export function ProfilePage() {
 
   const handleSelectPersona = (p: PersonaType) => {
     updateUserProfile({ activePersona: p });
+  };
+
+  // Ends the cloud session (if any), clears every client-side gate, and
+  // reloads — the reload is what makes sign-out visible in builds where the
+  // access-code gate is compiled out (see src/lib/fullSignOut.ts).
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await performFullSignOut({
+        hasCloudSession: isCloudAuthEnabled && !!authUser,
+        signOutCloud: signOut,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sign out. Please try again.");
+      setIsSigningOut(false);
+    }
   };
 
   return (
@@ -80,10 +102,12 @@ export function ProfilePage() {
         {/* Sign Out */}
         <div className="pt-4">
           <button
-            onClick={() => setIsSignedIn(false)}
-            className="w-full bg-card text-red-500 border border-red-100 font-semibold rounded-2xl py-4 shadow-sm hover:bg-red-50 transition-colors"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="w-full bg-card text-red-500 border border-red-100 font-semibold rounded-2xl py-4 shadow-sm hover:bg-red-50 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            Sign Out
+            {isSigningOut && <Loader2 size={16} className="animate-spin" />}
+            {isSigningOut ? "Signing out…" : "Sign Out"}
           </button>
         </div>
       </div>
