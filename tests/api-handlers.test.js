@@ -70,11 +70,7 @@ describe("api/chat validation", () => {
 
   test("rejects invalid roles and non-string content", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
-    for (const messages of [
-      [{ role: "tool", content: "x" }],
-      [{ role: "user", content: 42 }],
-      [null],
-    ]) {
+    for (const messages of [[{ role: "tool", content: "x" }], [{ role: "user", content: 42 }], [null]]) {
       const res = mockRes();
       await chatHandler(mockReq({ messages }), res);
       expect(res.statusCode).toBe(400);
@@ -90,9 +86,11 @@ describe("api/chat validation", () => {
 
   test("forwards valid requests and returns content, clamping max_tokens", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ choices: [{ message: { content: "hello" } }] }), { status: 200 })
-    );
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify({ choices: [{ message: { content: "hello" } }] }), { status: 200 })
+      );
     const res = mockRes();
     await chatHandler(
       mockReq({ messages: [{ role: "user", content: "hi" }], max_tokens: 99999, temperature: 5 }),
@@ -152,7 +150,10 @@ describe("api/transcribe validation", () => {
       new Response(JSON.stringify({ text: "  你好  " }), { status: 200 })
     );
     const res = mockRes();
-    await transcribeHandler(mockReq({ audio: Buffer.from("fake-wav").toString("base64"), language: "zh" }), res);
+    await transcribeHandler(
+      mockReq({ audio: Buffer.from("fake-wav").toString("base64"), language: "zh" }),
+      res
+    );
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ text: "你好" });
   });
