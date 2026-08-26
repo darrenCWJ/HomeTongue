@@ -18,7 +18,7 @@ import {
 import { LocalReviewStateRepository } from "./local/ReviewStateRepository";
 import { CloudReviewStateRepository } from "./cloud/CloudReviewStateRepository";
 import { createOutboxRepositories } from "./outbox/OutboxRepositories";
-import { getOutboxUserId, setOutboxHold } from "./outbox/outboxStore";
+import { getOutboxUserId, setOutboxHold, setOutboxUser } from "./outbox/outboxStore";
 import { createSessionRoutedRepositories } from "./routing";
 const STORAGE_MODE: string = import.meta.env.VITE_STORAGE_MODE ?? "local";
 
@@ -66,13 +66,15 @@ function createRepositories(mode: string): Repositories {
     // reject every call without a session. Route those callers to local Dexie
     // instead — see src/repositories/routing.ts for the full rationale.
     //
-    // TIMING: at app start the session restore has not landed yet, so the
-    // router reads local first. AuthProvider then bumps `authEpoch` when the
-    // restored user arrives (null → user counts as a user change) and every
-    // provider re-runs its initial load against the cloud. A guest never gets
-    // a user and stays on local for the whole visit; sign-out (user → null)
-    // bumps the epoch too, so providers re-load from local Dexie rather than
-    // leaving the previous account's rows in memory.
+    // TIMING: the router's answer comes from the user the outbox store tracks,
+    // and AuthProvider forwards every session/auth result to it (notifyAuthUser
+    // below) BEFORE it bumps `authEpoch`. That ordering is the guarantee: by
+    // the time a provider re-runs its initial load for a new epoch, the router
+    // already resolves to the matching set. Until the first session result
+    // arrives there is no user, so reads come from local Dexie. A guest never
+    // gets a user and stays on local for the whole visit; sign-out (user →
+    // null) routes back to local and bumps the epoch, so providers re-load
+    // from Dexie rather than leaving the previous account's rows in memory.
     return createSessionRoutedRepositories(
       cloud,
       createLocalRepositories(),
@@ -98,3 +100,14 @@ export const repositories = createRepositories(STORAGE_MODE);
 // same pattern as createRepositories above.
 export const setCloudWriteHold: (held: boolean) => void =
   STORAGE_MODE === "cloud" && supabaseConfigured ? setOutboxHold : () => {};
+
+// The single point where the app tells the repository layer who is signed in.
+// AuthProvider calls this synchronously on every session/auth result BEFORE it
+// updates any state, which is what guarantees the guest/cloud router is already
+// correct when providers re-load on the `authEpoch` bump. (The outbox keeps its
+// own auth subscription for flushes that must work before React mounts;
+// setOutboxUser is idempotent for the same id, so the two paths cannot fight.)
+// No-op constant in local mode — same statically-foldable pattern as
+// setCloudWriteHold, so this export never drags the outbox into local bundles.
+export const notifyAuthUser: (userId: string | null) => void =
+  STORAGE_MODE === "cloud" && supabaseConfigured ? setOutboxUser : () => {};

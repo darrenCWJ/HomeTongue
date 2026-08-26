@@ -259,25 +259,27 @@ describe("createSessionRoutedRepositories", () => {
     expect(calledLabels(cloud)).toEqual([]);
   });
 
-  test("re-checks the session on every call, so one instance serves guest and signed-in phases", async () => {
-    // Arrange — the session restore lands after the first reads, then signs out
+  test("re-checks the session on every call, flipping all seven groups on one instance", async () => {
+    // Arrange — one long-lived instance, as the app holds it for the session
     const cloud = createFakeRepositories();
     const local = createFakeRepositories();
     let signedIn = false;
     const routed = createSessionRoutedRepositories(cloud, local, () => signedIn);
+    const allLocal = REPOSITORY_CALLS.map((call) => `${call.label} -> cloud:0 local:1`);
+    const allCloud = REPOSITORY_CALLS.map((call) => `${call.label} -> cloud:1 local:0`);
 
-    // Act
-    await routed.phrases.getAll();
+    // Act + Assert — guest before the session restore lands
+    expect(await recordRoutes(routed, cloud, local)).toEqual(allLocal);
+
+    // Act + Assert — the same instance once the session arrives
+    vi.clearAllMocks();
     signedIn = true;
-    await routed.phrases.getAll();
-    await routed.tags.getAll();
-    signedIn = false;
-    await routed.phrases.getAll();
+    expect(await recordRoutes(routed, cloud, local)).toEqual(allCloud);
 
-    // Assert
-    expect(calledLabels(cloud)).toEqual(["phrases.getAll", "tags.getAll"]);
-    expect(cloud.phrases.getAll).toHaveBeenCalledTimes(1);
-    expect(local.phrases.getAll).toHaveBeenCalledTimes(2);
+    // Act + Assert — and again after sign-out
+    vi.clearAllMocks();
+    signedIn = false;
+    expect(await recordRoutes(routed, cloud, local)).toEqual(allLocal);
   });
 
   test("keeps a guest write in the local repository and never reaches the cloud repository", async () => {
