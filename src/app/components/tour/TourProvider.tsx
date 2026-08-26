@@ -9,6 +9,7 @@ interface TourContextType {
   nextStep: () => void;
   prevStep: () => void;
   skipTour: () => void;
+  cancelTour: () => void;
   activeTour: TourPageId | null;
   currentStep: number;
   totalSteps: number;
@@ -74,18 +75,30 @@ export function TourProvider({ children }: TourProviderProps) {
     }
   }, [activeTour, completeTour]);
 
+  /**
+   * Ends the tour WITHOUT recording it as seen — the counterpart to
+   * `completeTour`. Used when the tour could not actually be shown (its
+   * `[data-tour]` anchors never rendered): writing `tourCompleted` there would
+   * burn the user's one automatic showing on a tour they never saw.
+   */
+  const cancelTour = useCallback(() => {
+    setActiveTour(null);
+    setCurrentStep(0);
+  }, []);
+
   const value = useMemo(
     () => ({
       startTour,
       nextStep,
       prevStep,
       skipTour,
+      cancelTour,
       activeTour,
       currentStep,
       totalSteps,
       isActive,
     }),
-    [startTour, nextStep, prevStep, skipTour, activeTour, currentStep, totalSteps, isActive]
+    [startTour, nextStep, prevStep, skipTour, cancelTour, activeTour, currentStep, totalSteps, isActive]
   );
 
   return <TourContext.Provider value={value}>{children}</TourContext.Provider>;

@@ -15,6 +15,37 @@ interface SpotlightRect {
 const PADDING = 8;
 const BORDER_RADIUS = 12;
 
+/** Anchors can lag the overlay by a frame or two (lazy chunk, layout, animation). */
+const ANCHOR_RETRY_MS = 100;
+const MAX_ANCHOR_RETRIES = 5;
+
+export type MissingAnchorAction = "cancel" | "advance";
+
+/**
+ * Decides what to do when a step's `[data-tour]` anchor is still absent after
+ * the retry budget.
+ *
+ * A missing anchor is ambiguous: the page may legitimately hide that control
+ * (an empty bookmarks list has no phrase card), or the whole page may simply
+ * not be there. Advancing blindly is what let a tour burn through every step
+ * behind a dark overlay and then write `tourCompleted` — marking itself seen
+ * without ever being shown. So:
+ *
+ * - step 0 missing → the tour never started; cancel, leave the flag alone.
+ * - a later step missing → skip it, that content is genuinely optional.
+ * - the LAST step missing with nothing ever rendered → cancel instead of
+ *   completing, so the write still requires at least one real showing.
+ */
+export function resolveMissingAnchor(
+  stepIndex: number,
+  anyStepRendered: boolean,
+  isLastStep: boolean
+): MissingAnchorAction {
+  if (stepIndex === 0) return "cancel";
+  if (isLastStep && !anyStepRendered) return "cancel";
+  return "advance";
+}
+
 function getTargetRect(target: string): SpotlightRect | null {
   const el = document.querySelector(`[data-tour="${target}"]`);
   if (!el) return null;
@@ -65,31 +96,74 @@ function getTooltipPosition(
 }
 
 export function TourOverlay() {
-  const { isActive, activeTour, currentStep, totalSteps, nextStep, prevStep, skipTour } = useTour();
+  const { isActive, activeTour, currentStep, totalSteps, nextStep, prevStep, skipTour, cancelTour } =
+    useTour();
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Evidence that the user was actually shown something. Kept per tour run so a
+  // replay cannot inherit an earlier run's claim.
+  const anyStepRenderedRef = useRef(false);
+
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  }, []);
+
+  // Declared BEFORE the positioning effect below: effects run in declaration
+  // order, so the reset lands before the first pass of a newly started tour.
+  useEffect(() => {
+    anyStepRenderedRef.current = false;
+  }, [activeTour]);
+
+  // The retry chain belongs to exactly one step of one tour. Advancing, going
+  // back, skipping or cancelling must kill a pending retry — otherwise it fires
+  // with a stale closure and advances past the step the user is now reading, or
+  // spotlights the wrong element.
+  useEffect(() => {
+    retryCountRef.current = 0;
+    return () => {
+      clearRetryTimer();
+      retryCountRef.current = 0;
+    };
+  }, [activeTour, currentStep, isActive, clearRetryTimer]);
 
   const updatePosition = useCallback(function positionPass() {
     if (!activeTour) return;
-    const step = TOUR_STEPS[activeTour][currentStep];
+    const steps = TOUR_STEPS[activeTour];
+    const step = steps[currentStep];
     if (!step) return;
 
     const rect = getTargetRect(step.target);
     if (!rect) {
-      if (retryCountRef.current < 5) {
+      clearRetryTimer();
+      if (retryCountRef.current < MAX_ANCHOR_RETRIES) {
         retryCountRef.current += 1;
-        setTimeout(positionPass, 100);
+        retryTimerRef.current = setTimeout(positionPass, ANCHOR_RETRY_MS);
+        return;
+      }
+      retryCountRef.current = 0;
+      const action = resolveMissingAnchor(
+        currentStep,
+        anyStepRenderedRef.current,
+        currentStep >= steps.length - 1
+      );
+      if (action === "cancel") {
+        cancelTour();
       } else {
-        retryCountRef.current = 0;
         nextStep();
       }
       return;
     }
 
+    clearRetryTimer();
     retryCountRef.current = 0;
+    anyStepRenderedRef.current = true;
     setSpotlightRect(rect);
 
     requestAnimationFrame(() => {
@@ -99,7 +173,7 @@ export function TourOverlay() {
       const pos = getTooltipPosition(rect, step.placement, tooltipWidth, tooltipHeight);
       setTooltipPos(pos);
     });
-  }, [activeTour, currentStep, nextStep]);
+  }, [activeTour, currentStep, nextStep, cancelTour, clearRetryTimer]);
 
   useEffect(() => {
     if (!isActive) return;
