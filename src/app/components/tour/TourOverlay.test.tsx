@@ -4,14 +4,19 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { TourPageId, UserProfile } from "@/types";
 import { TourProvider, useTour } from "./TourProvider";
 import { TourOverlay, resolveMissingAnchor } from "./TourOverlay";
+import { useTourAutoTrigger } from "./useTourAutoTrigger";
 
-// Three bugs under test:
+// Four bugs under test:
 // LEARN-03/PROF-05 — a tour whose `[data-tour]` anchors never render used to
 //   auto-advance through every step behind a dark overlay and then write
 //   `tourCompleted`, i.e. mark itself "seen" without ever being shown.
 // LEARN-10/PROF-10 — the missing-anchor retry `setTimeout` chain was never
 //   cancelled when the step changed, so an orphaned retry fired with a stale
 //   closure and advanced past the step the user had just moved to.
+// LEARN-03 (reviewer follow-up) — cancelling re-armed the auto-trigger, which
+//   relaunched the same unshowable tour every ~1.1s for as long as the user
+//   stayed on the page (a /learn sub-view keeps the pathname but unmounts the
+//   step-0 anchor), leaving a full-screen dim on ~45% of the time.
 
 // The animation library is a test boundary here, not the unit under test:
 // stubbing it keeps the retry/timer assertions deterministic under fake timers.
@@ -56,9 +61,14 @@ vi.mock("motion/react", async () => {
 
 const mockUpdateUserProfile = vi.fn();
 let mockProfile: UserProfile;
+let mockPathname = "/learn";
 
 vi.mock("@/app/context/ProfileProvider", () => ({
   useProfile: () => ({ userProfile: mockProfile, updateUserProfile: mockUpdateUserProfile }),
+}));
+
+vi.mock("react-router", () => ({
+  useLocation: () => ({ pathname: mockPathname }),
 }));
 
 // The chat tour's first three anchors, in order.
@@ -85,11 +95,22 @@ function TourStarter({ page }: { page: TourPageId }) {
   );
 }
 
-function renderTour(targets: readonly string[] = []) {
+/** Stands in for the app's real auto-launch, mounted under the same provider. */
+function AutoTriggerProbe() {
+  useTourAutoTrigger();
+  return null;
+}
+
+function renderTour(
+  targets: readonly string[] = [],
+  options: { page?: TourPageId; autoTrigger?: boolean } = {}
+) {
+  const { page = "chat", autoTrigger = false } = options;
   return render(
     <TourProvider>
       <Anchors targets={targets} />
-      <TourStarter page="chat" />
+      <TourStarter page={page} />
+      {autoTrigger && <AutoTriggerProbe />}
       <TourOverlay />
     </TourProvider>
   );
@@ -117,6 +138,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   // jsdom has no layout engine and therefore no scrollIntoView.
   Element.prototype.scrollIntoView = vi.fn();
+  mockPathname = "/learn";
   mockProfile = {
     id: "p1",
     name: "Ann",
@@ -137,6 +159,16 @@ describe("resolveMissingAnchor", () => {
 
   test("cancels on the first step even for a single-step tour", () => {
     expect(resolveMissingAnchor(0, false, true)).toBe("cancel");
+  });
+
+  test("advances past a missing step 0 the user had already been shown", () => {
+    // Back/ArrowLeft to a step whose anchor has since unmounted must not
+    // destroy the tour the user is mid-way through reading.
+    expect(resolveMissingAnchor(0, true, false)).toBe("advance");
+  });
+
+  test("advances from a shown single-step tour whose only anchor disappeared", () => {
+    expect(resolveMissingAnchor(0, true, true)).toBe("advance");
   });
 
   test("advances past a missing middle step once something has rendered", () => {
@@ -200,5 +232,42 @@ describe("TourOverlay — missing anchors", () => {
     // Assert — skipped the hidden step instead of stalling or cancelling.
     expect(screen.getByText("Save Conversation")).toBeInTheDocument();
     expect(mockUpdateUserProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe("TourOverlay — a cancelled tour stays cancelled for the session", () => {
+  test("an unshowable tour does not relaunch itself over and over", () => {
+    // Arrange — /learn with none of the learn tour's anchors, i.e. the user is
+    // inside a lesson/exam/roadmap sub-view that keeps the pathname.
+    renderTour([], { page: "learn", autoTrigger: true });
+
+    // Act — the 600ms auto-launch fires, the overlay mounts, and all five
+    // anchor retries fail, so the tour cancels without writing the profile.
+    advance(1, 700);
+    expect(overlay()).toBeInTheDocument();
+    advance(3, 200);
+    expect(overlay()).toBeNull();
+
+    // Assert — it stays gone. Sampled on a grid far finer than the ~1.1s
+    // arm → mount → cancel cycle the relaunch loop used to produce.
+    for (let i = 0; i < 20; i += 1) {
+      advance(1, 150);
+      expect(overlay()).toBeNull();
+    }
+    expect(mockUpdateUserProfile).not.toHaveBeenCalled();
+  });
+
+  test("an explicit replay still runs a tour that auto-cancelled earlier", () => {
+    // Arrange — same page, already auto-cancelled and suppressed.
+    renderTour([], { page: "learn", autoTrigger: true });
+    advance(1, 700);
+    advance(3, 200);
+    expect(overlay()).toBeNull();
+
+    // Act — the Profile REPLAY button path: an explicit startTour for that page.
+    act(() => click(/start tour/i));
+
+    // Assert — suppression only silences the automatic launch.
+    expect(overlay()).toBeInTheDocument();
   });
 });

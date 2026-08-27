@@ -31,7 +31,11 @@ export type MissingAnchorAction = "cancel" | "advance";
  * behind a dark overlay and then write `tourCompleted` — marking itself seen
  * without ever being shown. So:
  *
- * - step 0 missing → the tour never started; cancel, leave the flag alone.
+ * - step 0 missing with nothing ever rendered → the tour never started;
+ *   cancel, leave the flag alone.
+ * - step 0 missing after something HAS rendered → the user walked Back into a
+ *   step whose anchor has since unmounted. They are mid-tour and reading;
+ *   treat it like any other missing step rather than destroying the run.
  * - a later step missing → skip it, that content is genuinely optional.
  * - the LAST step missing with nothing ever rendered → cancel instead of
  *   completing, so the write still requires at least one real showing.
@@ -41,8 +45,7 @@ export function resolveMissingAnchor(
   anyStepRendered: boolean,
   isLastStep: boolean
 ): MissingAnchorAction {
-  if (stepIndex === 0) return "cancel";
-  if (isLastStep && !anyStepRendered) return "cancel";
+  if (!anyStepRendered && (stepIndex === 0 || isLastStep)) return "cancel";
   return "advance";
 }
 
@@ -96,8 +99,17 @@ function getTooltipPosition(
 }
 
 export function TourOverlay() {
-  const { isActive, activeTour, currentStep, totalSteps, nextStep, prevStep, skipTour, cancelTour } =
-    useTour();
+  const {
+    isActive,
+    activeTour,
+    currentStep,
+    totalSteps,
+    tourRunId,
+    nextStep,
+    prevStep,
+    skipTour,
+    cancelTour,
+  } = useTour();
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
@@ -117,21 +129,28 @@ export function TourOverlay() {
 
   // Declared BEFORE the positioning effect below: effects run in declaration
   // order, so the reset lands before the first pass of a newly started tour.
+  // Keyed on `tourRunId` as well as the page: restarting the tour that is
+  // already running is a same-value state update React bails out of, which
+  // would otherwise carry the previous run's "was shown" claim into the new
+  // one. The rects are cleared too, so a new run cannot flash the old run's
+  // spotlight and tooltip before the first positioning pass lands.
   useEffect(() => {
     anyStepRenderedRef.current = false;
-  }, [activeTour]);
+    setSpotlightRect(null);
+    setTooltipPos({ top: 0, left: 0 });
+  }, [activeTour, tourRunId]);
 
   // The retry chain belongs to exactly one step of one tour. Advancing, going
-  // back, skipping or cancelling must kill a pending retry — otherwise it fires
-  // with a stale closure and advances past the step the user is now reading, or
-  // spotlights the wrong element.
+  // back, restarting, skipping or cancelling must kill a pending retry —
+  // otherwise it fires with a stale closure and advances past the step the user
+  // is now reading, or spotlights the wrong element.
   useEffect(() => {
     retryCountRef.current = 0;
     return () => {
       clearRetryTimer();
       retryCountRef.current = 0;
     };
-  }, [activeTour, currentStep, isActive, clearRetryTimer]);
+  }, [activeTour, tourRunId, currentStep, isActive, clearRetryTimer]);
 
   const updatePosition = useCallback(function positionPass() {
     if (!activeTour) return;
@@ -154,7 +173,7 @@ export function TourOverlay() {
         currentStep >= steps.length - 1
       );
       if (action === "cancel") {
-        cancelTour();
+        cancelTour(activeTour);
       } else {
         nextStep();
       }
