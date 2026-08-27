@@ -48,10 +48,20 @@ export function useAudioRecorder() {
   // would overwrite the other in mediaRecorderRef — leaving that one recording
   // with nothing able to stop it (hot mic until reload).
   const startChainRef = useRef<Promise<void>>(Promise.resolve());
+  // The unmount cleanup below can only release what mediaRecorderRef holds,
+  // and while beginRecording is awaiting getUserMedia the ref is still null —
+  // so a start resolving after unmount must check this flag and bail instead
+  // of arming a recorder nothing can ever stop (hot mic until reload).
+  const unmountedRef = useRef(false);
 
   // Release the microphone if the component unmounts mid-recording
   useEffect(() => {
+    // Re-arm on every mount: StrictMode replays mount → cleanup → mount on the
+    // same ref object, which would otherwise leave the flag latched true and
+    // permanently disable recording in dev.
+    unmountedRef.current = false;
     return () => {
+      unmountedRef.current = true;
       const recorder = mediaRecorderRef.current;
       if (!recorder) return;
       try {
@@ -80,6 +90,12 @@ export function useAudioRecorder() {
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (unmountedRef.current) {
+      // The component went away while the permission prompt was up; release
+      // the stream here because the unmount cleanup ran against a null ref.
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     const preferredTypes = ["audio/webm", "audio/mp4", "audio/ogg", "audio/wav"];
     const mimeType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t));
     const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
