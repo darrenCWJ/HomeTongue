@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { StrictMode } from "react";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { useAudioRecorder } from "./audio";
@@ -209,5 +210,48 @@ describe("useAudioRecorder sequential use", () => {
 
     expect(liveRecorders()).toHaveLength(1);
     expect(allTracksStopped(streamA)).toBe(true);
+  });
+});
+
+// The unmount cleanup can only release what mediaRecorderRef holds — and while
+// a start is awaiting the permission prompt, it holds nothing. Unmounting in
+// that window (press the mic, navigate away before answering the prompt) must
+// not let the resolving start arm a recorder no cleanup can ever reach.
+describe("useAudioRecorder unmount during a pending start", () => {
+  test("an unmount while the permission prompt is up releases the stream and never arms", async () => {
+    const pending = deferred<FakeStream>();
+    const stream = new FakeStream();
+    getUserMedia.mockReturnValueOnce(pending.promise);
+    const { result, unmount } = renderHook(() => useAudioRecorder());
+
+    let start!: Promise<void>;
+    act(() => {
+      start = result.current.startRecording();
+    });
+
+    unmount();
+
+    await act(async () => {
+      pending.resolve(stream);
+      await start;
+    });
+
+    expect(liveRecorders()).toHaveLength(0);
+    expect(allTracksStopped(stream)).toBe(true);
+  });
+
+  test("StrictMode's mount-unmount-mount cycle leaves a later start working", async () => {
+    // StrictMode replays mount → cleanup → mount on the SAME ref objects, so a
+    // cleanup that latches "unmounted" without the effect body re-arming it
+    // would permanently disable recording in dev.
+    const stream = new FakeStream();
+    getUserMedia.mockResolvedValue(stream);
+    const { result } = renderHook(() => useAudioRecorder(), { wrapper: StrictMode });
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    expect(liveRecorders()).toHaveLength(1);
   });
 });
