@@ -155,6 +155,7 @@ vi.mock("./hooks/usePhraseSelection", () => ({
     setNewTagInput: vi.fn(),
     isCreatingPhraseTag: false,
     setIsCreatingPhraseTag: vi.fn(),
+    isSavingPhrase: false,
     handleBubblePointerDown: vi.fn(),
     cancelBubbleLongPress: vi.fn(),
     handleBubblePointerMove: vi.fn(),
@@ -291,6 +292,19 @@ describe("ChatPage conversation reset", () => {
     expect(prefetchCache.size).toBe(1);
     expect(lastRecordRef.current).toBe(RECORD);
     expect(chatEpochRef?.current).toBe(0);
+  });
+
+  test("New Chat behind an open save dialog closes it", () => {
+    render(<ChatPage />);
+
+    click("open save");
+    expect(screen.getByRole("button", { name: "confirm save" })).toBeInTheDocument();
+    click("new chat");
+
+    // The dialog was opened for a conversation that no longer exists; leaving
+    // it up would offer to save nothing.
+    expect(screen.queryByRole("button", { name: "confirm save" })).not.toBeInTheDocument();
+    expect(mockDiscardChat).toHaveBeenCalledWith(messages);
   });
 
   test("a reset unblocks the input even when the discarded turn was still translating", () => {

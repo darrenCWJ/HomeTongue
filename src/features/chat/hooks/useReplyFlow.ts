@@ -8,7 +8,10 @@ import type { RecordRef } from "./useMicRecording";
 interface ReplyFlowParams {
   tone: Tone;
   userProfile: UserProfile | null;
+  /** Live phrase library, read at write time — see savePreparedPhrase. */
+  phrasesRef: MutableRefObject<Phrase[]>;
   addPhrase: (phrase: Phrase) => void;
+  updatePhrase: (phrase: Phrase) => void;
   addMessage: (msg: Message) => void;
   setStage: (stage: "transcribing" | "translating" | null) => void;
   setStageIsUserSide: (isUserSide: boolean) => void;
@@ -35,7 +38,9 @@ interface ReplyFlowParams {
 export function useReplyFlow({
   tone,
   userProfile,
+  phrasesRef,
   addPhrase,
+  updatePhrase,
   addMessage,
   setStage,
   setStageIsUserSide,
@@ -53,6 +58,23 @@ export function useReplyFlow({
   const [isEditingPending, setIsEditingPending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typedReply, setTypedReply] = useState("");
+
+  /**
+   * Persist a freshly prepared phrase, upserting rather than inserting.
+   * A chip's prefetched translation carries the chip's own id, and the chip
+   * stub is already in the library under it — addPhrase dedupes by id, so
+   * inserting silently dropped the real translation. Existence is read from
+   * the live ref because the stub can land while this translation is still in
+   * flight. Only the chip path can collide — a transcript reply always
+   * translates under a freshly minted id.
+   */
+  const savePreparedPhrase = (phrase: Phrase) => {
+    if (phrasesRef.current.some((p) => p.id === phrase.id)) {
+      updatePhrase(phrase);
+      return;
+    }
+    addPhrase(phrase);
+  };
 
   const confirmEnglishReply = async () => {
     if (!pendingEnglish) return;
@@ -95,7 +117,9 @@ export function useReplyFlow({
       } catch {
         // autoplay may be blocked on this platform; audio is saved for manual replay
       } finally {
-        setPlayingId(null);
+        // Only clear the highlight this call set: a clip that outlives the
+        // conversation must not unhighlight the fresh one's playing bubble.
+        if (chatEpochRef.current === epoch) setPlayingId(null);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -128,7 +152,7 @@ export function useReplyFlow({
         ? await cached
         : await prepareTranslation(englishText, tone, userProfile?.preferredVoiceId);
       if (chatEpochRef.current !== epoch) return; // conversation reset mid-translation
-      addPhrase(phrase);
+      savePreparedPhrase(phrase);
       addMessage({
         id: phrase.id,
         sender: "user",
@@ -146,7 +170,9 @@ export function useReplyFlow({
       } catch {
         // autoplay may be blocked on this platform; audio is saved for manual replay
       } finally {
-        setPlayingId(null);
+        // Only clear the highlight this call set: a clip that outlives the
+        // conversation must not unhighlight the fresh one's playing bubble.
+        if (chatEpochRef.current === epoch) setPlayingId(null);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

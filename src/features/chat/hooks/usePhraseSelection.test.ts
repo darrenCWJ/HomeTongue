@@ -1,0 +1,174 @@
+import "@testing-library/jest-dom/vitest";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import type { Message, Phrase } from "../../../types";
+import { usePhraseSelection } from "./usePhraseSelection";
+
+// CHAT-08 — saving a selected phrase runs for as long as its audio takes
+// (replaying the captured clips, or a fresh TTS round trip for edited text)
+// while the sheet's Save button stayed live. A second tap saved the same
+// phrase again under a new id. The handler now refuses re-entry and the sheet
+// disables the button while a save is in flight.
+
+const mockPlayDataUrl = vi.fn<(url: string) => Promise<void>>();
+const mockSpeakTextAndCapture = vi.fn();
+let idCounter = 0;
+
+vi.mock("../../../hooks/audio", () => ({
+  playDataUrl: (url: string) => mockPlayDataUrl(url),
+}));
+
+vi.mock("../../../hooks/useGoogleTTS", () => ({
+  speakTextAndCapture: (...args: unknown[]) => mockSpeakTextAndCapture(...args),
+}));
+
+vi.mock("../../../utils/id", () => ({
+  newId: () => `phrase-${++idCounter}`,
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
+// The long-press plumbing is a pointer/timer concern of its own; this file
+// only needs the sheet opened, so the callback is captured directly.
+let openSheet: (msg: Message, preText: string) => void = () => {};
+
+vi.mock("./useBubbleLongPress", () => ({
+  useBubbleLongPress: (onSelect: (msg: Message, preText: string) => void) => {
+    openSheet = onSelect;
+    return {
+      handleBubblePointerDown: vi.fn(),
+      cancelBubbleLongPress: vi.fn(),
+      handleBubblePointerMove: vi.fn(),
+    };
+  },
+}));
+
+/** A promise plus its resolver, so a test can hold a save mid-flight. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const BOT_MESSAGE: Message = {
+  id: "m1",
+  sender: "bot",
+  text: "早晨",
+  englishTranslation: "good morning",
+  audioDataUrls: ["data:audio/webm;base64,AAA"],
+};
+
+function setup() {
+  const addPhrase = vi.fn<(phrase: Phrase) => void>();
+  const { result } = renderHook(() =>
+    usePhraseSelection({ addPhrase, activeLanguageCode: "yue-HK", userProfile: null })
+  );
+  return { result, addPhrase };
+}
+
+/** Open the sheet on the bot bubble with the given (possibly edited) selection. */
+function openWith(result: { current: ReturnType<typeof usePhraseSelection> }, text = "早晨") {
+  act(() => openSheet(BOT_MESSAGE, "早晨"));
+  act(() => result.current.setPhraseSelectionText(text));
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  idCounter = 0;
+  mockPlayDataUrl.mockImplementation(() => Promise.resolve());
+  mockSpeakTextAndCapture.mockResolvedValue({
+    audioDataUrl: "data:audio/mp3;base64,BBB",
+    play: () => Promise.resolve(),
+  });
+});
+
+afterEach(cleanup);
+
+describe("usePhraseSelection double-save guard (CHAT-08)", () => {
+  test("a second Save tap during an unedited save does not save twice", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result);
+    const replay = deferred<void>();
+    mockPlayDataUrl.mockReturnValue(replay.promise);
+
+    act(() => {
+      void result.current.handleSaveSelectedPhrase();
+      void result.current.handleSaveSelectedPhrase();
+    });
+    await act(async () => {
+      replay.resolve();
+      await flush();
+    });
+
+    expect(addPhrase).toHaveBeenCalledTimes(1);
+  });
+
+  test("a second Save tap during an edited save does not save twice", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result, "早晨啊");
+    const tts = deferred<{ audioDataUrl: string; play: () => Promise<void> }>();
+    mockSpeakTextAndCapture.mockReturnValue(tts.promise);
+
+    act(() => {
+      void result.current.handleSaveSelectedPhrase();
+      void result.current.handleSaveSelectedPhrase();
+    });
+    await act(async () => {
+      tts.resolve({ audioDataUrl: "data:audio/mp3;base64,BBB", play: () => Promise.resolve() });
+      await flush();
+    });
+
+    expect(mockSpeakTextAndCapture).toHaveBeenCalledTimes(1);
+    expect(addPhrase).toHaveBeenCalledTimes(1);
+  });
+
+  test("isSavingPhrase is set while the save runs and cleared when it settles", async () => {
+    const { result } = setup();
+    openWith(result);
+    const replay = deferred<void>();
+    mockPlayDataUrl.mockReturnValue(replay.promise);
+
+    act(() => void result.current.handleSaveSelectedPhrase());
+    expect(result.current.isSavingPhrase).toBe(true);
+
+    await act(async () => {
+      replay.resolve();
+      await flush();
+    });
+
+    expect(result.current.isSavingPhrase).toBe(false);
+  });
+
+  test("a failed save clears isSavingPhrase so the sheet stays usable", async () => {
+    const { result } = setup();
+    openWith(result, "早晨啊");
+    mockSpeakTextAndCapture.mockRejectedValueOnce(new Error("tts down"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(result.current.isSavingPhrase).toBe(false);
+  });
+
+  test("a later save still works once the first has finished", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result);
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    openWith(result);
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(addPhrase).toHaveBeenCalledTimes(2);
+  });
+});

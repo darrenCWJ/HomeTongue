@@ -57,6 +57,10 @@ export function ChatPage() {
   const lastRecordRef = useRef<RecordRef | null>(null);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+  // Same latest-ref pattern: flows that await for seconds must read the phrase
+  // library as it is when they write, not as it was when they started.
+  const phrasesRef = useRef(phrases);
+  phrasesRef.current = phrases;
 
   // Every conversation reset bumps this. Flows that await for seconds capture
   // it before the await and discard their result if it changed, so nothing
@@ -104,7 +108,9 @@ export function ChatPage() {
   } = useReplyFlow({
     tone,
     userProfile,
+    phrasesRef,
     addPhrase,
+    updatePhrase,
     addMessage,
     setStage,
     setStageIsUserSide,
@@ -125,7 +131,7 @@ export function ChatPage() {
     startListeningCantonese,
     startListeningEnglish,
   } = useMicRecording({
-    phrases,
+    phrasesRef,
     addPhrase,
     updatePhrase,
     addMessage,
@@ -154,6 +160,7 @@ export function ChatPage() {
     setNewTagInput,
     isCreatingPhraseTag,
     setIsCreatingPhraseTag,
+    isSavingPhrase,
     handleBubblePointerDown,
     cancelBubbleLongPress,
     handleBubblePointerMove,
@@ -396,6 +403,7 @@ export function ChatPage() {
         isCreatingPhraseTag={isCreatingPhraseTag}
         setIsCreatingPhraseTag={setIsCreatingPhraseTag}
         createTag={createTag}
+        isSavingPhrase={isSavingPhrase}
         onSave={handleSaveSelectedPhrase}
         onCancel={cancelPhraseSelection}
       />

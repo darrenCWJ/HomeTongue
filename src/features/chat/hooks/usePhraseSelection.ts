@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Message, Phrase, UserProfile } from "../../../types";
 import { playDataUrl } from "../../../hooks/audio";
@@ -23,6 +23,10 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
   const [phraseTagSelection, setPhraseTagSelection] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
   const [isCreatingPhraseTag, setIsCreatingPhraseTag] = useState(false);
+  const [isSavingPhrase, setIsSavingPhrase] = useState(false);
+  // A ref as well as the state: two taps in the same tick both read the same
+  // render's state, so only a ref can actually turn the second one away.
+  const isSavingPhraseRef = useRef(false);
 
   const { handleBubblePointerDown, cancelBubbleLongPress, handleBubblePointerMove } = useBubbleLongPress(
     (msg, preText) => {
@@ -32,6 +36,10 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
   );
 
   const handleSaveSelectedPhrase = async () => {
+    // A save runs for as long as its audio does (clip replay, or a fresh TTS
+    // round trip for edited text). Without this the sheet stayed live and a
+    // second tap saved the same phrase again under a new id.
+    if (isSavingPhraseRef.current) return;
     if (!phraseSelectionMsg || !phraseSelectionText.trim()) return;
     const msg = phraseSelectionMsg;
     const dialectText = phraseSelectionText.trim();
@@ -40,6 +48,8 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
     const wasEdited = dialectText !== originalDialect.trim();
     const phraseId = newId();
 
+    isSavingPhraseRef.current = true;
+    setIsSavingPhrase(true);
     try {
       if (!wasEdited) {
         const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
@@ -80,6 +90,9 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
       toast.success("Phrase saved!");
     } catch {
       toast.error("Failed to save phrase.");
+    } finally {
+      isSavingPhraseRef.current = false;
+      setIsSavingPhrase(false);
     }
 
     setPhraseSelectionMsg(null);
@@ -105,6 +118,7 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
     setNewTagInput,
     isCreatingPhraseTag,
     setIsCreatingPhraseTag,
+    isSavingPhrase,
     handleBubblePointerDown,
     cancelBubbleLongPress,
     handleBubblePointerMove,

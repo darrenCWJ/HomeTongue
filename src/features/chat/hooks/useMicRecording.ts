@@ -1,4 +1,4 @@
-import { useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { toast } from "sonner";
 import type { Message, Phrase, Tone, UserProfile } from "../../../types";
 import { useAudioRecorder, blobToDataUrl } from "../../../hooks/audio";
@@ -26,7 +26,12 @@ export type RecordRef = {
 };
 
 interface MicRecordingParams {
-  phrases: Phrase[];
+  /**
+   * Live phrase library, read at write time. A render-captured array would be
+   * seconds stale by the time an append lands, silently reverting a bookmark
+   * or tag the user applied while the turn was still transcribing.
+   */
+  phrasesRef: MutableRefObject<Phrase[]>;
   addPhrase: (phrase: Phrase) => void;
   updatePhrase: (phrase: Phrase) => void;
   addMessage: (msg: Message) => void;
@@ -40,9 +45,7 @@ interface MicRecordingParams {
   setLatestSuggestions: (suggestions: Phrase[]) => void;
   setStage: (stage: "transcribing" | "translating" | null) => void;
   setStageIsUserSide: (isUserSide: boolean) => void;
-  setPendingEnglish: (
-    pending: { text: string; resultPromise: Promise<PreparedTranslation> } | null
-  ) => void;
+  setPendingEnglish: (pending: { text: string; resultPromise: Promise<PreparedTranslation> } | null) => void;
   setPendingEditText: (text: string) => void;
   /** Bumped by ChatPage's conversation reset — see the guards in stopListening. */
   chatEpochRef: MutableRefObject<number>;
@@ -60,7 +63,7 @@ interface MicRecordingParams {
  * Save, dialect switch) while the request was in flight.
  */
 export function useMicRecording({
-  phrases,
+  phrasesRef,
   addPhrase,
   updatePhrase,
   addMessage,
@@ -127,8 +130,10 @@ export function useMicRecording({
 
   const startListeningEnglish = async () => {
     try {
-      setLatestSuggestions([]);
       await startRecording();
+      // Only once the mic is actually live: clearing first meant a denied
+      // permission ate the chips the user could still have tapped.
+      setLatestSuggestions([]);
       setListeningMode("english");
     } catch {
       recordingStartRef.current = null;
@@ -187,17 +192,25 @@ export function useMicRecording({
             englishTranslation,
             audioDataUrls: accumulatedUrls,
           });
-          const existingPhrase = phrases.find((p) => p.id === prev.msgId);
-          updatePhrase({
+          // Merge over the phrase as it stands right now: everything the user
+          // touched while this turn was in flight (bookmark, tags, createdAt)
+          // must survive the append. The fallback covers a phrase deleted from
+          // the library mid-conversation.
+          const existingPhrase = phrasesRef.current.find((p) => p.id === prev.msgId) ?? {
             id: prev.msgId,
+            original: "",
+            dialect: "",
+            pronunciation: "",
+            isBookmarked: false,
+            context: "",
+            languageCode: activeLanguageCode,
+          };
+          updatePhrase({
+            ...existingPhrase,
             original: englishTranslation,
             dialect: combinedText,
-            pronunciation: "",
-            isBookmarked: existingPhrase?.isBookmarked ?? false,
-            context: existingPhrase?.context ?? "",
             audioDataUrl: accumulatedUrls[0],
             audioDataUrls: accumulatedUrls,
-            languageCode: existingPhrase?.languageCode ?? activeLanguageCode,
           });
           const prevSuggestionMsgId = prev.suggestionMsgId;
           lastRecordRef.current = {
@@ -241,7 +254,10 @@ export function useMicRecording({
             .find((m) => m.sender === "user" && !!m.dialectText);
           if (practiceTarget?.dialectText) {
             scoreDialectAccuracyDetailed(practiceTarget.dialectText, dialectText)
-              .then((matchScore) => updateMessage(msgId, { matchScore }))
+              .then((matchScore) => {
+                if (isStale()) return; // conversation reset mid-scoring
+                updateMessage(msgId, { matchScore });
+              })
               .catch(() => {});
           }
           lastRecordRef.current = {
@@ -276,6 +292,23 @@ export function useMicRecording({
       if (!isStale()) setStage(null);
     }
   };
+
+  // A dialect switch removes the only control that can stop a dialect
+  // recording: ActionBar renders the Dialect mic solely for packs with an stt
+  // model, so switching to a voice-less pack mid-recording used to leave the
+  // recorder hot with nothing on screen to release it. Stop it here instead.
+  // The captured audio belongs to the pack that is going away, so this is a
+  // hard stop; the turn it produces is discarded by the epoch guard above,
+  // because ChatPage's dialect-switch reset bumps the epoch in an effect
+  // registered after this one.
+  const prevLanguageCodeRef = useRef(activeLanguageCode);
+  useEffect(() => {
+    if (prevLanguageCodeRef.current === activeLanguageCode) return; // mounting is not a switch
+    prevLanguageCodeRef.current = activeLanguageCode;
+    if (!listeningMode && !recordingModeRef.current) return;
+    void stopListening();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- change-only on the language; stopListening is rebuilt every render
+  }, [activeLanguageCode]);
 
   return {
     listeningMode,
