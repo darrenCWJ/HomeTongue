@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
+import { toast } from "sonner";
 import type { Message, Phrase, Tag } from "../../../types";
 import { usePhraseSelection } from "./usePhraseSelection";
 
@@ -403,5 +404,90 @@ describe("usePhraseSelection tag residue reset on selection switch (coordinator 
 
     expect(result.current.isCreatingPhraseTag).toBe(false);
     expect(result.current.newTagInput).toBe("");
+  });
+});
+
+// Final whole-branch review (MINOR) — the selection was cleared
+// unconditionally after the try/catch, so a FAILED save closed the sheet and
+// threw away the user's edited text behind the error toast: the one state
+// worth keeping was the one the failure destroyed. The clears now run only
+// when the save actually succeeded.
+describe("usePhraseSelection failed-save retention", () => {
+  test("a failed save keeps the sheet open with the edited text intact", async () => {
+    const { result } = setup();
+    openWith(result, "早晨啊"); // edited → the TTS path, which is what rejects
+    mockSpeakTextAndCapture.mockRejectedValueOnce(new Error("tts down"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("Failed to save phrase.");
+    expect(result.current.phraseSelectionMsg).toBe(BOT_MESSAGE);
+    expect(result.current.phraseSelectionText).toBe("早晨啊");
+  });
+
+  test("a failed save keeps the chosen tags so a retry still carries them", async () => {
+    const { result } = setup();
+    openWith(result, "早晨啊");
+    act(() => result.current.setPhraseTagSelection(["existing-tag"]));
+    mockSpeakTextAndCapture.mockRejectedValueOnce(new Error("tts down"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(result.current.phraseTagSelection).toEqual(["existing-tag"]);
+  });
+
+  test("retrying after a failed save saves the edited text the sheet kept", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result, "早晨啊");
+    mockSpeakTextAndCapture.mockRejectedValueOnce(new Error("tts down"));
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+    expect(addPhrase).not.toHaveBeenCalled();
+
+    // Act — the user taps Save again on the sheet that stayed open
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ dialect: "早晨啊" }));
+  });
+
+  // The boundary the success flag draws: the phrase reaching the library, not
+  // the handler running to the end. Audio is replayed AFTER addPhrase, so a
+  // clip that fails to play has still saved the phrase — reopening the sheet
+  // there would invite a retry that saves it twice.
+  test("audio failing after the phrase was added still closes the sheet", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result, "早晨啊");
+    mockSpeakTextAndCapture.mockResolvedValueOnce({
+      audioDataUrl: "data:audio/mp3;base64,BBB",
+      play: () => Promise.reject(new Error("autoplay blocked")),
+    });
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(addPhrase).toHaveBeenCalledTimes(1);
+    expect(result.current.phraseSelectionMsg).toBeNull();
+  });
+
+  test("a successful save still clears the selection", async () => {
+    const { result } = setup();
+    openWith(result, "早晨啊");
+    act(() => result.current.setPhraseTagSelection(["existing-tag"]));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(result.current.phraseSelectionMsg).toBeNull();
+    expect(result.current.phraseSelectionText).toBe("");
+    expect(result.current.phraseTagSelection).toEqual([]);
   });
 });

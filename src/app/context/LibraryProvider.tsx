@@ -83,6 +83,14 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     void reloadEpoch;
+    // An earlier run's promise may still be in flight when the epoch changes.
+    // Ignore whatever it settles to — every write below belongs to the run
+    // that is still current. On a cold start in a cloud build the epoch-0
+    // guest load reads local Dexie, which can still be opening (a slow
+    // Capacitor webview) when a sign-in bumps the epoch; if that guest
+    // snapshot landed last it would replace the signed-in library in memory,
+    // and the user's next edit would persist guest rows into their account.
+    let cancelled = false;
     Promise.all([
       repositories.phrases.getAll(),
       repositories.conversations.getAll(),
@@ -91,6 +99,7 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       repositories.tags.getAll(),
     ])
       .then(([p, s, lp, cl, t]) => {
+        if (cancelled) return;
         loadFailedRef.current = false;
         // Hydrated: cloud writes may flow again; held writes flush now.
         setCloudWriteHold(false);
@@ -101,6 +110,9 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
         setTags(t);
       })
       .catch((err) => {
+        // Same fence on the failure path: a dead run must not disable
+        // persistence — or re-hold cloud writes — for the run that replaced it.
+        if (cancelled) return;
         loadFailedRef.current = true;
         // Cloud: capture writes durably in the outbox instead (no-op locally).
         setCloudWriteHold(true);
@@ -116,6 +128,10 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
           err
         );
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [reloadEpoch]);
 
   /**

@@ -96,6 +96,10 @@ export function usePhraseSelection({
       setIsCreatingPhraseTag(false);
       setNewTagInput("");
     }
+    // "The phrase reached the library", not "the save ran to the end": audio
+    // is replayed AFTER the phrase is added, so a clip that fails to play must
+    // still close the sheet — reopening it would invite a duplicate save.
+    let saved = false;
     try {
       if (!wasEdited) {
         const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
@@ -111,6 +115,7 @@ export function usePhraseSelection({
           tags: finalTags,
           languageCode: activeLanguageCode,
         });
+        saved = true;
         for (const url of urls) {
           try {
             await playDataUrl(url);
@@ -131,6 +136,7 @@ export function usePhraseSelection({
           tags: finalTags,
           languageCode: activeLanguageCode,
         });
+        saved = true;
         await play();
       }
       toast.success("Phrase saved!");
@@ -141,6 +147,10 @@ export function usePhraseSelection({
       setIsSavingPhrase(false);
     }
 
+    // A save that never got that far (a TTS rejection on edited text) used to
+    // close the sheet anyway, throwing away the edited text the user would
+    // have to retype — behind an error toast telling them to try again.
+    if (!saved) return;
     setPhraseSelectionMsg(null);
     setPhraseSelectionText("");
     setPhraseTagSelection([]);
