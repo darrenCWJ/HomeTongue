@@ -60,16 +60,26 @@ export function ExamView({
   // to stop yet. It used to be dropped, so the prompt resolved into a hot mic
   // nobody was holding and the next tap restarted it, discarding the audio.
   const releasedDuringStartRef = useRef(false);
+  // Set synchronously, before the first await, so a second press landing in the
+  // same prompt window is ignored rather than stacking another start. Without
+  // it the two presses shared one release flag: the first start consumed what
+  // was really the second press's release, and the second armed a recorder
+  // nobody was holding — and a tap could not stop it, since the trigger ref
+  // reads as a hold. (Mirrors useMicRecording's synchronous ownership ref.)
+  const isStartingRef = useRef(false);
   const HOLD_THRESHOLD_MS = 300;
 
   const startListening = async () => {
+    isStartingRef.current = true;
     releasedDuringStartRef.current = false;
     try {
       await startRecording();
     } catch {
+      isStartingRef.current = false;
       toast.error("Microphone access denied.");
       return;
     }
+    isStartingRef.current = false;
     recordingStartRef.current = Date.now();
     setIsRecording(true);
     if (releasedDuringStartRef.current) {
@@ -130,6 +140,8 @@ export function ExamView({
       stopListening();
       return;
     }
+    // A start already waiting on the mic owns this press.
+    if (isStartingRef.current) return;
     await startListening();
   };
 

@@ -135,6 +135,32 @@ describe("ExamView mic hold", () => {
     expect(screen.getByText("88%")).toBeInTheDocument();
   });
 
+  // Reviewer finding: the release flag is a single slot, so an impatient
+  // second press during the same prompt used to reset it — start #1 then
+  // consumed what was really start #2's release, and start #2 armed a second
+  // recorder with nobody holding the button and no way to stop it (a tap
+  // restarts rather than stops, because the trigger ref reads as a hold).
+  test("a second press during a slow permission prompt does not arm an unheld mic", async () => {
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+    renderExam();
+
+    fireEvent.pointerDown(mic());
+    fireEvent.pointerUp(mic());
+    // The prompt is still up and the user taps again.
+    fireEvent.pointerDown(mic());
+    fireEvent.pointerUp(mic());
+
+    await act(async () => {
+      permission.resolve();
+      await flush();
+    });
+
+    expect(mockStartRecording).toHaveBeenCalledTimes(1);
+    expect(mockStopRecording).toHaveBeenCalled();
+    expect(screen.getByText("Tap or hold to record")).toBeInTheDocument();
+  });
+
   // The released-during-start flag is set from pointer-up, and pointer-leave
   // deliberately does not set it (it also fires for a mouse merely passing
   // over the button). This pins that the leave path still ends a real hold.
