@@ -16,8 +16,11 @@ export type SyncEvent =
   /** A queued write exhausted its retries and was discarded. */
   | { type: "entry-dropped"; entity: string; op: string }
   /**
-   * Local mode only: the backing store could not be read, so writes are
-   * skipped and changes live in memory until the tab closes. Unlike the
+   * The session's backing store could not be read and its writes have no
+   * durable fallback, so they are skipped and changes live in memory until
+   * the tab closes. Emitted for any session routed to local Dexie: local
+   * mode, or a guest in a cloud build (src/repositories/routing.ts) — never
+   * for a signed-in cloud session, whose writes the outbox holds. Unlike the
    * outbox events this is not transient — it holds for the whole session.
    */
   | { type: "persistence-disabled" };

@@ -8,7 +8,12 @@ import {
   useRef,
   ReactNode,
 } from "react";
-import { repositories, isCloudStorageMode, setCloudWriteHold } from "../../repositories";
+import {
+  repositories,
+  isCloudStorageMode,
+  isSessionRoutedToCloud,
+  setCloudWriteHold,
+} from "../../repositories";
 import type { Phrase, Session, LessonProgress, ConversationLesson, Tag, TagType } from "../../types";
 import { newId } from "../../utils/id";
 import { useAuth } from "./AuthProvider";
@@ -60,11 +65,14 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   // Set when the initial load rejects. While true, mutations keep updating
   // the in-memory state (UI stays usable) but never reach the backing store
   // directly — an unhydrated state must not overwrite real stored data.
-  // Guard ownership: in LOCAL mode this guard owns everything (writes are
-  // skipped, memory-only, as before). In CLOUD mode it only decides WHEN
-  // writes may hit the network; the outbox (src/repositories/outbox/) owns
-  // durability — load failure puts it in hold mode so writes queue locally,
-  // and a later successful load clears the hold and flushes the queue.
+  // Guard ownership follows the SESSION ROUTER, not the build mode: for any
+  // session whose calls go to local Dexie (local mode always, and a guest in
+  // a cloud build — see src/repositories/routing.ts) this guard owns
+  // everything: writes are skipped, memory-only. For a signed-in cloud
+  // session it only decides WHEN writes may hit the network; the outbox
+  // (src/repositories/outbox/) owns durability — load failure puts it in hold
+  // mode so writes queue locally, and a later successful load clears the hold
+  // and flushes the queue.
   // A ref (not state) so the stable `persist` callback reads the latest value.
   const loadFailedRef = useRef(false);
 
@@ -116,10 +124,13 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
         loadFailedRef.current = true;
         // Cloud: capture writes durably in the outbox instead (no-op locally).
         setCloudWriteHold(true);
-        // Local mode has no outbox to fall back on — writes are skipped for
-        // the rest of the session, so say so instead of letting the user
-        // work on into an empty reload. useSyncToasts renders the banner.
-        if (!isCloudStorageMode && !persistenceDisabledNotifiedRef.current) {
+        // A session routed to local Dexie has no outbox to fall back on —
+        // local mode always, and a guest in a cloud build (the build flag
+        // cannot tell them apart; only the session router can). Writes are
+        // skipped for the rest of the session, so say so instead of letting
+        // the user work on into an empty reload. useSyncToasts renders the
+        // banner.
+        if (!isSessionRoutedToCloud() && !persistenceDisabledNotifiedRef.current) {
           persistenceDisabledNotifiedRef.current = true;
           emitSyncEvent({ type: "persistence-disabled" });
         }
@@ -135,16 +146,18 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   }, [reloadEpoch]);
 
   /**
-   * Run a single repository write with error handling. After a failed load:
-   * local mode skips the write entirely and the change lives in memory only
-   * (the user is told once — see the load catch above). Cloud mode still runs
-   * it, because a SIGNED-IN cloud write goes through the outbox, which the
-   * failed load just put in hold mode, so it is captured durably for a later
-   * flush. (A guest in a cloud build is routed per call to local Dexie and
-   * never reaches the outbox — see src/repositories/routing.ts.)
+   * Run a single repository write with error handling. After a failed load
+   * the decision follows the session router (src/repositories/routing.ts),
+   * asked per write like the router itself decides per call: a session whose
+   * writes go to local Dexie — local mode always, and a guest in a cloud
+   * build — skips the write entirely and the change lives in memory only
+   * (the user is told once — see the load catch above). A signed-in cloud
+   * session still runs it, because its write goes through the outbox, which
+   * the failed load just put in hold mode, so it is captured durably for a
+   * later flush.
    */
   const persist = useCallback((op: string, write: () => Promise<unknown>) => {
-    if (loadFailedRef.current && !isCloudStorageMode) {
+    if (loadFailedRef.current && !isSessionRoutedToCloud()) {
       console.error(`[library] ${op} not persisted: initial load failed; change kept in memory only`);
       return;
     }

@@ -117,6 +117,9 @@ vi.mock("../../repositories", () => ({
   get isCloudStorageMode() {
     return mocks.isCloudStorageMode;
   },
+  // The session router's answer, mirroring production wiring: epoch 0 is the
+  // guest cold start on local Dexie; any bump means a signed-in cloud user.
+  isSessionRoutedToCloud: () => mocks.isCloudStorageMode && authEpoch > 0,
   setCloudWriteHold: (hold: boolean) => setCloudWriteHoldSpy(hold),
   repositories: {
     phrases: {

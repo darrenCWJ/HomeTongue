@@ -33,6 +33,20 @@ const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.e
 // re-run when the auth session changes; in local mode it is a constant.
 export const isCloudStorageMode: boolean = STORAGE_MODE === "cloud" && supabaseConfigured;
 
+// The session router's per-call answer: are this session's repository calls
+// currently going to the outbox-backed cloud set (signed-in user in a cloud
+// build), or to local Dexie (local mode always; a guest in a cloud build —
+// see src/repositories/routing.ts)? Unlike isCloudStorageMode this changes
+// with the auth session, so providers must ask it, not the build flag, when
+// deciding whether a write that outlives a failed load is captured durably
+// (cloud set → outbox) or is heading for the store that just failed. It is
+// the same function createRepositories hands the router below, so the two
+// answers cannot drift. Constant false in local mode — the literal env check
+// keeps the branch statically foldable so this export never drags the outbox
+// into local bundles, same pattern as setCloudWriteHold below.
+export const isSessionRoutedToCloud: () => boolean =
+  STORAGE_MODE === "cloud" && supabaseConfigured ? () => getOutboxUserId() !== null : () => false;
+
 function createLocalRepositories(): Repositories {
   return {
     phrases: new LocalPhraseRepository(),
@@ -75,11 +89,7 @@ function createRepositories(mode: string): Repositories {
     // gets a user and stays on local for the whole visit; sign-out (user →
     // null) routes back to local and bumps the epoch, so providers re-load
     // from Dexie rather than leaving the previous account's rows in memory.
-    return createSessionRoutedRepositories(
-      cloud,
-      createLocalRepositories(),
-      () => getOutboxUserId() !== null
-    );
+    return createSessionRoutedRepositories(cloud, createLocalRepositories(), isSessionRoutedToCloud);
   }
   if (mode === "cloud") {
     console.warn(
