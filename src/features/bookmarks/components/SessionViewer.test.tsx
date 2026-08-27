@@ -147,9 +147,12 @@ describe("SessionViewer playback key (folded item C)", () => {
   test("keeps the Playing pulse on the correct message when an earlier one is filtered out", () => {
     const withMilo = { ...SNAPSHOT, messages: [KOPI, TEH, MILO] };
     // KOPI (m1) is inside its undo window and filtered from the render,
-    // shifting MILO from index 2 down to index 1. An index-keyed audioKey
-    // would then collide with TEH's post-filter index and misattribute the
-    // "Playing…" pulse.
+    // shifting MILO from index 2 down to index 1. playingId is supplied
+    // here in the msg.id-keyed format ("...-m3"); with the old index-keyed
+    // audioKey this would resolve to "...-1" post-filter — colliding with
+    // TEH's new index and misattributing the "Playing…" pulse to it instead
+    // of MILO. (Confirmed by hand: reverting audioKey to the index form
+    // fails this test.)
     renderViewer([withMilo], new Set(["m1"]), `view-${SNAPSHOT.id}-m3`);
 
     const miloBubble = screen.getByText("一杯美祿").closest("div");
