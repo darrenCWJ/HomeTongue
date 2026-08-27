@@ -101,36 +101,39 @@ export function SessionTagFilterBar({
           </button>
         ))}
         {visibleSessionTags.map((tag) => (
-          <button
+          <div
             key={tag.id}
-            onClick={() =>
-              !isEditingTags &&
-              setSessionTagFilters((prev) => {
-                const next = new Set(prev);
-                if (next.has(tag.id)) next.delete(tag.id);
-                else next.add(tag.id);
-                return next;
-              })
-            }
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
+            className={`flex-shrink-0 rounded-full text-xs font-semibold transition-colors flex items-center ${
               sessionTagFilters.has(tag.id)
                 ? "bg-brand-blue text-white"
                 : "bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
             }`}
           >
-            {tag.name}
+            <button
+              onClick={() =>
+                !isEditingTags &&
+                setSessionTagFilters((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(tag.id)) next.delete(tag.id);
+                  else next.add(tag.id);
+                  return next;
+                })
+              }
+              aria-pressed={sessionTagFilters.has(tag.id)}
+              className={`py-1.5 pl-3 rounded-full ${isEditingTags ? "pr-1" : "pr-3"}`}
+            >
+              {tag.name}
+            </button>
             {isEditingTags && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteTag(tag.id);
-                }}
-                className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
+              <button
+                onClick={() => onDeleteTag(tag.id)}
+                aria-label={`Delete ${tag.name} tag`}
+                className="ml-0.5 mr-3 rounded-full hover:bg-brand-blue/20 p-0.5"
               >
                 <X size={10} />
-              </span>
+              </button>
             )}
-          </button>
+          </div>
         ))}
         {isCreatingTag ? (
           <div className="flex items-center gap-1">
