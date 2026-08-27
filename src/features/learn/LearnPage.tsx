@@ -71,6 +71,12 @@ export function LearnPage() {
   const activeConversationLesson =
     conversationLessons.find((l) => l.id === activeConversationLessonId) ?? null;
 
+  // A lesson can vanish underneath an open pane (deleted from another surface,
+  // a persona or language switch). Both the lesson and exam panes render
+  // nothing without one, so fall back to the list instead of a blank screen.
+  const isMainView =
+    view === "main" || ((view === "conversation-lesson" || view === "exam") && !activeConversationLesson);
+
   // Single queue instance shared with PracticeView so the due-count badge on
   // this page stays accurate as cards are graded.
   const review = useReviewQueue();
@@ -144,6 +150,9 @@ export function LearnPage() {
   };
 
   const handleExamComplete = (score: number) => {
+    // Leave the exam FIRST: a lesson that vanished mid-exam must not strand
+    // the user on the exam pane just because there is no result to record.
+    setView("conversation-lesson");
     // Attempts and best score come from the lesson as it stands right now, so
     // an exam taken after other writes counts on top of them rather than on
     // top of whatever the lesson looked like when it was opened.
@@ -155,13 +164,12 @@ export function LearnPage() {
       examBestScore: current.examBestScore === undefined ? score : Math.max(current.examBestScore, score),
       examCompleted: current.examCompleted || passed,
     });
-    setView("conversation-lesson");
   };
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
       <AnimatePresence initial={false} mode="wait">
-        {view === "main" && (
+        {isMainView && (
           <motion.div
             key="main"
             initial={{ x: "-100%", opacity: 0 }}

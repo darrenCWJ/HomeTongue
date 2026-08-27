@@ -14,6 +14,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
   const [flipped, setFlipped] = useState(false);
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | null>(null);
   const dragOccurred = React.useRef(false);
+  const isAnimatingRef = React.useRef(false);
   const x = useMotionValue(0);
   const current = vocab[index];
   const isLast = index === vocab.length - 1;
@@ -51,17 +52,24 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
   };
 
   const goToCard = async (nextIndex: number, dir: "left" | "right") => {
+    // `index` only moves after the exit tween below, so a tap landing inside
+    // it would run a second full advance off the same stale index (see
+    // FlashcardExercise — same guard, same reason).
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setSwipeDir(null);
     const exitX = dir === "left" ? -420 : 420;
     const enterX = dir === "left" ? 420 : -420;
     await animate(x, exitX, { duration: 0.18, ease: [0.32, 0.72, 0, 1] });
     if (nextIndex >= vocab.length) {
+      // Stays latched on purpose: onComplete tears this exercise down.
       onComplete();
       return;
     }
     x.set(enterX);
     setIndex(nextIndex);
     setFlipped(false);
+    isAnimatingRef.current = false;
     animate(x, 0, { duration: 0.22, ease: [0.32, 0.72, 0, 1] });
   };
 
@@ -91,7 +99,9 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
         <div
           className={`absolute inset-y-0 left-0 flex items-center pl-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "right" && index > 0 ? "opacity-100" : "opacity-0"}`}
         >
-          <div className="bg-muted text-muted-foreground rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
+          <div className="bg-muted text-muted-foreground rounded-xl px-2.5 py-1 text-xs font-bold">
+            ← Back
+          </div>
         </div>
         <div
           className={`absolute inset-y-0 right-0 flex items-center pr-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "left" ? "opacity-100" : "opacity-0"}`}

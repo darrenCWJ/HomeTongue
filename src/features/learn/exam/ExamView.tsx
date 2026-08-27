@@ -56,15 +56,27 @@ export function ExamView({
   const current = vocab[index];
   const recordingStartRef = useRef<number | null>(null);
   const recordingTriggerRef = useRef<"tap" | "hold" | null>(null);
+  // A release that lands while getUserMedia is still pending has no recorder
+  // to stop yet. It used to be dropped, so the prompt resolved into a hot mic
+  // nobody was holding and the next tap restarted it, discarding the audio.
+  const releasedDuringStartRef = useRef(false);
   const HOLD_THRESHOLD_MS = 300;
 
   const startListening = async () => {
+    releasedDuringStartRef.current = false;
     try {
       await startRecording();
-      recordingStartRef.current = Date.now();
-      setIsRecording(true);
     } catch {
       toast.error("Microphone access denied.");
+      return;
+    }
+    recordingStartRef.current = Date.now();
+    setIsRecording(true);
+    if (releasedDuringStartRef.current) {
+      releasedDuringStartRef.current = false;
+      // The hold ended before the mic came up — complete it now (the elapsed
+      // check in stopListening reports the too-short recording honestly).
+      await stopListening();
     }
   };
 
@@ -122,7 +134,12 @@ export function ExamView({
   };
 
   const handleMicPointerUp = () => {
-    if (!isRecording) return;
+    if (!isRecording) {
+      // Nothing is armed yet: either a start is still waiting on the mic (the
+      // start path completes the hold for us) or a tap just stopped one.
+      releasedDuringStartRef.current = true;
+      return;
+    }
     const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 999;
     if (elapsed < HOLD_THRESHOLD_MS) {
       recordingTriggerRef.current = "tap";
@@ -179,9 +196,7 @@ export function ExamView({
           )}
         </div>
         <h2 className="text-3xl font-extrabold text-foreground mb-1">{finalScore}%</h2>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-2">
-          Word accuracy
-        </p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-2">Word accuracy</p>
         <p className={`text-lg font-bold mb-1 ${passed ? "text-green-600" : "text-red-600"}`}>
           {passed ? "Passed!" : "Not quite"}
         </p>
@@ -262,6 +277,7 @@ export function ExamView({
                   onPointerUp={handleMicPointerUp}
                   onPointerLeave={handleMicPointerLeave}
                   onContextMenu={(e) => e.preventDefault()}
+                  aria-label={isRecording ? "Stop recording" : "Record your answer"}
                   className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-brand-blue shadow-brand-blue/20 hover:scale-105"}`}
                 >
                   {isRecording && (

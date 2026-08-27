@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, Mic, MicOff, Send, Target } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useLibrary } from "../../../app/context/LibraryProvider";
 import { useProfile } from "../../../app/context/ProfileProvider";
 import { useActiveLanguagePack } from "../../../hooks/useActiveLanguageCode";
 import { useAudioRecorder } from "../../../hooks/audio";
@@ -33,6 +34,7 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
   // (speakText would no-op anyway; skipping keeps intent explicit).
   const { label: languageLabel, capabilities } = useActiveLanguagePack();
   const { startRecording, stopRecording } = useAudioRecorder();
+  const { addPhrase } = useLibrary();
 
   const [turns, setTurns] = useState<RoleplayTurn[]>([]);
   const [textDraft, setTextDraft] = useState("");
@@ -40,6 +42,10 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isBotThinking, setIsBotThinking] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  // Lives here, not in RoleplaySummary: "Keep practising" unmounts the
+  // summary, and summary-local state showed every phrase unsaved again on
+  // every reopen.
+  const [savedTurnIds, setSavedTurnIds] = useState<ReadonlySet<string>>(new Set());
 
   const openedRef = useRef(false);
   const recordingStartRef = useRef<number | null>(null);
@@ -190,6 +196,29 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
     }
   };
 
+  const saveTurn = (turn: RoleplayTurn) => {
+    if (savedTurnIds.has(turn.id)) return;
+    addPhrase({
+      // Derived from the turn, never minted fresh: a re-save of the same turn
+      // must land on addPhrase's id dedupe instead of writing a duplicate.
+      id: `roleplay-${turn.id}`,
+      original: turn.english || turn.text,
+      dialect: turn.text,
+      pronunciation: turn.romanization ?? "",
+      isBookmarked: true,
+      context: `Roleplay: ${scenario.title}`,
+      // Stamp the SCENARIO's language, not the module-level active pack: the
+      // scenario is the source of truth for what was rehearsed, and the
+      // active-pack module state can lag a render behind a dialect switch.
+      languageCode: scenario.languageCode,
+    });
+    setSavedTurnIds((prev) => {
+      const next = new Set(prev);
+      next.add(turn.id);
+      return next;
+    });
+  };
+
   const isInputDisabled = isBotThinking || isTranscribing;
 
   return (
@@ -227,6 +256,8 @@ export function RoleplayView({ scenario, onBack }: RoleplayViewProps) {
         <RoleplaySummary
           scenario={scenario}
           turns={turns}
+          savedTurnIds={savedTurnIds}
+          onSaveTurn={saveTurn}
           onKeepPractising={() => setIsSummaryOpen(false)}
           onDone={onBack}
         />

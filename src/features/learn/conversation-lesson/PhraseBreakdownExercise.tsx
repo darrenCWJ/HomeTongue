@@ -23,7 +23,12 @@ export function PhraseBreakdownExercise({
     });
     return initial;
   });
-  const [isLoading, setIsLoading] = useState(false);
+  // Loading is per-phrase: a single flag put one phrase's in-flight fetch over
+  // every OTHER phrase the user navigated to, spinner and disabled Next
+  // included, even when that phrase's breakdown was already cached.
+  const [loadingIdxs, setLoadingIdxs] = useState<ReadonlySet<number>>(new Set());
+  const requestedRef = React.useRef<ReadonlySet<number>>(new Set());
+  const isLoading = loadingIdxs.has(phraseIdx);
 
   const item = vocab[phraseIdx];
   const chunks = cache[phraseIdx];
@@ -33,18 +38,35 @@ export function PhraseBreakdownExercise({
   const canGoBack = phraseIdx > 0 || chunkIdx > 0;
 
   React.useEffect(() => {
-    if (!cache[phraseIdx]) {
-      setIsLoading(true);
-      generateWordBreakdown(
-        vocab[phraseIdx].dialect,
-        vocab[phraseIdx].romanization ?? "",
-        vocab[phraseIdx].english
-      )
-        .then((result) => {
-          setCache((prev) => ({ ...prev, [phraseIdx]: result }));
+    // Navigating back over a phrase whose fetch is still in flight must not
+    // fire a second one, so requested indexes are remembered, not just cached.
+    if (cache[phraseIdx] || requestedRef.current.has(phraseIdx)) return;
+    requestedRef.current = new Set(requestedRef.current).add(phraseIdx);
+    setLoadingIdxs((prev) => new Set(prev).add(phraseIdx));
+    generateWordBreakdown(
+      vocab[phraseIdx].dialect,
+      vocab[phraseIdx].romanization ?? "",
+      vocab[phraseIdx].english
+    )
+      .then((result) => {
+        setCache((prev) => ({ ...prev, [phraseIdx]: result }));
+      })
+      .catch(() => {
+        // generateWordBreakdown resolves to a segment fallback rather than
+        // throwing, but if that ever changes, forget the request so
+        // re-entering the phrase retries instead of showing an empty card.
+        requestedRef.current = new Set([...requestedRef.current].filter((i) => i !== phraseIdx));
+      })
+      .finally(() =>
+        setLoadingIdxs((prev) => {
+          const next = new Set(prev);
+          next.delete(phraseIdx);
+          return next;
         })
-        .finally(() => setIsLoading(false));
-    }
+      );
+    // Runs per phrase: `cache` and `vocab` are read as of that phrase's first
+    // visit, and adding them would refire the fetch on every cache write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phraseIdx]);
 
   const goNext = () => {
@@ -126,7 +148,9 @@ export function PhraseBreakdownExercise({
                 {chunk.meaning && (
                   <>
                     <div className="w-full h-px bg-muted" />
-                    <span className="text-base text-muted-foreground italic text-center">"{chunk.meaning}"</span>
+                    <span className="text-base text-muted-foreground italic text-center">
+                      "{chunk.meaning}"
+                    </span>
                   </>
                 )}
               </motion.div>

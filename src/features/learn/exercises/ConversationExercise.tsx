@@ -33,7 +33,18 @@ export function ConversationExercise({
     setRevealed(false);
   };
 
-  if (!current) return null;
+  // A level with no authored conversation would otherwise render nothing,
+  // stranding the user on an empty pane (same empty state as FillBlank).
+  if (!current) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 gap-4">
+        <p className="text-muted-foreground">No conversation available.</p>
+        <button onClick={onComplete} className="bg-brand-blue/100 text-white px-6 py-3 rounded-2xl font-bold">
+          Complete Level
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col p-6 gap-4">
@@ -58,7 +69,9 @@ export function ConversationExercise({
           >
             {isUserTurn ? "Y" : "T"}
           </div>
-          <span className="text-xs font-semibold text-muted-foreground">{isUserTurn ? "Your turn" : "They say"}</span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {isUserTurn ? "Your turn" : "They say"}
+          </span>
         </div>
 
         {isUserTurn ? (

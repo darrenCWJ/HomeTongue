@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { LessonLevel, VocabItem } from "../../../types";
 import { PlayButtonDark } from "../shared";
 
@@ -22,10 +22,38 @@ export function MatchingExercise({
   const [matched, setMatched] = useState<Set<number>>(new Set());
   const [wrong, setWrong] = useState<{ en: number; zh: number } | null>(null);
 
+  // Re-shuffling on every render would move the dialect buttons under the
+  // user's finger; the batch is the only thing that should reorder them.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const shuffledZh = React.useMemo(() => [...batchItems].sort(() => Math.random() - 0.5), [batchIndex]);
+
+  // At most one deferred transition is ever pending (a wrong-pair reset or a
+  // batch advance). Holding its id lets a later tap cancel it: an uncancelled
+  // reset used to fire into whatever the user had selected since, wiping it,
+  // and an uncancelled advance used to complete the level after unmount.
+  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelPending = () => {
+    if (pendingRef.current === null) return;
+    clearTimeout(pendingRef.current);
+    pendingRef.current = null;
+  };
+  const defer = (run: () => void, delayMs: number) => {
+    cancelPending();
+    pendingRef.current = setTimeout(() => {
+      pendingRef.current = null;
+      run();
+    }, delayMs);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pendingRef.current !== null) clearTimeout(pendingRef.current);
+    };
+  }, []);
 
   const handleSelectEn = (i: number) => {
     if (matched.has(i)) return;
+    cancelPending();
     setSelectedEn(i);
     setWrong(null);
   };
@@ -36,12 +64,16 @@ export function MatchingExercise({
 
     if (selectedEn !== null) {
       if (selectedEn === originalIndex) {
+        // A landed match resolves whatever the pending reset was going to
+        // clear, so drop it rather than letting it fire into a later tap.
+        cancelPending();
         const next = new Set(matched).add(originalIndex);
         setMatched(next);
         setSelectedEn(null);
+        setWrong(null);
 
         if (next.size === batchItems.length) {
-          setTimeout(() => {
+          defer(() => {
             if (batchIndex + 1 >= totalBatches) {
               onComplete();
             } else {
@@ -53,7 +85,7 @@ export function MatchingExercise({
         }
       } else {
         setWrong({ en: selectedEn, zh: originalIndex });
-        setTimeout(() => {
+        defer(() => {
           setWrong(null);
           setSelectedEn(null);
         }, 800);

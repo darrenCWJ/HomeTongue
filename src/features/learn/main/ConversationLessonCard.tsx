@@ -42,6 +42,14 @@ export function ConversationLessonCard({
       ? "bg-orange-100 text-orange-700"
       : "bg-muted text-muted-foreground";
 
+  // Seeded on ENTRY, not at mount: a title renamed elsewhere while this card
+  // was on screen used to leave the stale mount-time text in the box, and
+  // committing it wrote that older title back over the newer one.
+  const startEditing = () => {
+    setDraft(lesson.title);
+    setEditing(true);
+  };
+
   const commitEdit = () => {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== lesson.title) {
@@ -74,7 +82,7 @@ export function ConversationLessonCard({
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpen(false);
-                setEditing(true);
+                startEditing();
               }}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground/90 hover:bg-background transition-colors"
             >
