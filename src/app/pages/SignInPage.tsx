@@ -81,6 +81,7 @@ export function SignInPage() {
                   setError(false);
                 }}
                 placeholder="••••••••"
+                aria-label="Access code"
                 autoFocus
                 className={`w-full bg-input-background border rounded-xl py-3 px-4 text-center text-lg tracking-[0.3em] font-semibold outline-none transition-all
                   ${

@@ -86,7 +86,6 @@ export function OnboardingPage() {
     return (
       <div className="flex flex-col h-full bg-black relative overflow-hidden">
         <div className="flex-1 flex flex-col items-center justify-center p-6">
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption -- no caption track has been authored for the intro video yet; the same content is covered by the onboarding steps that follow */}
           <video
             ref={videoRef}
             src="/intro.mp4"
@@ -171,6 +170,7 @@ export function OnboardingPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your name"
+                  aria-label="Your name"
                   autoFocus
                   maxLength={40}
                   className="w-full bg-input-background border border-border rounded-xl py-3 px-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-foreground placeholder:font-normal placeholder:text-faint"

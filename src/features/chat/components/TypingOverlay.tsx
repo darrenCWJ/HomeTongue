@@ -50,18 +50,23 @@ export function TypingOverlay({
                 }
               }}
               placeholder="e.g. Nice to meet you!"
+              aria-label="Your reply in English"
               autoFocus
               className="w-full px-4 py-3 pr-12 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground"
             />
             <button
               onClick={onSubmit}
               disabled={!typedReply.trim()}
+              aria-label="Send reply"
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand-blue text-white rounded-lg hover:bg-brand-blue/90 transition-colors disabled:opacity-50"
             >
               <Send size={18} />
             </button>
           </div>
-          <button onClick={onClose} className="mt-8 text-faint font-medium text-sm hover:text-muted-foreground">
+          <button
+            onClick={onClose}
+            className="mt-8 text-faint font-medium text-sm hover:text-muted-foreground"
+          >
             Cancel
           </button>
         </motion.div>

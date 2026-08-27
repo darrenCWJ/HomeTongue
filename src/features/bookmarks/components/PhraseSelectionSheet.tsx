@@ -32,6 +32,7 @@ export function PhraseSelectionSheet({
           <textarea
             value={phraseSelectionText}
             onChange={(e) => setPhraseSelectionText(e.target.value)}
+            aria-label="Phrase text"
             autoFocus
             rows={3}
             className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground text-base resize-none mb-4"

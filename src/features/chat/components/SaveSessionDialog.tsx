@@ -114,6 +114,7 @@ export function SaveSessionDialog({
                     }
                   }}
                   placeholder="Tag name"
+                  aria-label="New tag name"
                   autoFocus
                   className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
                 />
@@ -126,6 +127,7 @@ export function SaveSessionDialog({
                       setIsCreatingSessionTag(false);
                     }
                   }}
+                  aria-label="Create tag"
                   className="p-1.5 rounded-full bg-brand-blue text-white"
                 >
                   <Check size={12} />

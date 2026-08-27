@@ -120,6 +120,7 @@ export function PhraseTagFilterBar({
                 }
               }}
               placeholder="Tag name"
+              aria-label="New tag name"
               autoFocus
               className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
             />
@@ -142,6 +143,8 @@ export function PhraseTagFilterBar({
         )}
         <button
           onClick={() => setIsEditingTags(!isEditingTags)}
+          aria-label={isEditingTags ? "Done editing tags" : "Edit tags"}
+          aria-pressed={isEditingTags}
           className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
             isEditingTags ? "bg-brand-blue text-white" : "text-faint hover:text-brand-blue hover:bg-muted"
           }`}

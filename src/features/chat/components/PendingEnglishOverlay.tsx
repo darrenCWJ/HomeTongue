@@ -52,6 +52,7 @@ export function PendingEnglishOverlay({
                     onConfirm();
                   }
                 }}
+                aria-label="Edit your recognised words"
                 autoFocus
                 className="w-full bg-brand-blue/10 border-2 border-brand-blue rounded-2xl px-5 py-4 text-lg font-semibold text-foreground text-center focus:outline-none"
               />
@@ -60,6 +61,7 @@ export function PendingEnglishOverlay({
                 <p className="flex-1 text-lg font-semibold text-foreground text-center">{pendingEditText}</p>
                 <button
                   onClick={() => setIsEditingPending(true)}
+                  aria-label="Edit recognised words"
                   className="flex-shrink-0 p-1.5 rounded-lg text-brand-blue/60 hover:text-brand-blue hover:bg-brand-blue/15 transition-colors"
                 >
                   <Pencil size={16} />

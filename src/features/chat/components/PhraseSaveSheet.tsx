@@ -54,6 +54,7 @@ export function PhraseSaveSheet({
           <textarea
             value={phraseSelectionText}
             onChange={(e) => setPhraseSelectionText(e.target.value)}
+            aria-label="Phrase text"
             autoFocus
             rows={3}
             className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground text-base resize-none mb-4"
@@ -102,6 +103,7 @@ export function PhraseSaveSheet({
                     }
                   }}
                   placeholder="Tag name"
+                  aria-label="New tag name"
                   autoFocus
                   className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
                 />
@@ -114,6 +116,7 @@ export function PhraseSaveSheet({
                       setIsCreatingPhraseTag(false);
                     }
                   }}
+                  aria-label="Create tag"
                   className="p-1.5 rounded-full bg-brand-blue text-white"
                 >
                   <Check size={12} />

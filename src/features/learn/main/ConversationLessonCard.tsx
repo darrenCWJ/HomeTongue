@@ -121,6 +121,7 @@ export function ConversationLessonCard({
         {editing ? (
           <div className="flex items-center gap-1.5">
             <input
+              aria-label="Lesson title"
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -140,6 +141,7 @@ export function ConversationLessonCard({
                 e.stopPropagation();
                 commitEdit();
               }}
+              aria-label="Save title"
               className="p-1 rounded-full bg-brand-blue text-white flex-shrink-0"
             >
               <Check size={12} />
@@ -150,6 +152,7 @@ export function ConversationLessonCard({
                 setDraft(lesson.title);
                 setEditing(false);
               }}
+              aria-label="Cancel title edit"
               className="p-1 rounded-full bg-muted text-muted-foreground flex-shrink-0"
             >
               <X size={12} />
