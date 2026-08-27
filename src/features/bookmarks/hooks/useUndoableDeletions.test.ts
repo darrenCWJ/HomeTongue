@@ -147,6 +147,17 @@ describe("useUndoableDeletions — tags", () => {
     expect(result.current.selectedTagFilters.has("t1")).toBe(true);
     expect(result.current.sessionTagFilters.size).toBe(0);
   });
+
+  test("a late Undo does not filter on a tag that has already been deleted", () => {
+    const { result } = setup({ phraseFilters: ["t1"] });
+
+    act(() => result.current.handleDeleteTag("t1"));
+    const undo = lastUndo();
+    act(() => vi.advanceTimersByTime(5000));
+    act(() => undo());
+
+    expect(result.current.selectedTagFilters.size).toBe(0);
+  });
 });
 
 describe("useUndoableDeletions — messages", () => {

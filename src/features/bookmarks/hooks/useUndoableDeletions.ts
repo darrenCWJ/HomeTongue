@@ -78,7 +78,10 @@ export function useUndoableDeletions({
         action: {
           label: "Undo",
           onClick: () => {
-            cancelPendingTagDeletion(tagId);
+            // Nothing left to undo — the delete has already committed (or the
+            // tag was revived by a recreate). Re-adding the id then would put
+            // a filter on a tag that no longer exists, with no chip to clear.
+            if (!cancelPendingTagDeletion(tagId)) return;
             if (wasPhraseFilter) setSelectedTagFilters((prev) => new Set(prev).add(tagId));
             if (wasSessionFilter) setSessionTagFilters((prev) => new Set(prev).add(tagId));
           },
