@@ -7,6 +7,14 @@ import { speakText } from "../../../hooks/useGoogleTTS";
 interface BookmarkPlaybackParams {
   sessions: Session[];
   userProfile: UserProfile | null;
+  /**
+   * Whether the active language pack has a usable TTS model
+   * (useActiveCapabilities().tts). When false, a fresh-TTS fallback would
+   * silently no-op (useGoogleTTS.speakText already skips synthesis in that
+   * case) — this hook skips the call outright, since PhraseCard/SessionViewer
+   * hide the play control for that same no-stored-audio case (BM-02).
+   */
+  ttsEnabled: boolean;
 }
 
 /**
@@ -14,7 +22,7 @@ interface BookmarkPlaybackParams {
  * falls back from stored clips → the source session message's clips → fresh
  * TTS; message playback plays stored clips or falls back to TTS of the text.
  */
-export function useBookmarkPlayback({ sessions, userProfile }: BookmarkPlaybackParams) {
+export function useBookmarkPlayback({ sessions, userProfile, ttsEnabled }: BookmarkPlaybackParams) {
   const [playingId, setPlayingId] = useState<string | null>(null);
 
   const handleSpeak = async (
@@ -38,7 +46,7 @@ export function useBookmarkPlayback({ sessions, userProfile }: BookmarkPlaybackP
         for (const url of urls) {
           await playDataUrl(url);
         }
-      } else {
+      } else if (ttsEnabled) {
         await speakText(text, userProfile?.preferredVoiceId);
       }
     } catch {
@@ -62,7 +70,7 @@ export function useBookmarkPlayback({ sessions, userProfile }: BookmarkPlaybackP
         for (const url of urls) {
           await playDataUrl(url);
         }
-      } else if (fallbackText) {
+      } else if (fallbackText && ttsEnabled) {
         await speakText(fallbackText, userProfile?.preferredVoiceId);
       }
     } catch {

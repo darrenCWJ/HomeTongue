@@ -58,7 +58,9 @@ export function SessionCard({
   onConvertToLesson,
 }: SessionCardProps) {
   // Tags inside their 5s undo window are hidden here exactly as in the filter
-  // bar, so a doomed tag cannot be assigned to a session (BM-04).
+  // bar, so a doomed tag cannot be assigned to a session (BM-04). The same
+  // filtered list backs the attached-tag badges below, so a doomed tag shows
+  // neither as a badge nor as an editor chip (folded item A, Task 10).
   const assignableTags = sessionTags.filter((t) => !pendingTagDeletions.has(t.id));
   return (
     <div
@@ -106,7 +108,7 @@ export function SessionCard({
           {session.tags && session.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {session.tags.map((tagId) => {
-                const tag = sessionTags.find((t) => t.id === tagId);
+                const tag = assignableTags.find((t) => t.id === tagId);
                 if (!tag) return null;
                 return (
                   <span

@@ -10,6 +10,7 @@ interface BookmarkPhraseSelectionParams {
   phrases: Phrase[];
   addPhrase: (phrase: Phrase) => void;
   toggleBookmark: (id: string) => void;
+  updatePhrase: (phrase: Phrase) => void;
   activeLanguageCode: string;
 }
 
@@ -23,6 +24,7 @@ export function useBookmarkPhraseSelection({
   phrases,
   addPhrase,
   toggleBookmark,
+  updatePhrase,
   activeLanguageCode,
 }: BookmarkPhraseSelectionParams) {
   const [phraseSelectionData, setPhraseSelectionData] = useState<{
@@ -43,25 +45,38 @@ export function useBookmarkPhraseSelection({
     audioDataUrls?: string[];
   }) => {
     const existing = phrases.find((p) => p.id === msg.id);
+    if (existing && existing.isBookmarked) {
+      // Mirror PhraseCard's un-bookmark: clear tags too, so the phrase
+      // actually leaves the Saved list (membership is isBookmarked ||
+      // tags.length > 0) instead of lingering with a filled icon (BM-03).
+      updatePhrase({ ...existing, isBookmarked: false, tags: [] });
+      return;
+    }
     if (existing) {
       toggleBookmark(msg.id);
-    } else {
-      const dialectText = msg.sender === "bot" ? (msg.text ?? "") : (msg.dialectText ?? "");
-      const originalText = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
-      if (!dialectText) return;
-      const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
-      addPhrase({
-        id: msg.id,
-        original: originalText,
-        dialect: dialectText,
-        pronunciation: "",
-        isBookmarked: true,
-        context: "",
-        audioDataUrl: urls[0],
-        audioDataUrls: urls.length > 1 ? urls : undefined,
-        languageCode: activeLanguageCode,
-      });
+      return;
     }
+    const dialectText = msg.sender === "bot" ? (msg.text ?? "") : (msg.dialectText ?? "");
+    const originalText = msg.sender === "bot" ? (msg.englishTranslation ?? "") : (msg.text ?? "");
+    if (!dialectText) {
+      // The long-press guard (handleBubblePointerDown) stays silent for the
+      // same condition — this is the only path a tap can take, so it must
+      // speak instead of no-opping invisibly (BM-06).
+      toast.error("Nothing to save from this message.");
+      return;
+    }
+    const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
+    addPhrase({
+      id: msg.id,
+      original: originalText,
+      dialect: dialectText,
+      pronunciation: "",
+      isBookmarked: true,
+      context: "",
+      audioDataUrl: urls[0],
+      audioDataUrls: urls.length > 1 ? urls : undefined,
+      languageCode: activeLanguageCode,
+    });
   };
 
   const handleBubblePointerDown = (e: React.PointerEvent, dialectText: string, originalText: string) => {

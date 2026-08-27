@@ -12,6 +12,8 @@ interface PhraseCardProps {
   onSpeak: (phraseId: string, text: string, audioDataUrl?: string, audioDataUrls?: string[]) => void;
   updatePhrase: (phrase: Phrase) => void;
   setPhraseTags: (phraseId: string, tagIds: string[]) => void;
+  /** useActiveCapabilities().tts — gates the speaker button (BM-02). */
+  ttsEnabled: boolean;
 }
 
 export function PhraseCard({
@@ -25,10 +27,14 @@ export function PhraseCard({
   onSpeak,
   updatePhrase,
   setPhraseTags,
+  ttsEnabled,
 }: PhraseCardProps) {
   // Tags inside their 5s undo window are hidden here exactly as in the filter
-  // bar, so a doomed tag cannot be assigned to a phrase (BM-04).
+  // bar, so a doomed tag cannot be assigned to a phrase (BM-04). The same
+  // filtered list backs the attached-tag badges below, so a doomed tag shows
+  // neither as a badge nor as an editor chip (folded item A, Task 10).
   const assignableTags = phraseTags.filter((t) => !pendingTagDeletions.has(t.id));
+  const hasStoredAudio = !!phrase.audioDataUrl || (phrase.audioDataUrls?.length ?? 0) > 0;
   return (
     <div
       {...(isFirst ? { "data-tour": "bookmarks-phrase-card" } : {})}
@@ -61,7 +67,7 @@ export function PhraseCard({
             </span>
           )}
           {phrase.tags?.map((tagId) => {
-            const tag = phraseTags.find((t) => t.id === tagId);
+            const tag = assignableTags.find((t) => t.id === tagId);
             if (!tag) return null;
             return (
               <span
@@ -76,17 +82,23 @@ export function PhraseCard({
         <p className="text-lg font-medium text-foreground mb-1">{phrase.dialect}</p>
         <div className="flex items-center gap-2 mb-3">
           <p className="text-sm text-muted-foreground italic">{phrase.pronunciation}</p>
-          <button
-            onClick={() => onSpeak(phrase.id, phrase.dialect, phrase.audioDataUrl, phrase.audioDataUrls)}
-            disabled={playingId !== null}
-            className={`p-1.5 rounded-full transition-colors ${
-              playingId === phrase.id
-                ? "bg-brand-blue/15 text-brand-blue"
-                : "bg-background text-faint hover:bg-muted hover:text-muted-foreground"
-            } disabled:cursor-not-allowed`}
-          >
-            <Volume2 size={14} className={playingId === phrase.id ? "animate-pulse" : ""} />
-          </button>
+          {/* Voice-less packs (capabilities.tts false): onSpeak would silently
+              no-op for a phrase with no stored clip, which reads as a broken
+              button — hide it instead (BM-02). Stored audio always plays. */}
+          {(hasStoredAudio || ttsEnabled) && (
+            <button
+              onClick={() => onSpeak(phrase.id, phrase.dialect, phrase.audioDataUrl, phrase.audioDataUrls)}
+              disabled={playingId !== null}
+              aria-label="Play pronunciation"
+              className={`p-1.5 rounded-full transition-colors ${
+                playingId === phrase.id
+                  ? "bg-brand-blue/15 text-brand-blue"
+                  : "bg-background text-faint hover:bg-muted hover:text-muted-foreground"
+              } disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              <Volume2 size={14} className={playingId === phrase.id ? "animate-pulse" : ""} />
+            </button>
+          )}
         </div>
         <div className="bg-background rounded-lg p-2.5 border border-border-subtle">
           <p className="text-xs text-muted-foreground font-medium line-clamp-2">

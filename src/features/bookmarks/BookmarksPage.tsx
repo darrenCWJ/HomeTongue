@@ -3,15 +3,17 @@ import { Search, X } from "lucide-react";
 import type { PersonaType, Session } from "../../types";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { useLibrary } from "../../app/context/LibraryProvider";
+import { useAuth } from "../../app/context/AuthProvider";
 import { toast } from "sonner";
 import { filterByLanguage } from "../../languages/scope";
-import { useActiveLanguageCode } from "../../hooks/useActiveLanguageCode";
+import { useActiveLanguageCode, useActiveCapabilities } from "../../hooks/useActiveLanguageCode";
 import { LanguageFilter } from "../../app/components/LanguageFilter";
 import { useTour } from "../../app/components/tour/TourProvider";
 import { useUndoableDeletions } from "./hooks/useUndoableDeletions";
 import { useBookmarkPlayback } from "./hooks/useBookmarkPlayback";
 import { useBookmarkPhraseSelection } from "./hooks/useBookmarkPhraseSelection";
 import { useSessionLessonActions } from "./hooks/useSessionLessonActions";
+import { isSavedListMember } from "./savedListMembership";
 import { PhraseTagFilterBar } from "./components/PhraseTagFilterBar";
 import { SessionTagFilterBar } from "./components/SessionTagFilterBar";
 import { PhrasesTab } from "./components/PhrasesTab";
@@ -42,6 +44,11 @@ export function BookmarksPage() {
     setSessionTags,
   } = useLibrary();
   const activeLanguageCode = useActiveLanguageCode();
+  // Voice-less packs (capabilities.tts false) must hide play controls that
+  // have no stored clip to fall back on instead of silently no-opping
+  // (BM-02).
+  const { tts: ttsEnabled } = useActiveCapabilities();
+  const { authEpoch } = useAuth();
   const { isActive: isTourActive, activeTour, currentStep } = useTour();
   const isTourMode = isTourActive && activeTour === "bookmarks";
   const [activeTab, setActiveTab] = useState<"phrases" | "sessions">("phrases");
@@ -67,6 +74,14 @@ export function BookmarksPage() {
   const [openMenuSessionId, setOpenMenuSessionId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
+
+  // A cloud sign-in/out mid-view must not leave the previous user's
+  // conversation on screen via SessionViewer's snapshot fallback — authEpoch
+  // is constant in local mode, so this never fires there (folded item B).
+  useEffect(() => {
+    setViewingSession(null);
+  }, [authEpoch]);
+
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [deleteConfirmSessionId, setDeleteConfirmSessionId] = useState<string | null>(null);
 
@@ -92,7 +107,7 @@ export function BookmarksPage() {
     setIsEditingTags(false);
   };
 
-  const { playingId, handleSpeak, playMessage } = useBookmarkPlayback({ sessions, userProfile });
+  const { playingId, handleSpeak, playMessage } = useBookmarkPlayback({ sessions, userProfile, ttsEnabled });
 
   const {
     phraseSelectionData,
@@ -104,7 +119,7 @@ export function BookmarksPage() {
     handleBubblePointerMove,
     handleSaveSelectedPhrase,
     cancelPhraseSelection,
-  } = useBookmarkPhraseSelection({ phrases, addPhrase, toggleBookmark, activeLanguageCode });
+  } = useBookmarkPhraseSelection({ phrases, addPhrase, toggleBookmark, updatePhrase, activeLanguageCode });
 
   const {
     editingSessionId,
@@ -128,7 +143,7 @@ export function BookmarksPage() {
   const scopedSessions = filterByLanguage(sessions, activeLanguageCode);
   const scopedConversationLessons = filterByLanguage(conversationLessons, activeLanguageCode);
 
-  const allBookmarked = scopedPhrases.filter((p) => p.isBookmarked || (p.tags?.length ?? 0) > 0);
+  const allBookmarked = scopedPhrases.filter(isSavedListMember);
   const searchLower = searchQuery.toLowerCase().trim();
   const bookmarkedPhrases = allBookmarked
     .filter((p) => selectedTagFilters.size === 0 || p.tags?.some((t) => selectedTagFilters.has(t)))
@@ -150,8 +165,11 @@ export function BookmarksPage() {
         <div data-tour="bookmarks-tabs" className="flex bg-muted rounded-lg p-1 mb-4">
           <button
             onClick={() => {
+              // Only clear filters when actually switching tabs — clicking
+              // the already-active tab must not discard the user's
+              // selection as a side effect (BM-08).
+              if (activeTab !== "phrases") setSelectedTagFilters(new Set());
               setActiveTab("phrases");
-              setSelectedTagFilters(new Set());
               resetTagDrafts();
             }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -253,6 +271,7 @@ export function BookmarksPage() {
             onSpeak={handleSpeak}
             updatePhrase={updatePhrase}
             setPhraseTags={setPhraseTags}
+            ttsEnabled={ttsEnabled}
           />
         ) : (
           <SessionsTab
@@ -311,6 +330,7 @@ export function BookmarksPage() {
         onBubblePointerDown={handleBubblePointerDown}
         onBubblePointerMove={handleBubblePointerMove}
         onBubblePointerCancel={cancelBubbleLongPress}
+        ttsEnabled={ttsEnabled}
       />
 
       {/* Fixed dropdown menu for session actions */}

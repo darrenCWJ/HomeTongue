@@ -13,6 +13,7 @@ interface PhrasesTabProps {
   onSpeak: (phraseId: string, text: string, audioDataUrl?: string, audioDataUrls?: string[]) => void;
   updatePhrase: (phrase: Phrase) => void;
   setPhraseTags: (phraseId: string, tagIds: string[]) => void;
+  ttsEnabled: boolean;
 }
 
 export function PhrasesTab({
@@ -26,6 +27,7 @@ export function PhrasesTab({
   onSpeak,
   updatePhrase,
   setPhraseTags,
+  ttsEnabled,
 }: PhrasesTabProps) {
   return bookmarkedPhrases.length === 0 && !isTourMode ? (
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">
@@ -73,6 +75,7 @@ export function PhrasesTab({
           onSpeak={onSpeak}
           updatePhrase={updatePhrase}
           setPhraseTags={setPhraseTags}
+          ttsEnabled={ttsEnabled}
         />
       ))}
     </>

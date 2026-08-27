@@ -23,6 +23,8 @@ interface SessionViewerProps {
   onBubblePointerDown: (e: React.PointerEvent, dialectText: string, originalText: string) => void;
   onBubblePointerMove: (e: React.PointerEvent) => void;
   onBubblePointerCancel: () => void;
+  /** useActiveCapabilities().tts — gates the per-message play control (BM-02). */
+  ttsEnabled: boolean;
 }
 
 export function SessionViewer({
@@ -38,6 +40,7 @@ export function SessionViewer({
   onBubblePointerDown,
   onBubblePointerMove,
   onBubblePointerCancel,
+  ttsEnabled,
 }: SessionViewerProps) {
   // Render live provider state, never the open-time snapshot: a message
   // deleted while the viewer is open must stay deleted across a remount
@@ -79,11 +82,21 @@ export function SessionViewer({
                 const isBot = msg.sender === "bot";
                 const displayText = isBot ? msg.text : (msg.dialectText ?? msg.text);
                 const subText = isBot ? msg.englishTranslation : msg.text;
-                const audioKey = `view-${liveSession.id}-${i}`;
+                // Keyed by message id, not array index: pending-deletion
+                // filtering and the live-session derivation above both shift
+                // indices, which used to move the "Playing…" pulse onto
+                // whichever message happened to land at the old index
+                // (folded item C, Task 10).
+                const audioKey = `view-${liveSession.id}-${msg.id}`;
                 const isPlaying = playingId === audioKey;
                 const hasAudioForMsg =
                   !!msg.audioDataUrl || (msg.audioDataUrls && msg.audioDataUrls.length > 0);
                 const fallback = isBot ? msg.text : (msg.dialectText ?? msg.text);
+                // Voice-less packs (capabilities.tts false): onPlayMessage
+                // would silently no-op for a message with no stored clip,
+                // which reads as a broken control — hide it instead (BM-02).
+                // Stored audio always plays regardless of ttsEnabled.
+                const canPlay = hasAudioForMsg || (!!fallback && ttsEnabled);
                 const isBookmarked = phrases.find((p) => p.id === msg.id)?.isBookmarked ?? false;
 
                 return (
@@ -150,7 +163,7 @@ export function SessionViewer({
                             {subText}
                           </p>
                         )}
-                        {(hasAudioForMsg || fallback) && (
+                        {canPlay && (
                           <button
                             onClick={() =>
                               onPlayMessage(audioKey, msg.audioDataUrl, msg.audioDataUrls, fallback)

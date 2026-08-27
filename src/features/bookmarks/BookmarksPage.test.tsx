@@ -10,6 +10,12 @@ import { BookmarksPage } from "./BookmarksPage";
 //   silently created a SESSION tag (and vice versa).
 // BM-05 — the session viewer must read live provider sessions, not the
 //   snapshot captured when the conversation was opened.
+// BM-08 (Task 10) — clicking the already-active Phrases tab cleared
+//   selectedTagFilters as a side effect, discarding the user's filter
+//   selection for no reason.
+// Folded item B (Task 10) — an authEpoch change (cloud sign-in/out) must
+//   close any open conversation view, so the snapshot fallback in
+//   SessionViewer never shows the previous user's conversation.
 
 interface BarDraftProps {
   isCreatingTag: boolean;
@@ -18,11 +24,20 @@ interface BarDraftProps {
   setIsCreatingTag: (value: boolean) => void;
   setNewTagName: (value: string) => void;
   setIsEditingTags: (value: boolean) => void;
+  selectedTagFilters?: Set<string>;
+  setSelectedTagFilters?: (updater: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
+}
+
+interface SessionsTabProps {
+  onView: (session: Session) => void;
 }
 
 let phraseBar: BarDraftProps | null = null;
 let sessionBar: BarDraftProps | null = null;
 let viewerSessions: Session[] | null = null;
+let viewerSession: Session | null | undefined = undefined;
+let sessionsTabProps: SessionsTabProps | null = null;
+let mockAuthEpoch = 0;
 
 const SESSIONS: Session[] = [
   {
@@ -58,8 +73,13 @@ vi.mock("../../app/context/LibraryProvider", () => ({
   }),
 }));
 
+vi.mock("../../app/context/AuthProvider", () => ({
+  useAuth: () => ({ authEpoch: mockAuthEpoch }),
+}));
+
 vi.mock("../../hooks/useActiveLanguageCode", () => ({
   useActiveLanguageCode: () => "yue-HK",
+  useActiveCapabilities: () => ({ tts: true, stt: true }),
 }));
 
 vi.mock("../../app/components/tour/TourProvider", () => ({
@@ -88,14 +108,20 @@ vi.mock("./components/SessionTagFilterBar", () => ({
 }));
 
 vi.mock("./components/SessionViewer", () => ({
-  SessionViewer: (props: { sessions: Session[] }) => {
+  SessionViewer: (props: { session: Session | null; sessions: Session[] }) => {
+    viewerSession = props.session;
     viewerSessions = props.sessions;
     return null;
   },
 }));
 
 vi.mock("./components/PhrasesTab", () => ({ PhrasesTab: () => null }));
-vi.mock("./components/SessionsTab", () => ({ SessionsTab: () => null }));
+vi.mock("./components/SessionsTab", () => ({
+  SessionsTab: (props: SessionsTabProps) => {
+    sessionsTabProps = props;
+    return null;
+  },
+}));
 vi.mock("./components/PhraseSelectionSheet", () => ({ PhraseSelectionSheet: () => null }));
 vi.mock("./components/SessionMenu", () => ({ SessionMenu: () => null }));
 vi.mock("./components/DeleteSessionDialog", () => ({ DeleteSessionDialog: () => null }));
@@ -103,6 +129,11 @@ vi.mock("./components/DeleteSessionDialog", () => ({ DeleteSessionDialog: () => 
 function requireBar(bar: BarDraftProps | null): BarDraftProps {
   if (!bar) throw new Error("the tag bar for the active tab has not rendered");
   return bar;
+}
+
+function requireSessionsTab(): SessionsTabProps {
+  if (!sessionsTabProps) throw new Error("SessionsTab has not rendered");
+  return sessionsTabProps;
 }
 
 /** Start a tag draft the way the bar's "New" and pencil buttons would. */
@@ -125,6 +156,9 @@ beforeEach(() => {
   phraseBar = null;
   sessionBar = null;
   viewerSessions = null;
+  viewerSession = undefined;
+  sessionsTabProps = null;
+  mockAuthEpoch = 0;
 });
 
 afterEach(cleanup);
@@ -157,5 +191,51 @@ describe("BookmarksPage session viewer", () => {
     render(<BookmarksPage />);
 
     expect(viewerSessions).toBe(SESSIONS);
+  });
+});
+
+describe("BookmarksPage phrase tag filters (BM-08)", () => {
+  test("clicking the already-active Phrases tab does not clear tag filters", () => {
+    render(<BookmarksPage />);
+    act(() => requireBar(phraseBar).setSelectedTagFilters!(new Set(["t1"])));
+    expect(requireBar(phraseBar).selectedTagFilters).toEqual(new Set(["t1"]));
+
+    fireEvent.click(screen.getByRole("button", { name: "Phrases" }));
+
+    expect(requireBar(phraseBar).selectedTagFilters).toEqual(new Set(["t1"]));
+  });
+
+  test("switching from Conversations to Phrases still clears tag filters", () => {
+    render(<BookmarksPage />);
+    act(() => requireBar(phraseBar).setSelectedTagFilters!(new Set(["t1"])));
+    fireEvent.click(screen.getByRole("button", { name: "Conversations" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Phrases" }));
+
+    expect(requireBar(phraseBar).selectedTagFilters).toEqual(new Set());
+  });
+});
+
+describe("BookmarksPage viewingSession reset on auth change (folded item B)", () => {
+  test("clears the open conversation view when authEpoch changes", () => {
+    const { rerender } = render(<BookmarksPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Conversations" }));
+    act(() => requireSessionsTab().onView(SESSIONS[0]));
+    expect(viewerSession).toEqual(SESSIONS[0]);
+
+    mockAuthEpoch = 1;
+    rerender(<BookmarksPage />);
+
+    expect(viewerSession).toBeNull();
+  });
+
+  test("does not clear the view when authEpoch stays the same across a rerender", () => {
+    const { rerender } = render(<BookmarksPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Conversations" }));
+    act(() => requireSessionsTab().onView(SESSIONS[0]));
+
+    rerender(<BookmarksPage />);
+
+    expect(viewerSession).toEqual(SESSIONS[0]);
   });
 });
