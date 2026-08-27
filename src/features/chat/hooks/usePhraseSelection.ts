@@ -30,6 +30,10 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
 
   const { handleBubblePointerDown, cancelBubbleLongPress, handleBubblePointerMove } = useBubbleLongPress(
     (msg, preText) => {
+      // The save clears the selection when it settles, so letting another
+      // bubble take the sheet over mid-save would close it and drop that
+      // bubble's edits without the user ever confirming them.
+      if (isSavingPhraseRef.current) return;
       setPhraseSelectionMsg(msg);
       setPhraseSelectionText(preText);
     }

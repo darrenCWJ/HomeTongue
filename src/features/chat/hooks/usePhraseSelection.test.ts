@@ -64,6 +64,14 @@ const BOT_MESSAGE: Message = {
   audioDataUrls: ["data:audio/webm;base64,AAA"],
 };
 
+const OTHER_BOT_MESSAGE: Message = {
+  id: "m2",
+  sender: "bot",
+  text: "食咗飯未",
+  englishTranslation: "have you eaten",
+  audioDataUrls: ["data:audio/webm;base64,BBB"],
+};
+
 function setup() {
   const addPhrase = vi.fn<(phrase: Phrase) => void>();
   const { result } = renderHook(() =>
@@ -155,6 +163,29 @@ describe("usePhraseSelection double-save guard (CHAT-08)", () => {
     });
 
     expect(result.current.isSavingPhrase).toBe(false);
+  });
+
+  test("a long press on another bubble during a save cannot take over the sheet", async () => {
+    const { result } = setup();
+    openWith(result);
+    const replay = deferred<void>();
+    mockPlayDataUrl.mockReturnValue(replay.promise);
+
+    act(() => void result.current.handleSaveSelectedPhrase());
+    act(() => openSheet(OTHER_BOT_MESSAGE, "食咗飯未"));
+
+    // The save clears the selection when it settles, so a second bubble
+    // adopted mid-save would have its sheet closed and its edits dropped
+    // without the user ever confirming it.
+    expect(result.current.phraseSelectionMsg).toBe(BOT_MESSAGE);
+    expect(result.current.phraseSelectionText).toBe("早晨");
+
+    await act(async () => {
+      replay.resolve();
+      await flush();
+    });
+
+    expect(result.current.phraseSelectionMsg).toBeNull();
   });
 
   test("a later save still works once the first has finished", async () => {

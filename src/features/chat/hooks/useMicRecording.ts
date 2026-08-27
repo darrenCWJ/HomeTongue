@@ -117,10 +117,24 @@ export function useMicRecording({
     stopListening();
   };
 
-  const startListeningCantonese = async () => {
+  /**
+   * Arm the recorder for one mode. The browser's permission prompt can stay up
+   * for as long as the user ignores it, and the recording can be released
+   * meanwhile — by a pointer-up, or by the dialect-switch effect below, which
+   * clears recordingModeRef. Re-check ownership after the await and throw the
+   * stream away rather than arming a recording whose stop control has gone.
+   */
+  const startListening = async (mode: "cantonese" | "english") => {
     try {
       await startRecording();
-      setListeningMode("cantonese");
+      if (recordingModeRef.current !== mode) {
+        stopRecording().catch(() => {});
+        return;
+      }
+      // Only once the mic is actually live: clearing first meant a denied
+      // permission ate the chips the user could still have tapped.
+      if (mode === "english") setLatestSuggestions([]);
+      setListeningMode(mode);
     } catch {
       recordingStartRef.current = null;
       recordingModeRef.current = null;
@@ -128,19 +142,9 @@ export function useMicRecording({
     }
   };
 
-  const startListeningEnglish = async () => {
-    try {
-      await startRecording();
-      // Only once the mic is actually live: clearing first meant a denied
-      // permission ate the chips the user could still have tapped.
-      setLatestSuggestions([]);
-      setListeningMode("english");
-    } catch {
-      recordingStartRef.current = null;
-      recordingModeRef.current = null;
-      toast.error("Microphone access denied. Please allow microphone permissions.");
-    }
-  };
+  const startListeningCantonese = () => startListening("cantonese");
+
+  const startListeningEnglish = () => startListening("english");
 
   const stopListening = async () => {
     const mode = listeningMode || recordingModeRef.current;
@@ -194,8 +198,9 @@ export function useMicRecording({
           });
           // Merge over the phrase as it stands right now: everything the user
           // touched while this turn was in flight (bookmark, tags, createdAt)
-          // must survive the append. The fallback covers a phrase deleted from
-          // the library mid-conversation.
+          // must survive the append. The fallback only keeps the shape the
+          // pre-merge code wrote for an id the library does not know —
+          // updatePhrase ignores those, here as before.
           const existingPhrase = phrasesRef.current.find((p) => p.id === prev.msgId) ?? {
             id: prev.msgId,
             original: "",

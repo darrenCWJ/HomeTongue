@@ -353,6 +353,36 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     expect(mockStopRecording).not.toHaveBeenCalled();
     expect(result.current.isListening).toBe(true);
   });
+
+  test("a switch while the permission prompt is still up never arms the mic", async () => {
+    const { result, rerender } = setup();
+    // Chromium's permission prompt does not block the page, so the user can
+    // switch dialect while it is still up and answer it afterwards.
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+    });
+    expect(result.current.isListening).toBe(false); // nothing is recording yet
+
+    await act(async () => {
+      rerender({ languageCode: "nan-TW" });
+      await flush();
+    });
+    await act(async () => {
+      permission.resolve();
+      await pending;
+      await flush();
+    });
+
+    // Arming here would hand the recording to a pack whose mic — the only
+    // stop control — is no longer on screen.
+    expect(result.current.isListening).toBe(false);
+    expect(result.current.listeningMode).toBeNull();
+    expect(mockStopRecording).toHaveBeenCalled();
+  });
 });
 
 describe("useMicRecording append merge (CHAT-06)", () => {
@@ -387,10 +417,13 @@ describe("useMicRecording append merge (CHAT-06)", () => {
     });
   });
 
-  test("an append still writes the full turn when the phrase is no longer in the library", async () => {
+  // No phrase can currently leave the library, so this only pins the shape the
+  // pre-merge code wrote. LibraryProvider.updatePhrase ignores an unknown id,
+  // and did before this change too.
+  test("an append with no phrase to merge over falls back to the whole-turn shape", async () => {
     const { result, updatePhrase, lastRecordRef, phrasesRef } = setup();
     lastRecordRef.current = openAppendWindow();
-    phrasesRef.current = []; // e.g. deleted from Bookmarks mid-conversation
+    phrasesRef.current = [];
     mockTranscribeDialect.mockResolvedValue("食咗飯未");
     mockTranslateDialectToEnglish.mockResolvedValue("good morning, have you eaten");
 
@@ -416,9 +449,7 @@ describe("useMicRecording English mic permission (CHAT-10)", () => {
     const { result, setLatestSuggestions } = setup();
     mockStartRecording.mockRejectedValueOnce(new Error("denied"));
 
-    await act(async () => {
-      await result.current.startListeningEnglish();
-    });
+    await startRecordingFor(result, "english");
 
     expect(setLatestSuggestions).not.toHaveBeenCalled();
     expect(result.current.isListening).toBe(false);
@@ -427,9 +458,7 @@ describe("useMicRecording English mic permission (CHAT-10)", () => {
   test("a granted mic clears the chips so they cannot be tapped mid-recording", async () => {
     const { result, setLatestSuggestions } = setup();
 
-    await act(async () => {
-      await result.current.startListeningEnglish();
-    });
+    await startRecordingFor(result, "english");
 
     expect(setLatestSuggestions).toHaveBeenCalledWith([]);
     expect(result.current.listeningMode).toBe("english");
