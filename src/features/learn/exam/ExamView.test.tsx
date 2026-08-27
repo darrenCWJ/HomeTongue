@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { ConversationLesson } from "../../../types";
 import { ExamView } from "./ExamView";
 
@@ -47,6 +48,17 @@ vi.mock("../shared", () => ({
 
 vi.mock("./TranscriptDiff", () => ({
   TranscriptDiff: ({ transcribed }: { transcribed: string }) => <span>{transcribed}</span>,
+}));
+
+// Nothing here depends on animation, and the real barrel costs this file ~5s of
+// import — the whole per-test budget, which risks a timeout under a loaded
+// full-suite run. ExamView only ever renders motion.div.
+vi.mock("motion/react", () => ({
+  motion: {
+    div: ({ children, className }: { children?: ReactNode; className?: string }) => (
+      <div className={className}>{children}</div>
+    ),
+  },
 }));
 
 vi.mock("sonner", () => ({

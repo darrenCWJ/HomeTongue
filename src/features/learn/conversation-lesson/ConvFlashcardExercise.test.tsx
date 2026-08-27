@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { VocabItem } from "../../../types";
 import { ConvFlashcardExercise } from "./ConvFlashcardExercise";
 
@@ -19,9 +20,18 @@ const mockAnimate = vi.fn(() => {
   return promise;
 });
 
-vi.mock("motion/react", async () => {
-  const actual = await vi.importActual<typeof import("motion/react")>("motion/react");
-  return { ...actual, animate: (...args: unknown[]) => mockAnimate(...(args as [])) };
+// Fully stubbed for the same reason as FlashcardExercise — see the note there.
+vi.mock("motion/react", () => {
+  const value = { set: () => {}, get: () => 0 };
+  return {
+    motion: {
+      div: ({ children, className }: { children?: ReactNode; className?: string }) => (
+        <div className={className}>{children}</div>
+      ),
+    },
+    useMotionValue: () => value,
+    animate: (...args: unknown[]) => mockAnimate(...(args as [])),
+  };
 });
 
 vi.mock("../shared", () => ({

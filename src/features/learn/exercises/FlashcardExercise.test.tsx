@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { LessonLevel } from "../../../types";
 import { FlashcardExercise } from "./FlashcardExercise";
 
@@ -25,9 +26,21 @@ const mockAnimate = vi.fn(() => {
   return promise;
 });
 
-vi.mock("motion/react", async () => {
-  const actual = await vi.importActual<typeof import("motion/react")>("motion/react");
-  return { ...actual, animate: (...args: unknown[]) => mockAnimate(...(args as [])) };
+// Fully stubbed rather than importActual'd: these tests drive `animate`
+// themselves and assert on rendered text, so the real barrel buys nothing and
+// costs ~5s of import — the whole per-test budget, which risks a timeout under
+// a loaded full-suite run.
+vi.mock("motion/react", () => {
+  const value = { set: () => {}, get: () => 0 };
+  return {
+    motion: {
+      div: ({ children, className }: { children?: ReactNode; className?: string }) => (
+        <div className={className}>{children}</div>
+      ),
+    },
+    useMotionValue: () => value,
+    animate: (...args: unknown[]) => mockAnimate(...(args as [])),
+  };
 });
 
 vi.mock("../shared", () => ({

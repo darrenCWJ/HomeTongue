@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { RoleplayScenario } from "../../../services/roleplayService";
 import { RoleplayView } from "./RoleplayView";
 
@@ -55,6 +56,17 @@ vi.mock("../../../services/roleplayService", () => ({
 
 vi.mock("./RoleplayBubble", () => ({
   RoleplayBubble: ({ turn }: { turn: { text: string } }) => <p>{turn.text}</p>,
+}));
+
+// Nothing here depends on animation, and importing the real barrel costs this
+// file ~5s — the whole per-test budget, which made it time out under a loaded
+// full-suite run. The view and the summary only ever render motion.div.
+vi.mock("motion/react", () => ({
+  motion: {
+    div: ({ children, className }: { children?: ReactNode; className?: string }) => (
+      <div className={className}>{children}</div>
+    ),
+  },
 }));
 
 vi.mock("sonner", () => ({
