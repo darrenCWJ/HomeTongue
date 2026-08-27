@@ -49,8 +49,7 @@ export function CloudAccountSection({ authUser, signOut }: CloudAccountSectionPr
         // reviewStates has no dedicated slot in the sentence above — append
         // it only when nonzero so the message stays truthful without
         // cluttering the common case (most imports don't touch it).
-        const reviewStatesNote =
-          counts.reviewStates > 0 ? `, ${counts.reviewStates} review schedules` : "";
+        const reviewStatesNote = counts.reviewStates > 0 ? `, ${counts.reviewStates} review schedules` : "";
         toast.success(
           `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags${reviewStatesNote}.`
         );

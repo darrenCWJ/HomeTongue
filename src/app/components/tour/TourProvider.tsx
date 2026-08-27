@@ -112,10 +112,7 @@ export function TourProvider({ children }: TourProviderProps) {
   }, []);
 
   /** Reads the session-scoped cancel memory. Stable, so it never re-arms a caller's effect. */
-  const isTourSuppressed = useCallback(
-    (pageId: TourPageId) => suppressedPagesRef.current.has(pageId),
-    []
-  );
+  const isTourSuppressed = useCallback((pageId: TourPageId) => suppressedPagesRef.current.has(pageId), []);
 
   const value = useMemo(
     () => ({

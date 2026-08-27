@@ -338,7 +338,9 @@ export function LearnPage() {
                   {personalLessons.length === 0 ? (
                     <div className="bg-card rounded-2xl p-8 text-center border border-border-subtle shadow-sm">
                       <BookOpen size={32} className="text-faint mx-auto mb-3" />
-                      <p className="text-sm font-semibold text-muted-foreground mb-1">No custom lessons yet</p>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">
+                        No custom lessons yet
+                      </p>
                       <p className="text-xs text-faint">
                         Go to Saved Conversations and tap the bookmark icon to convert a chat into a lesson.
                       </p>

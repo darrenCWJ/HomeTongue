@@ -152,47 +152,50 @@ export function TourOverlay() {
     };
   }, [activeTour, tourRunId, currentStep, isActive, clearRetryTimer]);
 
-  const updatePosition = useCallback(function positionPass() {
-    if (!activeTour) return;
-    const steps = TOUR_STEPS[activeTour];
-    const step = steps[currentStep];
-    if (!step) return;
+  const updatePosition = useCallback(
+    function positionPass() {
+      if (!activeTour) return;
+      const steps = TOUR_STEPS[activeTour];
+      const step = steps[currentStep];
+      if (!step) return;
 
-    const rect = getTargetRect(step.target);
-    if (!rect) {
-      clearRetryTimer();
-      if (retryCountRef.current < MAX_ANCHOR_RETRIES) {
-        retryCountRef.current += 1;
-        retryTimerRef.current = setTimeout(positionPass, ANCHOR_RETRY_MS);
+      const rect = getTargetRect(step.target);
+      if (!rect) {
+        clearRetryTimer();
+        if (retryCountRef.current < MAX_ANCHOR_RETRIES) {
+          retryCountRef.current += 1;
+          retryTimerRef.current = setTimeout(positionPass, ANCHOR_RETRY_MS);
+          return;
+        }
+        retryCountRef.current = 0;
+        const action = resolveMissingAnchor(
+          currentStep,
+          anyStepRenderedRef.current,
+          currentStep >= steps.length - 1
+        );
+        if (action === "cancel") {
+          cancelTour(activeTour);
+        } else {
+          nextStep();
+        }
         return;
       }
+
+      clearRetryTimer();
       retryCountRef.current = 0;
-      const action = resolveMissingAnchor(
-        currentStep,
-        anyStepRenderedRef.current,
-        currentStep >= steps.length - 1
-      );
-      if (action === "cancel") {
-        cancelTour(activeTour);
-      } else {
-        nextStep();
-      }
-      return;
-    }
+      anyStepRenderedRef.current = true;
+      setSpotlightRect(rect);
 
-    clearRetryTimer();
-    retryCountRef.current = 0;
-    anyStepRenderedRef.current = true;
-    setSpotlightRect(rect);
-
-    requestAnimationFrame(() => {
-      const tooltipEl = tooltipRef.current;
-      const tooltipWidth = tooltipEl?.offsetWidth ?? 280;
-      const tooltipHeight = tooltipEl?.offsetHeight ?? 140;
-      const pos = getTooltipPosition(rect, step.placement, tooltipWidth, tooltipHeight);
-      setTooltipPos(pos);
-    });
-  }, [activeTour, currentStep, nextStep, cancelTour, clearRetryTimer]);
+      requestAnimationFrame(() => {
+        const tooltipEl = tooltipRef.current;
+        const tooltipWidth = tooltipEl?.offsetWidth ?? 280;
+        const tooltipHeight = tooltipEl?.offsetHeight ?? 140;
+        const pos = getTooltipPosition(rect, step.placement, tooltipWidth, tooltipHeight);
+        setTooltipPos(pos);
+      });
+    },
+    [activeTour, currentStep, nextStep, cancelTour, clearRetryTimer]
+  );
 
   useEffect(() => {
     if (!isActive) return;

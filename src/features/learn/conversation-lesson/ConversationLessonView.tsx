@@ -129,7 +129,10 @@ export function ConversationLessonView({
             >
               Take Final Exam
             </button>
-            <button onClick={() => savePhase("listen")} className="text-sm text-faint hover:text-muted-foreground">
+            <button
+              onClick={() => savePhase("listen")}
+              className="text-sm text-faint hover:text-muted-foreground"
+            >
               Review phrases again
             </button>
           </div>
