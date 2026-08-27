@@ -90,9 +90,19 @@ export function PhraseTagFilterBar({
             {tag.name}
             {isEditingTags && (
               <span
+                role="button"
+                tabIndex={0}
+                aria-label={`Delete tag ${tag.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteTag(tag.id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDeleteTag(tag.id);
+                  }
                 }}
                 className="ml-0.5 rounded-full hover:bg-brand-blue/20 p-0.5"
               >
@@ -117,6 +127,8 @@ export function PhraseTagFilterBar({
                 }
               }}
               placeholder="Tag name"
+              aria-label="New tag name"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus follows the just-revealed inline create-tag input
               autoFocus
               className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
             />
@@ -139,6 +151,8 @@ export function PhraseTagFilterBar({
         )}
         <button
           onClick={() => setIsEditingTags(!isEditingTags)}
+          aria-label={isEditingTags ? "Done editing tags" : "Edit tags"}
+          aria-pressed={isEditingTags}
           className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
             isEditingTags ? "bg-brand-blue text-white" : "text-faint hover:text-brand-blue hover:bg-muted"
           }`}

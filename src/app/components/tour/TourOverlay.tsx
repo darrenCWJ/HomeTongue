@@ -283,7 +283,8 @@ export function TourOverlay() {
             />
           </svg>
 
-          <div className="absolute inset-0" onClick={skipTour} />
+          {/* Pointer-only dismiss surface; the visible Skip button below is the accessible path. */}
+          <div aria-hidden="true" className="absolute inset-0" onClick={skipTour} />
 
           <AnimatePresence mode="wait">
             <motion.div

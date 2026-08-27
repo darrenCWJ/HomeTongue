@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Pencil, StickyNote, Tag as TagIcon, Trash2 } from "lucide-react";
 
 interface SessionMenuProps {
@@ -17,9 +18,18 @@ export function SessionMenu({
   onAddNote,
   onDelete,
 }: SessionMenuProps) {
+  // The backdrop below is pointer-only; Escape is the keyboard path out.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div aria-hidden="true" className="fixed inset-0 z-40" onClick={onClose} />
       <div
         className="fixed z-50 bg-card rounded-xl shadow-lg border border-border py-1.5 w-44"
         style={{ top: menuPosition.top, right: menuPosition.right }}

@@ -37,7 +37,7 @@ export function OnboardingPage() {
     setVoiceId(displayVoices[0]?.key ?? "");
   }, [displayVoices]);
 
-  const handlePreview = async (e: React.MouseEvent, id: string) => {
+  const handlePreview = async (e: React.SyntheticEvent, id: string) => {
     e.stopPropagation();
     if (previewingId) return;
     setPreviewingId(id);
@@ -87,6 +87,7 @@ export function OnboardingPage() {
     return (
       <div className="flex flex-col h-full bg-black relative overflow-hidden">
         <div className="flex-1 flex flex-col items-center justify-center p-6">
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption -- intro.mp4 ships without a captions track; authoring a .vtt for it is open product work, not something a lint fix can supply */}
           <video
             ref={videoRef}
             src="/intro.mp4"
@@ -167,6 +168,8 @@ export function OnboardingPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your name"
+                  aria-label="Your name"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: the name field is the sole control of the just-shown onboarding step
                   autoFocus
                   maxLength={40}
                   className="w-full bg-input-background border border-border rounded-xl py-3 px-4 outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all text-sm font-medium text-foreground placeholder:font-normal placeholder:text-faint"
@@ -248,7 +251,16 @@ export function OnboardingPage() {
                           </div>
                         </div>
                         <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Preview ${voice.label} voice`}
                           onClick={(e) => handlePreview(e, voice.key)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handlePreview(e, voice.key);
+                            }
+                          }}
                           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                             previewingId === voice.key
                               ? "bg-brand-blue/15"

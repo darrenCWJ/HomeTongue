@@ -70,8 +70,20 @@ export function SessionCard({
       {/* Session header */}
       <div className="p-5 flex items-center gap-3">
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={expandedSessionId === session.id}
           className="flex-1 min-w-0 cursor-pointer"
           onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}
+          onKeyDown={(e) => {
+            // Only when the header itself is focused — the inline title input
+            // bubbles its own Enter/Escape through here.
+            if (e.target !== e.currentTarget) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setExpandedSessionId(expandedSessionId === session.id ? null : session.id);
+            }
+          }}
         >
           <div className="flex items-center gap-2 flex-wrap">
             {editingSessionId === session.id ? (

@@ -62,7 +62,22 @@ export function ConversationLessonCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      // Explicit name: without it the card's accessible name concatenates every
+      // string inside it, including the "Edit title" / "Delete" menu items.
+      aria-label={`Open lesson: ${lesson.title}`}
       onClick={editing || menuOpen ? undefined : onClick}
+      onKeyDown={(e) => {
+        // Only when the card itself is focused — the title input and menu
+        // buttons inside bubble their own key events through here.
+        if (e.target !== e.currentTarget) return;
+        if (editing || menuOpen) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className="relative bg-card rounded-2xl p-4 shadow-sm border border-border-subtle flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
       <div className="absolute top-2 right-2" ref={menuRef}>
@@ -110,6 +125,8 @@ export function ConversationLessonCard({
         {editing ? (
           <div className="flex items-center gap-1.5">
             <input
+              aria-label="Lesson title"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus follows the just-revealed inline title editor
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -129,6 +146,7 @@ export function ConversationLessonCard({
                 e.stopPropagation();
                 commitEdit();
               }}
+              aria-label="Save title"
               className="p-1 rounded-full bg-brand-blue text-white flex-shrink-0"
             >
               <Check size={12} />
@@ -139,6 +157,7 @@ export function ConversationLessonCard({
                 setDraft(lesson.title);
                 setEditing(false);
               }}
+              aria-label="Cancel title edit"
               className="p-1 rounded-full bg-muted text-muted-foreground flex-shrink-0"
             >
               <X size={12} />

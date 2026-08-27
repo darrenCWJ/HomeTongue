@@ -40,6 +40,7 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
             </div>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
             >
               <X size={16} />
@@ -48,8 +49,17 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
 
           {/* Flashcard */}
           <div className="p-6">
+            {/* No aria-label: the visible card text (word + "Tap to reveal") is the accessible name. */}
             <div
+              role="button"
+              tabIndex={0}
               onClick={() => setFlipped((f) => !f)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFlipped((f) => !f);
+                }
+              }}
               className="cursor-pointer select-none mb-6"
               style={{ perspective: 1000 }}
             >

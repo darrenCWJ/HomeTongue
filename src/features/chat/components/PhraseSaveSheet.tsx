@@ -54,13 +54,15 @@ export function PhraseSaveSheet({
           <textarea
             value={phraseSelectionText}
             onChange={(e) => setPhraseSelectionText(e.target.value)}
+            aria-label="Phrase text"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus moves into the just-opened save sheet
             autoFocus
             rows={3}
             className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground text-base resize-none mb-4"
           />
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             Tags
-          </label>
+          </span>
           <div className="flex flex-wrap gap-2 mb-3">
             {phraseTags.map((tag) => {
               const isSelected = phraseTagSelection.includes(tag.id);
@@ -103,6 +105,8 @@ export function PhraseSaveSheet({
                     }
                   }}
                   placeholder="Tag name"
+                  aria-label="New tag name"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus follows the just-revealed inline create-tag input
                   autoFocus
                   className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
                 />
@@ -115,6 +119,7 @@ export function PhraseSaveSheet({
                       setIsCreatingPhraseTag(false);
                     }
                   }}
+                  aria-label="Create tag"
                   className="p-1.5 rounded-full bg-brand-blue text-white"
                 >
                   <Check size={12} />

@@ -31,6 +31,7 @@ export function AudioPlayer({ path }: AudioPlayerProps) {
   }
 
   if (state === "ready" && url) {
+    // eslint-disable-next-line jsx-a11y/media-has-caption -- reviewers audition raw learner recordings; the transcript under review is shown alongside, and no caption track exists for ad-hoc speech samples
     return <audio className="audio-player" controls src={url} preload="metadata" />;
   }
 

@@ -51,8 +51,14 @@ export function SaveSessionDialog({
             <p className="text-sm text-muted-foreground">Give it a title so you can find it later</p>
           </div>
 
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Title</label>
+          <label
+            htmlFor="save-session-title"
+            className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5"
+          >
+            Title
+          </label>
           <input
+            id="save-session-title"
             type="text"
             value={saveTitle}
             onChange={(e) => setSaveTitle(e.target.value)}
@@ -60,11 +66,14 @@ export function SaveSessionDialog({
               if (e.key === "Enter") onConfirm();
             }}
             placeholder="e.g. Ordering at a restaurant"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus moves into the just-opened save dialog
             autoFocus
             className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground mb-4"
           />
 
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tags</label>
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            Tags
+          </span>
           <div className="flex flex-wrap gap-2 mb-3">
             {sessionTags.map((tag) => {
               const isSelected = saveSessionTags.includes(tag.id);
@@ -107,6 +116,8 @@ export function SaveSessionDialog({
                     }
                   }}
                   placeholder="Tag name"
+                  aria-label="New tag name"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus follows the just-revealed inline create-tag input
                   autoFocus
                   className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
                 />
@@ -119,6 +130,7 @@ export function SaveSessionDialog({
                       setIsCreatingSessionTag(false);
                     }
                   }}
+                  aria-label="Create tag"
                   className="p-1.5 rounded-full bg-brand-blue text-white"
                 >
                   <Check size={12} />

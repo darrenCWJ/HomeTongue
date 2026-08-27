@@ -81,6 +81,8 @@ export function SignInPage() {
                   setError(false);
                 }}
                 placeholder="••••••••"
+                aria-label="Access code"
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: the access code field is the sole control on this gate screen
                 autoFocus
                 className={`w-full bg-input-background border rounded-xl py-3 px-4 text-center text-lg tracking-[0.3em] font-semibold outline-none transition-all
                   ${
