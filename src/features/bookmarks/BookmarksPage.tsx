@@ -70,14 +70,27 @@ export function BookmarksPage() {
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [deleteConfirmSessionId, setDeleteConfirmSessionId] = useState<string | null>(null);
 
-  const { pendingTagDeletions, pendingMsgDeletions, handleDeleteTag, handleDeleteMessage } =
-    useUndoableDeletions({
-      deleteTag,
-      deleteSessionMessage,
-      setSelectedTagFilters,
-      setSessionTagFilters,
-      setViewingSession,
-    });
+  const {
+    pendingTagDeletions,
+    pendingMsgDeletions,
+    cancelPendingTagDeletion,
+    handleDeleteTag,
+    handleDeleteMessage,
+  } = useUndoableDeletions({
+    deleteTag,
+    deleteSessionMessage,
+    selectedTagFilters,
+    setSelectedTagFilters,
+    sessionTagFilters,
+    setSessionTagFilters,
+  });
+
+  /** A tag draft belongs to the tab it was started on (BM-11). */
+  const resetTagDrafts = () => {
+    setIsCreatingTag(false);
+    setNewTagName("");
+    setIsEditingTags(false);
+  };
 
   const { playingId, handleSpeak, playMessage } = useBookmarkPlayback({ sessions, userProfile });
 
@@ -139,6 +152,7 @@ export function BookmarksPage() {
             onClick={() => {
               setActiveTab("phrases");
               setSelectedTagFilters(new Set());
+              resetTagDrafts();
             }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "phrases"
@@ -149,7 +163,10 @@ export function BookmarksPage() {
             Phrases
           </button>
           <button
-            onClick={() => setActiveTab("sessions")}
+            onClick={() => {
+              setActiveTab("sessions");
+              resetTagDrafts();
+            }}
             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
               activeTab === "sessions"
                 ? "bg-card text-foreground shadow-sm"
@@ -193,6 +210,7 @@ export function BookmarksPage() {
             tagsExpanded={tagsExpanded}
             setTagsExpanded={setTagsExpanded}
             createTag={createTag}
+            cancelPendingTagDeletion={cancelPendingTagDeletion}
             onDeleteTag={handleDeleteTag}
           />
         )}
@@ -215,6 +233,7 @@ export function BookmarksPage() {
             tagsExpanded={tagsExpanded}
             setTagsExpanded={setTagsExpanded}
             createTag={createTag}
+            cancelPendingTagDeletion={cancelPendingTagDeletion}
             onDeleteTag={handleDeleteTag}
           />
         )}
@@ -227,6 +246,7 @@ export function BookmarksPage() {
             bookmarkedPhrases={bookmarkedPhrases}
             isTourMode={isTourMode}
             phraseTags={phraseTags}
+            pendingTagDeletions={pendingTagDeletions}
             editingTagsPhraseId={editingTagsPhraseId}
             setEditingTagsPhraseId={setEditingTagsPhraseId}
             playingId={playingId}
@@ -242,6 +262,7 @@ export function BookmarksPage() {
             searchLower={searchLower}
             isTourMode={isTourMode}
             sessionTags={sessionTags}
+            pendingTagDeletions={pendingTagDeletions}
             conversationLessons={scopedConversationLessons}
             expandedSessionId={expandedSessionId}
             setExpandedSessionId={setExpandedSessionId}
@@ -279,6 +300,7 @@ export function BookmarksPage() {
       {/* Full-screen conversation view */}
       <SessionViewer
         session={viewingSession}
+        sessions={sessions}
         onClose={() => setViewingSession(null)}
         phrases={phrases}
         playingId={playingId}

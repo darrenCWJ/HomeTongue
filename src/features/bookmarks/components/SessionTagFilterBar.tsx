@@ -1,6 +1,7 @@
 import React from "react";
 import { Briefcase, Check, ChevronDown, Home, Pencil, Plus, X } from "lucide-react";
 import type { PersonaType, Tag, TagType } from "../../../types";
+import { commitTagDraft } from "../tagDraft";
 
 interface SessionTagFilterBarProps {
   sessionTags: Tag[];
@@ -18,6 +19,7 @@ interface SessionTagFilterBarProps {
   tagsExpanded: boolean;
   setTagsExpanded: (value: boolean) => void;
   createTag: (name: string, type: TagType) => Tag;
+  cancelPendingTagDeletion: (tagId: string) => boolean;
   onDeleteTag: (tagId: string) => void;
 }
 
@@ -37,10 +39,25 @@ export function SessionTagFilterBar({
   tagsExpanded,
   setTagsExpanded,
   createTag,
+  cancelPendingTagDeletion,
   onDeleteTag,
 }: SessionTagFilterBarProps) {
   const visibleSessionTags = sessionTags.filter((t) => !pendingTagDeletions.has(t.id));
   const hasMoreSessionTags = visibleSessionTags.length > 3;
+
+  const commitDraft = () => {
+    if (!newTagName.trim()) return;
+    commitTagDraft({
+      name: newTagName,
+      type: "session",
+      tags: sessionTags,
+      pendingTagDeletions,
+      cancelPendingTagDeletion,
+      createTag,
+    });
+    setNewTagName("");
+    setIsCreatingTag(false);
+  };
   return (
     <div>
       <div
@@ -122,10 +139,8 @@ export function SessionTagFilterBar({
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && newTagName.trim()) {
-                  createTag(newTagName.trim(), "session");
-                  setNewTagName("");
-                  setIsCreatingTag(false);
+                if (e.key === "Enter") {
+                  commitDraft();
                 }
                 if (e.key === "Escape") {
                   setIsCreatingTag(false);
@@ -137,13 +152,8 @@ export function SessionTagFilterBar({
               className="px-3 py-1.5 rounded-full text-xs border-2 border-brand-blue/50 focus:border-brand-blue focus:outline-none w-24"
             />
             <button
-              onClick={() => {
-                if (newTagName.trim()) {
-                  createTag(newTagName.trim(), "session");
-                  setNewTagName("");
-                  setIsCreatingTag(false);
-                }
-              }}
+              onClick={commitDraft}
+              aria-label="Create tag"
               className="p-1.5 rounded-full bg-brand-blue text-white"
             >
               <Check size={12} />
@@ -161,9 +171,7 @@ export function SessionTagFilterBar({
         <button
           onClick={() => setIsEditingTags(!isEditingTags)}
           className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
-            isEditingTags
-              ? "bg-brand-blue text-white"
-              : "text-faint hover:text-brand-blue hover:bg-muted"
+            isEditingTags ? "bg-brand-blue text-white" : "text-faint hover:text-brand-blue hover:bg-muted"
           }`}
         >
           {isEditingTags ? <Check size={12} /> : <Pencil size={12} />}

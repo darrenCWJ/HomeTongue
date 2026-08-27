@@ -6,6 +6,7 @@ export interface SessionCardProps {
   session: Session;
   isFirst: boolean;
   sessionTags: Tag[];
+  pendingTagDeletions: Set<string>;
   conversationLessons: ConversationLesson[];
   expandedSessionId: string | null;
   setExpandedSessionId: (id: string | null) => void;
@@ -33,6 +34,7 @@ export function SessionCard({
   session,
   isFirst,
   sessionTags,
+  pendingTagDeletions,
   conversationLessons,
   expandedSessionId,
   setExpandedSessionId,
@@ -55,6 +57,9 @@ export function SessionCard({
   onMakeLesson,
   onConvertToLesson,
 }: SessionCardProps) {
+  // Tags inside their 5s undo window are hidden here exactly as in the filter
+  // bar, so a doomed tag cannot be assigned to a session (BM-04).
+  const assignableTags = sessionTags.filter((t) => !pendingTagDeletions.has(t.id));
   return (
     <div
       {...(isFirst ? { "data-tour": "bookmarks-session-card" } : {})}
@@ -168,7 +173,7 @@ export function SessionCard({
         <div className="px-5 pb-4 pt-2 border-t border-border-subtle">
           <p className="text-[10px] font-semibold text-faint uppercase tracking-wide mb-2">Tags</p>
           <div className="flex flex-wrap gap-1.5">
-            {sessionTags.map((tag) => {
+            {assignableTags.map((tag) => {
               const isSelected = session.tags?.includes(tag.id) ?? false;
               return (
                 <button

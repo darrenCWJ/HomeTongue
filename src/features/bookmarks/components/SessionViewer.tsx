@@ -4,7 +4,10 @@ import { motion, AnimatePresence } from "motion/react";
 import type { Message, Phrase, Session } from "../../../types";
 
 interface SessionViewerProps {
+  /** Snapshot taken when the conversation was opened; identifies the session. */
   session: Session | null;
+  /** Live provider sessions — the actual source of the rendered messages. */
+  sessions: Session[];
   onClose: () => void;
   phrases: Phrase[];
   playingId: string | null;
@@ -24,6 +27,7 @@ interface SessionViewerProps {
 
 export function SessionViewer({
   session,
+  sessions,
   onClose,
   phrases,
   playingId,
@@ -35,9 +39,15 @@ export function SessionViewer({
   onBubblePointerMove,
   onBubblePointerCancel,
 }: SessionViewerProps) {
+  // Render live provider state, never the open-time snapshot: a message
+  // deleted while the viewer is open must stay deleted across a remount
+  // (BM-05). The snapshot is only a fallback for a session that has since
+  // disappeared from the provider — e.g. during the closing animation.
+  const liveSession = session ? (sessions.find((s) => s.id === session.id) ?? session) : null;
+
   return (
     <AnimatePresence>
-      {session && (
+      {liveSession && (
         <motion.div
           initial={{ opacity: 0, x: "100%" }}
           animate={{ opacity: 1, x: 0 }}
@@ -52,24 +62,24 @@ export function SessionViewer({
             </button>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-foreground text-base truncate">
-                {session.title ?? "Conversation"}
+                {liveSession.title ?? "Conversation"}
               </p>
               <p className="text-xs text-faint">
-                {session.date} · {session.messages.length} messages
+                {liveSession.date} · {liveSession.messages.length} messages
               </p>
             </div>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-none">
-            {session.messages
+            {liveSession.messages
               .filter((m) => !pendingMsgDeletions.has(m.id))
               .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
               .map((msg, i) => {
                 const isBot = msg.sender === "bot";
                 const displayText = isBot ? msg.text : (msg.dialectText ?? msg.text);
                 const subText = isBot ? msg.englishTranslation : msg.text;
-                const audioKey = `view-${session.id}-${i}`;
+                const audioKey = `view-${liveSession.id}-${i}`;
                 const isPlaying = playingId === audioKey;
                 const hasAudioForMsg =
                   !!msg.audioDataUrl || (msg.audioDataUrls && msg.audioDataUrls.length > 0);
@@ -93,7 +103,7 @@ export function SessionViewer({
                       onDragEnd={(_e, info) => {
                         const shouldDelete = isBot ? info.offset.x > 80 : info.offset.x < -80;
                         if (shouldDelete) {
-                          onDeleteMessage(session.id, msg.id);
+                          onDeleteMessage(liveSession.id, msg.id);
                         }
                       }}
                       className={`relative flex items-end gap-2 bg-background ${isBot ? "justify-start" : "justify-end"}`}

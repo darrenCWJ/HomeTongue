@@ -6,6 +6,7 @@ interface PhrasesTabProps {
   bookmarkedPhrases: Phrase[];
   isTourMode: boolean;
   phraseTags: Tag[];
+  pendingTagDeletions: Set<string>;
   editingTagsPhraseId: string | null;
   setEditingTagsPhraseId: (id: string | null) => void;
   playingId: string | null;
@@ -18,6 +19,7 @@ export function PhrasesTab({
   bookmarkedPhrases,
   isTourMode,
   phraseTags,
+  pendingTagDeletions,
   editingTagsPhraseId,
   setEditingTagsPhraseId,
   playingId,
@@ -64,6 +66,7 @@ export function PhrasesTab({
           phrase={phrase}
           isFirst={phraseIdx === 0}
           phraseTags={phraseTags}
+          pendingTagDeletions={pendingTagDeletions}
           editingTagsPhraseId={editingTagsPhraseId}
           setEditingTagsPhraseId={setEditingTagsPhraseId}
           playingId={playingId}

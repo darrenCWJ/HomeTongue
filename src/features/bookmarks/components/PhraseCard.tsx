@@ -5,6 +5,7 @@ interface PhraseCardProps {
   phrase: Phrase;
   isFirst: boolean;
   phraseTags: Tag[];
+  pendingTagDeletions: Set<string>;
   editingTagsPhraseId: string | null;
   setEditingTagsPhraseId: (id: string | null) => void;
   playingId: string | null;
@@ -17,6 +18,7 @@ export function PhraseCard({
   phrase,
   isFirst,
   phraseTags,
+  pendingTagDeletions,
   editingTagsPhraseId,
   setEditingTagsPhraseId,
   playingId,
@@ -24,6 +26,9 @@ export function PhraseCard({
   updatePhrase,
   setPhraseTags,
 }: PhraseCardProps) {
+  // Tags inside their 5s undo window are hidden here exactly as in the filter
+  // bar, so a doomed tag cannot be assigned to a phrase (BM-04).
+  const assignableTags = phraseTags.filter((t) => !pendingTagDeletions.has(t.id));
   return (
     <div
       {...(isFirst ? { "data-tour": "bookmarks-phrase-card" } : {})}
@@ -96,7 +101,7 @@ export function PhraseCard({
         <div className="mt-3 pt-3 border-t border-border-subtle">
           <p className="text-[10px] font-semibold text-faint uppercase tracking-wide mb-2">Tags</p>
           <div className="flex flex-wrap gap-1.5">
-            {phraseTags.map((tag) => {
+            {assignableTags.map((tag) => {
               const isSelected = phrase.tags?.includes(tag.id) ?? false;
               return (
                 <button
