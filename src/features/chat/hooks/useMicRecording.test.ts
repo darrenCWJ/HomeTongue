@@ -572,6 +572,45 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
   });
 });
 
+describe("useMicRecording pending-prompt slide-off", () => {
+  // The exam mic needed pointer capture to close this hole; the chat mic does
+  // not have it. Its leave handler keys on recordingModeRef — the claim set
+  // synchronously on press — rather than on post-resolution listening state,
+  // so sliding off while the prompt is still up releases the claim, and the
+  // resolved start's ownership re-check stands the orphaned recorder down.
+  test("sliding off the mic while the permission prompt is up never arms the mic", async () => {
+    const { result } = setup();
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+    });
+    expect(result.current.isListening).toBe(false); // nothing is recording yet
+
+    await act(async () => {
+      result.current.handleMicPointerLeave("cantonese");
+      await flush();
+    });
+
+    // The slide-off's own stopListening (the too-short path) already called
+    // stopRecording once; clear it so the assertion below pins the discard of
+    // the recorder the granted prompt hands back specifically.
+    mockStopRecording.mockClear();
+
+    await act(async () => {
+      permission.resolve();
+      await pending;
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(false);
+    expect(result.current.listeningMode).toBeNull();
+    expect(mockStopRecording).toHaveBeenCalled();
+  });
+});
+
 describe("useMicRecording append merge (CHAT-06)", () => {
   test("an append keeps the tags and bookmark added while the turn was in flight", async () => {
     const { result, updatePhrase, updateMessage, lastRecordRef, phrasesRef } = setup();

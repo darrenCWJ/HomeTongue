@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowLeft, X, Loader2, Mic, MicOff, Trophy } from "lucide-react";
 import { useAudioRecorder } from "../../../hooks/audio";
 import {
@@ -138,7 +138,22 @@ export function ExamView({
     }
   };
 
-  const handleMicPointerDown = async () => {
+  const handleMicPointerDown = async (e: ReactPointerEvent<HTMLButtonElement>) => {
+    // Capture the pointer so the release lands on this button from wherever
+    // the finger has drifted. Without it, sliding off during the permission
+    // prompt and lifting elsewhere fired pointerup somewhere else entirely:
+    // the release flag stayed unset and the resolved start armed a recording
+    // nobody was holding. Touch already behaves this way (implicit capture);
+    // this extends it to mouse. Capture also suppresses boundary events while
+    // held (verified in Chromium), so a drag off an ARMED hold now records
+    // until the release instead of stopping at the boundary crossing — as it
+    // always did on touch, and the leave path processed the recording exactly
+    // like a release anyway, so nothing is discarded either way.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // jsdom implements no pointer capture; the leave/cancel paths still run.
+    }
     if (isRecording && recordingTriggerRef.current === "tap") {
       stopListening();
       return;
@@ -150,8 +165,10 @@ export function ExamView({
 
   const handleMicPointerUp = () => {
     if (!isRecording) {
-      // Nothing is armed yet: either a start is still waiting on the mic (the
-      // start path completes the hold for us) or a tap just stopped one.
+      // Nothing is armed yet: a start is still waiting on the mic (the start
+      // path completes the hold for us), or this is the captured release of a
+      // press whose recording already stopped (a tap, a cancelled hold) — a
+      // stale flag is harmless there, the next start resets it.
       releasedDuringStartRef.current = true;
       return;
     }
@@ -164,8 +181,29 @@ export function ExamView({
     }
   };
 
+  // With the pointer captured this fires only once the gesture is over (losing
+  // capture replays the boundary crossing), but it still ends an armed hold
+  // wherever capture is not in effect. The start-time check makes it a no-op
+  // right after the cancel handler has stopped the hold — isRecording is that
+  // render's stale closure there, and a second stopListening would report a
+  // spurious "too short" on a recording that was already processed.
   const handleMicPointerLeave = () => {
     if (!isRecording || recordingTriggerRef.current === "tap") return;
+    if (recordingStartRef.current === null) return;
+    stopListening();
+  };
+
+  // The browser took the gesture away (a touch slide becoming a scroll, palm
+  // rejection, an app switch): pointerup will never fire, even captured.
+  const handleMicPointerCancel = () => {
+    if (!isRecording) {
+      // The start is still waiting on the mic — complete the hold when it
+      // arms, exactly as a release would.
+      releasedDuringStartRef.current = true;
+      return;
+    }
+    if (recordingTriggerRef.current === "tap") return; // tap mode holds no gesture
+    if (recordingStartRef.current === null) return; // already stopped this tick
     stopListening();
   };
 
@@ -291,9 +329,10 @@ export function ExamView({
                   onPointerDown={handleMicPointerDown}
                   onPointerUp={handleMicPointerUp}
                   onPointerLeave={handleMicPointerLeave}
+                  onPointerCancel={handleMicPointerCancel}
                   onContextMenu={(e) => e.preventDefault()}
                   aria-label={isRecording ? "Stop recording" : "Record your answer"}
-                  className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-brand-blue shadow-brand-blue/20 hover:scale-105"}`}
+                  className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none touch-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-brand-blue shadow-brand-blue/20 hover:scale-105"}`}
                 >
                   {isRecording && (
                     <span className="absolute w-full h-full rounded-full bg-red-400 animate-ping opacity-75" />
