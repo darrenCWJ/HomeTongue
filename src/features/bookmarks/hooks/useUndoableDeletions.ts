@@ -58,7 +58,9 @@ export function useUndoableDeletions({
   const handleDeleteTag = useCallback(
     (tagId: string) => {
       // Recorded before the sets are cleared so Undo can restore exactly the
-      // filter selections this delete took away (BM-07).
+      // filter selections this delete took away (BM-07). Deliberately scoped
+      // to this closure — reviving the tag by retyping its name (see
+      // tagDraft.ts) brings back the tag only, not the filters.
       const wasPhraseFilter = selectedTagFilters.has(tagId);
       const wasSessionFilter = sessionTagFilters.has(tagId);
 

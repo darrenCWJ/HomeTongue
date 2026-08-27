@@ -38,6 +38,12 @@ export function commitTagDraft({
   // A false return means the delete already committed, so fall through and
   // create the tag fresh.
   if (pendingMatch && cancelPendingTagDeletion(pendingMatch.id)) {
+    // Scope note: this brings the TAG back, not the tag-filter selections the
+    // delete cleared — only the toast's Undo restores those (BM-07). The two
+    // paths differ on purpose: BM-07 is scoped to Undo, and typing a name into
+    // the "New" input has never selected that tag as a filter. Restoring here
+    // too would mean tracking per-tag filter membership in the hook rather
+    // than in handleDeleteTag's closure.
     toast.success("Tag restored.");
     return;
   }
