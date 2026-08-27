@@ -7,10 +7,14 @@ import { subscribeSyncEvents } from "./syncEvents";
 // not produce a toast per write.
 const QUEUED_TOAST_THROTTLE_MS = 30_000;
 
+// Fixed id so a repeat emit REPLACES the standing banner instead of stacking
+// another copy of it (sonner dedupes by id).
+const PERSISTENCE_DISABLED_TOAST_ID = "persistence-disabled";
+
 /**
- * Surfaces cloud-sync outbox events (src/repositories/outbox/) as sonner
- * toasts. Mounted once from LibraryProvider. In local storage mode no sync
- * events are ever emitted, so the subscription is inert.
+ * Surfaces persistence-health events (src/lib/syncEvents.ts) as sonner toasts.
+ * Mounted once from LibraryProvider. In local storage mode the cloud-outbox
+ * events never fire; only the degraded-storage banner can appear.
  */
 export function useSyncToasts(): void {
   useEffect(() => {
@@ -32,6 +36,15 @@ export function useSyncToasts(): void {
           break;
         case "entry-dropped":
           toast.error("A change could not be synced and was discarded.");
+          break;
+        case "persistence-disabled":
+          // Not a hiccup that resolves itself: storage is out for the rest of
+          // the session, so the banner has to stay up rather than time out
+          // and leave the user believing their work is being saved.
+          toast.error("Storage isn't available — changes won't be saved on this device.", {
+            id: PERSISTENCE_DISABLED_TOAST_ID,
+            duration: Infinity,
+          });
           break;
       }
     });

@@ -12,6 +12,7 @@ import { repositories, isCloudStorageMode, setCloudWriteHold } from "../../repos
 import type { Phrase, Session, LessonProgress, ConversationLesson, Tag, TagType } from "../../types";
 import { newId } from "../../utils/id";
 import { useAuth } from "./AuthProvider";
+import { emitSyncEvent } from "../../lib/syncEvents";
 import { useSyncToasts } from "../../lib/useSyncToasts";
 
 interface LibraryContextType {
@@ -67,6 +68,11 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   // A ref (not state) so the stable `persist` callback reads the latest value.
   const loadFailedRef = useRef(false);
 
+  // One degraded-storage announcement per provider — i.e. per session, since
+  // the provider mounts once. Repeated failing load passes (a remount, a
+  // future epoch bump) must not re-announce.
+  const persistenceDisabledNotifiedRef = useRef(false);
+
   // Surface outbox events (queued / synced / dropped) as toasts.
   useSyncToasts();
 
@@ -98,6 +104,13 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
         loadFailedRef.current = true;
         // Cloud: capture writes durably in the outbox instead (no-op locally).
         setCloudWriteHold(true);
+        // Local mode has no outbox to fall back on — writes are skipped for
+        // the rest of the session, so say so instead of letting the user
+        // work on into an empty reload. useSyncToasts renders the banner.
+        if (!isCloudStorageMode && !persistenceDisabledNotifiedRef.current) {
+          persistenceDisabledNotifiedRef.current = true;
+          emitSyncEvent({ type: "persistence-disabled" });
+        }
         console.error(
           "[library] initial load failed — direct persistence disabled to protect stored data:",
           err
@@ -107,8 +120,12 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
 
   /**
    * Run a single repository write with error handling. After a failed load:
-   * local mode skips the write entirely; cloud mode still runs it because the
-   * outbox is in hold mode and queues it locally (see loadFailedRef above).
+   * local mode skips the write entirely and the change lives in memory only
+   * (the user is told once — see the load catch above). Cloud mode still runs
+   * it, because a SIGNED-IN cloud write goes through the outbox, which the
+   * failed load just put in hold mode, so it is captured durably for a later
+   * flush. (A guest in a cloud build is routed per call to local Dexie and
+   * never reaches the outbox — see src/repositories/routing.ts.)
    */
   const persist = useCallback((op: string, write: () => Promise<unknown>) => {
     if (loadFailedRef.current && !isCloudStorageMode) {

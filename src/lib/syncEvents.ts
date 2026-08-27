@@ -1,9 +1,12 @@
-// Tiny typed event channel between the cloud-write outbox
-// (src/repositories/outbox/) and the UI (src/lib/useSyncToasts.ts).
+// Tiny typed event channel carrying persistence health to the UI
+// (src/lib/useSyncToasts.ts): the cloud-write outbox
+// (src/repositories/outbox/) reports sync progress, and LibraryProvider
+// reports a storage layer that has stopped persisting at all.
 //
 // Deliberately dependency-free: the UI can subscribe in every build without
 // pulling any storage or Supabase code into the bundle. In local storage mode
-// nothing ever emits, so subscribers are inert.
+// only "persistence-disabled" can ever be emitted — the outbox events are
+// cloud-only.
 
 export type SyncEvent =
   /** A cloud write failed (or was held) and was queued for later sync. */
@@ -11,7 +14,13 @@ export type SyncEvent =
   /** A flush pass completed and actually pushed queued writes to the cloud. */
   | { type: "flush-complete"; flushedCount: number }
   /** A queued write exhausted its retries and was discarded. */
-  | { type: "entry-dropped"; entity: string; op: string };
+  | { type: "entry-dropped"; entity: string; op: string }
+  /**
+   * Local mode only: the backing store could not be read, so writes are
+   * skipped and changes live in memory until the tab closes. Unlike the
+   * outbox events this is not transient — it holds for the whole session.
+   */
+  | { type: "persistence-disabled" };
 
 type SyncEventListener = (event: SyncEvent) => void;
 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Volume2, Loader2 } from "lucide-react";
 import type { UserProfile } from "../../../types";
 import type { DisplayVoice } from "../../../languages/types";
+import { asVoiceKey } from "../../../hooks/useGoogleTTS";
 import { previewVoice } from "../../../utils/voicePreviewCache";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
@@ -20,6 +21,11 @@ interface VoiceSectionProps {
 export function VoiceSection({ displayVoices, userProfile, updateUserProfile }: VoiceSectionProps) {
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
+
+  // Resolve the stored id the same way playback does. Comparing the RAW value
+  // left a profile holding a legacy ElevenLabs id with NO voice ticked, while
+  // the app happily spoke in the voice that id maps to.
+  const selectedVoiceKey = asVoiceKey(userProfile?.preferredVoiceId);
 
   const handlePreview = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -62,7 +68,7 @@ export function VoiceSection({ displayVoices, userProfile, updateUserProfile }: 
         {displayVoices
           .filter((v) => v.gender === voiceGenderTab)
           .map((voice) => {
-            const selected = (userProfile?.preferredVoiceId ?? displayVoices[0].key) === voice.key;
+            const selected = selectedVoiceKey === voice.key;
             return (
               <label
                 key={voice.key}

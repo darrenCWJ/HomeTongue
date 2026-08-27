@@ -192,9 +192,13 @@ export function AuthPage({ onComplete }: AuthPageProps) {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mt-auto flex flex-col items-center"
         >
+          {/* Disabled with the submit button: tapping this mid sign-in used to
+              drop the user into the app as a guest while the auth call was
+              still resolving behind them. */}
           <button
             onClick={onComplete}
-            className="text-muted-foreground text-sm font-semibold hover:text-foreground transition-colors"
+            disabled={isLoading}
+            className="text-muted-foreground text-sm font-semibold hover:text-foreground transition-colors disabled:opacity-70 disabled:pointer-events-none"
           >
             Continue as Guest
           </button>

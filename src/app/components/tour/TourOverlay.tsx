@@ -154,6 +154,11 @@ export function TourOverlay() {
 
   const updatePosition = useCallback(
     function positionPass() {
+      // Depend on the run id even though the body never reads it: restarting
+      // the tour that is already running keeps `activeTour`/`currentStep`
+      // identical, so without this the reset effect above clears the per-run
+      // refs and rects with no repositioning pass to follow.
+      void tourRunId;
       if (!activeTour) return;
       const steps = TOUR_STEPS[activeTour];
       const step = steps[currentStep];
@@ -194,7 +199,7 @@ export function TourOverlay() {
         setTooltipPos(pos);
       });
     },
-    [activeTour, currentStep, nextStep, cancelTour, clearRetryTimer]
+    [activeTour, tourRunId, currentStep, nextStep, cancelTour, clearRetryTimer]
   );
 
   useEffect(() => {

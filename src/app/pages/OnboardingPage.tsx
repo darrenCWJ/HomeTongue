@@ -1,10 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Volume2, Check, Loader2, Home, Briefcase } from "lucide-react";
 import { useProfile } from "../context/ProfileProvider";
 import { useActiveLanguagePack } from "../../hooks/useActiveLanguageCode";
 import { previewVoice } from "../../utils/voicePreviewCache";
-import type { WorkJobTitle, PersonaType } from "../../types";
+import type { PersonaType } from "../../types";
 
 const PREVIEW_TEXT = "你好，好高興認識你！";
 
@@ -24,10 +24,18 @@ export function OnboardingPage() {
   const [voiceGenderTab, setVoiceGenderTab] = useState<"female" | "male">("female");
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaType>("personal");
-  const [selectedJobTitle] = useState<WorkJobTitle | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const stepIndex = steps.indexOf(step);
+
+  // `voiceId` was seeded from the pack active at MOUNT. If the pack changes
+  // underneath (profile hydration resolving a different dialect), that seed
+  // names a voice the new pack does not have — and onboarding would store it.
+  // The pack's voice array is a module constant, so this only fires on a real
+  // pack switch.
+  useEffect(() => {
+    setVoiceId(displayVoices[0]?.key ?? "");
+  }, [displayVoices]);
 
   const handlePreview = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -64,10 +72,13 @@ export function OnboardingPage() {
       ...(voiceId ? { preferredVoiceId: voiceId } : {}),
       activePersona: selectedPersona,
     };
-    if (selectedPersona === "work" && selectedJobTitle) {
-      updates.personaProfiles = {
-        work: { tone: "formal", jobTitle: selectedJobTitle },
-      };
+    if (selectedPersona === "work") {
+      // Seeding the work persona is what makes the Work choice mean anything:
+      // tone resolves through the active persona, so without this the formal
+      // tone the step promises never takes effect. (This used to be gated on
+      // a job title no screen could set, so it never ran. A job-title picker
+      // is still open product work — see the commit body.)
+      updates.personaProfiles = { work: { tone: "formal" } };
     }
     updateUserProfile(updates);
   };
@@ -146,7 +157,9 @@ export function OnboardingPage() {
               className="bg-card rounded-3xl shadow-xl shadow-border/50 p-6 border border-border-subtle"
             >
               <h2 className="text-xl font-bold text-foreground mb-1">What's your name?</h2>
-              <p className="text-muted-foreground text-sm mb-6">This helps personalise your learning journey.</p>
+              <p className="text-muted-foreground text-sm mb-6">
+                This helps personalise your learning journey.
+              </p>
 
               <form onSubmit={handleNameNext} className="space-y-4">
                 <input
@@ -183,7 +196,9 @@ export function OnboardingPage() {
                 <Volume2 size={20} className="text-brand-blue" />
                 <h2 className="text-xl font-bold text-foreground">Pick your voice</h2>
               </div>
-              <p className="text-muted-foreground text-sm mb-5">Choose the voice for your learning journey.</p>
+              <p className="text-muted-foreground text-sm mb-5">
+                Choose the voice for your learning journey.
+              </p>
 
               {/* Gender tabs */}
               <div className="flex bg-muted rounded-xl p-1 mb-4">
@@ -324,9 +339,7 @@ export function OnboardingPage() {
                   >
                     Work
                   </span>
-                  <span className="text-xs text-faint text-center leading-tight">
-                    Professional context
-                  </span>
+                  <span className="text-xs text-faint text-center leading-tight">Professional context</span>
                   {selectedPersona === "work" && (
                     <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center mt-1">
                       <Check size={12} className="text-white" />
