@@ -19,7 +19,8 @@ export function SessionMenu({
 }: SessionMenuProps) {
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      {/* Mouse-only dismiss backdrop; the menu itself is all real buttons. */}
+      <div role="presentation" className="fixed inset-0 z-40" onClick={onClose} />
       <div
         className="fixed z-50 bg-card rounded-xl shadow-lg border border-border py-1.5 w-44"
         style={{ top: menuPosition.top, right: menuPosition.right }}

@@ -690,3 +690,82 @@ describe("useMicRecording English mic permission (CHAT-10)", () => {
     expect(result.current.listeningMode).toBe("english");
   });
 });
+
+// The chat mics were operated only through pointer events, so a keyboard user
+// who tabbed to one and pressed Enter/Space could not record. The keyboard
+// path is a toggle with tap semantics: one activation arms the mic exactly
+// like a sub-second tap (recording continues after the handler returns), the
+// next stops it and processes the turn.
+describe("useMicRecording keyboard toggle", () => {
+  test("a keyboard toggle arms the mic in tap mode and a second toggle stops and processes the turn", async () => {
+    const { result, addMessage } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    await act(async () => {
+      await result.current.handleMicKeyboardToggle(result.current.startListeningCantonese, "cantonese");
+    });
+    expect(result.current.isListening).toBe(true);
+    expect(result.current.isTapMode).toBe(true);
+
+    now += 1500;
+    await act(async () => {
+      await result.current.handleMicKeyboardToggle(result.current.startListeningCantonese, "cantonese");
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(false);
+    expect(mockStopRecording).toHaveBeenCalled();
+    expect(addMessage).toHaveBeenCalledWith(expect.objectContaining({ text: "早晨", sender: "bot" }));
+  });
+
+  test("a mouse passing over the mic does not end a keyboard-armed recording", async () => {
+    const { result } = setup();
+
+    await act(async () => {
+      await result.current.handleMicKeyboardToggle(result.current.startListeningCantonese, "cantonese");
+    });
+    expect(result.current.isListening).toBe(true);
+
+    await act(async () => {
+      result.current.handleMicPointerLeave("cantonese");
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(true);
+    expect(mockStopRecording).not.toHaveBeenCalled();
+  });
+
+  test("a keyboard toggle during a slow permission prompt releases the claim so the mic never arms", async () => {
+    const { result } = setup();
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleMicKeyboardToggle(result.current.startListeningCantonese, "cantonese");
+    });
+    expect(result.current.isListening).toBe(false); // nothing is recording yet
+
+    // The prompt is still up and the user toggles again to cancel.
+    await act(async () => {
+      result.current.handleMicKeyboardToggle(result.current.startListeningCantonese, "cantonese");
+      await flush();
+    });
+
+    // The cancel's own stopListening (the too-short path) already called
+    // stopRecording once; clear it so the assertion below pins the discard of
+    // the recorder the granted prompt hands back specifically.
+    mockStopRecording.mockClear();
+
+    await act(async () => {
+      permission.resolve();
+      await pending;
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(false);
+    expect(result.current.listeningMode).toBeNull();
+    expect(mockStopRecording).toHaveBeenCalled();
+  });
+});

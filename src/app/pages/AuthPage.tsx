@@ -123,12 +123,16 @@ export function AuthPage({ onComplete }: AuthPageProps) {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  <label
+                    htmlFor="auth-email"
+                    className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block"
+                  >
                     Email Address
                   </label>
                   <div className="relative">
                     <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
                     <input
+                      id="auth-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -139,12 +143,16 @@ export function AuthPage({ onComplete }: AuthPageProps) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  <label
+                    htmlFor="auth-password"
+                    className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block"
+                  >
                     Password
                   </label>
                   <div className="relative">
                     <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
                     <input
+                      id="auth-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

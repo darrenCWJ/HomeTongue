@@ -125,6 +125,20 @@ export function useMicRecording({
   };
 
   /**
+   * Keyboard path. Activating a native button with Enter/Space synthesizes a
+   * click, not pointer events, so the pointer handlers never run. One
+   * activation is exactly a zero-length tap: press plus immediate release
+   * arms tap mode, so the recording keeps running until the next activation
+   * stops it. Composing the two pointer handlers keeps every ownership and
+   * permission-prompt guard on this path too.
+   */
+  const handleMicKeyboardToggle = (startFn: () => Promise<void>, mode: "cantonese" | "english") => {
+    const pending = handleMicPointerDown(startFn, mode);
+    handleMicPointerUp(mode);
+    return pending;
+  };
+
+  /**
    * Arm the recorder for one mode. The browser's permission prompt can stay up
    * for as long as the user ignores it, and the recording can be released
    * meanwhile — by a pointer-up, or by the dialect-switch effect below, which
@@ -355,6 +369,7 @@ export function useMicRecording({
     handleMicPointerDown,
     handleMicPointerUp,
     handleMicPointerLeave,
+    handleMicKeyboardToggle,
     startListeningCantonese,
     startListeningEnglish,
   };

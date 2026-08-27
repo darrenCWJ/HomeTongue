@@ -1,4 +1,5 @@
 import { BookOpen, ChevronRight } from "lucide-react";
+import { activationKeyHandler } from "../../../utils/a11y";
 
 // ─── LessonCard ───────────────────────────────────────────────────────────────
 
@@ -15,7 +16,10 @@ export function LessonCard({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={activationKeyHandler(onClick)}
       className="bg-card rounded-2xl p-4 shadow-sm border border-border-subtle flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
       <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">

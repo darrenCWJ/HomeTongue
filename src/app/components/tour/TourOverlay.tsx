@@ -283,7 +283,8 @@ export function TourOverlay() {
             />
           </svg>
 
-          <div className="absolute inset-0" onClick={skipTour} />
+          {/* Mouse-only dismiss backdrop; keyboard users skip via the Skip button below. */}
+          <div role="presentation" className="absolute inset-0" onClick={skipTour} />
 
           <AnimatePresence mode="wait">
             <motion.div
