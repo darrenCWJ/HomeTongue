@@ -75,6 +75,17 @@ export function ExamView({
   // nobody was holding — and a tap could not stop it, since the trigger ref
   // reads as a hold. (Mirrors useMicRecording's synchronous ownership ref.)
   const isStartingRef = useRef(false);
+  // The pointer that owns the current mic gesture, from its pointerdown until
+  // its release/cancel (or until its leave ends an armed hold). Up, leave, and
+  // cancel from any OTHER pointer are ignored: a palm edge grazing the button
+  // or a mouse passing over it must not release a hold it never started, and a
+  // second finger must not restart the recorder mid-take. pointerdown is never
+  // hard-gated on this id alone — see the reclaim branch in the down handler —
+  // so a stale id (possible only where pointer capture is missing AND the
+  // owning release landed off-button) cannot leave the button permanently
+  // inert. No lostpointercapture cleanup on purpose: staleness requires
+  // capture to have failed, in which case there is no capture to lose.
+  const ownerPointerIdRef = useRef<number | null>(null);
   const HOLD_THRESHOLD_MS = 300;
 
   const startListening = async () => {
@@ -144,6 +155,25 @@ export function ExamView({
   };
 
   const handleMicPointerDown = async (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (isRecording && recordingTriggerRef.current === "tap") {
+      // Tap-to-stop accepts any pointer id — on touch, every tap is a new one.
+      stopListening();
+      return;
+    }
+    // A start already waiting on the mic owns this press.
+    if (isStartingRef.current) return;
+    if (isRecording && recordingTriggerRef.current === null) {
+      const owner = ownerPointerIdRef.current;
+      // A hold is in progress and a second, incidental pointer pressed (palm
+      // edge, second finger): ignore it — falling through would restart the
+      // recorder and discard the live take. Scoped to OTHER pointers only:
+      // the owner itself pressing again proves its release was lost (a
+      // pointer cannot press twice while down — a mouse without capture that
+      // lifted off-button; touch and pen get implicit capture), and that
+      // press must fall through and reclaim the mic, not find it inert.
+      if (owner !== null && e.pointerId !== owner) return;
+    }
+    ownerPointerIdRef.current = e.pointerId;
     // Capture the pointer so the release lands on this button from wherever
     // the finger has drifted. Without it, sliding off during the permission
     // prompt and lifting elsewhere fired pointerup somewhere else entirely:
@@ -153,27 +183,31 @@ export function ExamView({
     // held (verified in Chromium), so a drag off an ARMED hold now records
     // until the release instead of stopping at the boundary crossing — as it
     // always did on touch, and the leave path processed the recording exactly
-    // like a release anyway, so nothing is discarded either way.
+    // like a release anyway, so nothing is discarded either way. Only the
+    // claiming pointer is captured: capturing an ignored second pointer would
+    // retarget its off-button release onto the button for no benefit.
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
       // jsdom implements no pointer capture; the leave/cancel paths still run.
     }
-    if (isRecording && recordingTriggerRef.current === "tap") {
-      stopListening();
-      return;
-    }
-    // A start already waiting on the mic owns this press.
-    if (isStartingRef.current) return;
     await startListening();
   };
 
-  const handleMicPointerUp = () => {
+  const handleMicPointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    // Only the gesture's own release may act. A null owner means the gesture
+    // already ended (tap-armed, or stopped by leave/cancel) and this is a
+    // stray or capture-replayed release with nothing left to do; a different
+    // id is an incidental second pointer whose lift must not end the hold
+    // the owning finger is still holding.
+    if (ownerPointerIdRef.current === null || e.pointerId !== ownerPointerIdRef.current) return;
+    // The owning pointer lifted: whichever branch runs, its gesture is over.
+    ownerPointerIdRef.current = null;
     if (!isRecording) {
-      // Nothing is armed yet: a start is still waiting on the mic (the start
-      // path completes the hold for us), or this is the captured release of a
-      // press whose recording already stopped (a tap, a cancelled hold) — a
-      // stale flag is harmless there, the next start resets it.
+      // Nothing is armed yet: a start is still waiting on the mic — flag the
+      // release so the start path completes the hold for us. (With a stale
+      // owner and no start pending the flag is harmless; the next start
+      // resets it.)
       releasedDuringStartRef.current = true;
       return;
     }
@@ -188,19 +222,31 @@ export function ExamView({
 
   // With the pointer captured this fires only once the gesture is over (losing
   // capture replays the boundary crossing), but it still ends an armed hold
-  // wherever capture is not in effect. The start-time check makes it a no-op
-  // right after the cancel handler has stopped the hold — isRecording is that
-  // render's stale closure there, and a second stopListening would report a
-  // spurious "too short" on a recording that was already processed.
-  const handleMicPointerLeave = () => {
+  // wherever capture is not in effect. Gated to the owning pointer: a mouse
+  // merely passing over the button during a touch hold fires its own leave
+  // and must not end a hold it never started. The start-time check makes it a
+  // no-op right after the cancel handler has stopped the hold — isRecording is
+  // that render's stale closure there, and a second stopListening would report
+  // a spurious "too short" on a recording that was already processed.
+  const handleMicPointerLeave = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (ownerPointerIdRef.current === null || e.pointerId !== ownerPointerIdRef.current) return;
     if (!isRecording || recordingTriggerRef.current === "tap") return;
     if (recordingStartRef.current === null) return;
+    // Leaving ends an armed hold, so the gesture is over. The pending-start
+    // return above deliberately keeps ownership — the owner may drift off and
+    // back without letting go, and still holds the press.
+    ownerPointerIdRef.current = null;
     stopListening();
   };
 
   // The browser took the gesture away (a touch slide becoming a scroll, palm
   // rejection, an app switch): pointerup will never fire, even captured.
-  const handleMicPointerCancel = () => {
+  const handleMicPointerCancel = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    // Same ownership gate as the release: another pointer's cancelled gesture
+    // has nothing to do with the hold the owning finger is still holding.
+    if (ownerPointerIdRef.current === null || e.pointerId !== ownerPointerIdRef.current) return;
+    // pointercancel is terminal — no release is ever coming for this pointer.
+    ownerPointerIdRef.current = null;
     if (!isRecording) {
       // The start is still waiting on the mic — complete the hold when it
       // arms, exactly as a release would.
