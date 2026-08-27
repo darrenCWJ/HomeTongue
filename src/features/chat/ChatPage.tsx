@@ -374,8 +374,8 @@ export function ChatPage() {
           isListening={isListening}
           dialectMicEnabled={sttEnabled}
           dialectLabel={dialect}
-          onDialectPointerDown={() => handleMicPointerDown(startListeningCantonese, "cantonese")}
-          onEnglishPointerDown={() => handleMicPointerDown(startListeningEnglish, "english")}
+          onDialectPointerDown={(pointerId) => handleMicPointerDown(startListeningCantonese, "cantonese", pointerId)}
+          onEnglishPointerDown={(pointerId) => handleMicPointerDown(startListeningEnglish, "english", pointerId)}
           onMicPointerUp={handleMicPointerUp}
           onMicPointerLeave={handleMicPointerLeave}
           onOpenTyping={() => setIsTyping(true)}
