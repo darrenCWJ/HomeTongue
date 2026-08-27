@@ -58,6 +58,15 @@ export function ChatPage() {
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
+  // Every conversation reset bumps this. Flows that await for seconds capture
+  // it before the await and discard their result if it changed, so nothing
+  // from a finished conversation can land in the next one.
+  const chatEpochRef = useRef(0);
+  // resetConversationState is defined below (it needs setters from the hooks
+  // that follow), so it reaches useSessionSave and the effect through a ref.
+  const resetConversationRef = useRef<() => void>(() => {});
+  const prevLanguageCodeRef = useRef(activeLanguageCode);
+
   const {
     latestSuggestions,
     setLatestSuggestions,
@@ -103,6 +112,7 @@ export function ChatPage() {
     setLatestSuggestions,
     lastRecordRef,
     prefetchCacheRef,
+    chatEpochRef,
   });
 
   const {
@@ -131,6 +141,7 @@ export function ChatPage() {
     setStageIsUserSide,
     setPendingEnglish,
     setPendingEditText,
+    chatEpochRef,
   });
 
   const {
@@ -164,11 +175,39 @@ export function ChatPage() {
     setSaveSessionTags,
     openSaveDialog,
     confirmSave,
-  } = useSessionSave({ messages, saveSession, createTag });
+  } = useSessionSave({
+    messages,
+    saveSession,
+    createTag,
+    onAfterSave: () => resetConversationRef.current(),
+  });
+
+  // Everything a finished conversation must leave behind: in-flight
+  // suggestion fetches, the TTS prefetch cache (keyed without a language, so
+  // it must not survive a dialect switch), the 60s dialect append window, the
+  // visible chips, a pending transcript, and the save dialog itself.
+  const resetConversationState = () => {
+    chatEpochRef.current++;
+    invalidateSuggestions();
+    prefetchCacheRef.current.clear();
+    lastRecordRef.current = null;
+    setPendingEnglish(null);
+    setLatestSuggestions([]);
+    setIsSaveDialogOpen(false);
+  };
+  resetConversationRef.current = resetConversationState;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, stage]);
+
+  // A dialect switch invalidates every artifact of the previous language.
+  // Change-only: mounting is not a switch, so it must reset nothing.
+  useEffect(() => {
+    if (prevLanguageCodeRef.current === activeLanguageCode) return;
+    prevLanguageCodeRef.current = activeLanguageCode;
+    resetConversationRef.current();
+  }, [activeLanguageCode]);
 
   const isBusy = stage !== null || pendingEnglish !== null;
 
@@ -221,11 +260,7 @@ export function ChatPage() {
 
   const handleNewChat = () => {
     if (messages.length === 0) return;
-    invalidateSuggestions(); // invalidate any in-flight suggestion fetches
-    prefetchCacheRef.current.clear();
-    lastRecordRef.current = null;
-    setPendingEnglish(null);
-    setLatestSuggestions([]);
+    resetConversationState();
     discardChat(messages);
   };
 

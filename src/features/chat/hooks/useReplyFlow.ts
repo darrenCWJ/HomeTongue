@@ -16,13 +16,21 @@ interface ReplyFlowParams {
   setLatestSuggestions: (suggestions: Phrase[]) => void;
   lastRecordRef: MutableRefObject<RecordRef | null>;
   prefetchCacheRef: MutableRefObject<Map<string, Promise<PreparedTranslation>>>;
+  /** Bumped by ChatPage's conversation reset — see the guards below. */
+  chatEpochRef: MutableRefObject<number>;
 }
 
 /**
  * The outgoing reply flows: confirming/cancelling the pending English
  * transcript, chip or typed replies (prefetch-cache aware), and the typing
  * overlay state. Owns the pending-English and typing state; the shared
- * `lastRecordRef` and the suggestion prefetch cache come in via params.
+ * `lastRecordRef`, the suggestion prefetch cache and the chat epoch come in
+ * via params.
+ *
+ * Translation takes seconds, so both reply paths capture the chat epoch before
+ * awaiting: if the conversation was reset (New Chat, Save, dialect switch)
+ * while the request was in flight, the result belongs to a conversation that
+ * no longer exists and is dropped instead of appended to the fresh one.
  */
 export function useReplyFlow({
   tone,
@@ -35,6 +43,7 @@ export function useReplyFlow({
   setLatestSuggestions,
   lastRecordRef,
   prefetchCacheRef,
+  chatEpochRef,
 }: ReplyFlowParams) {
   const [pendingEnglish, setPendingEnglish] = useState<{
     text: string;
@@ -61,11 +70,13 @@ export function useReplyFlow({
     lastRecordRef.current = null;
     setStageIsUserSide(true);
     setStage("translating");
+    const epoch = chatEpochRef.current;
     try {
       const { phrase, audioDataUrl, play, variants, predictedResponse } =
         finalText !== originalText
           ? await prepareTranslation(finalText, tone, userProfile?.preferredVoiceId)
           : await resultPromise;
+      if (chatEpochRef.current !== epoch) return; // conversation reset mid-translation
       addPhrase(phrase);
       addMessage({
         id: phrase.id,
@@ -107,12 +118,14 @@ export function useReplyFlow({
     setLatestSuggestions([]);
     setStageIsUserSide(true);
     setStage("translating");
+    const epoch = chatEpochRef.current;
     try {
       const cacheKey = `${englishText}:${tone}`;
       const cached = prefetchCacheRef.current.get(cacheKey);
       const { phrase, audioDataUrl, play, variants, predictedResponse } = cached
         ? await cached
         : await prepareTranslation(englishText, tone, userProfile?.preferredVoiceId);
+      if (chatEpochRef.current !== epoch) return; // conversation reset mid-translation
       addPhrase(phrase);
       addMessage({
         id: phrase.id,

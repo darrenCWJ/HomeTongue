@@ -6,13 +6,15 @@ interface SessionSaveParams {
   messages: Message[];
   saveSession: (messages: Message[], title: string, tags?: string[]) => void;
   createTag: (name: string, type: TagType) => Tag;
+  /** Runs after a successful save — ChatPage's shared conversation reset. */
+  onAfterSave?: () => void;
 }
 
 /**
  * Save-session dialog state and flow: title, tag picks (including creating a
  * new session tag inline at confirm time), and the save action itself.
  */
-export function useSessionSave({ messages, saveSession, createTag }: SessionSaveParams) {
+export function useSessionSave({ messages, saveSession, createTag, onAfterSave }: SessionSaveParams) {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -33,6 +35,14 @@ export function useSessionSave({ messages, saveSession, createTag }: SessionSave
   const confirmSave = async () => {
     const title = saveTitle.trim();
     if (!title) return;
+    // The dialog can outlive the conversation it was opened for (New Chat
+    // behind it), so the openSaveDialog guard is not enough on its own —
+    // without this, Save would persist an empty ghost session.
+    if (messages.length === 0) {
+      toast.error("Nothing to save — the conversation is empty.");
+      setIsSaveDialogOpen(false);
+      return;
+    }
     setIsSaving(true);
     let finalTags = saveSessionTags;
     if (isCreatingSessionTag && newSessionTagInput.trim()) {
@@ -45,6 +55,10 @@ export function useSessionSave({ messages, saveSession, createTag }: SessionSave
       saveSession(messages, title, finalTags.length > 0 ? finalTags : undefined);
       setIsSaveDialogOpen(false);
       toast.success("Session saved!");
+      // A save ends the conversation exactly like New Chat does, so it must
+      // run the same reset — otherwise the append window, chips and prefetched
+      // audio of the saved conversation leak into the next one.
+      onAfterSave?.();
     } catch {
       toast.error("Failed to save session.");
       setIsSaveDialogOpen(false);

@@ -44,13 +44,20 @@ interface MicRecordingParams {
     pending: { text: string; resultPromise: Promise<PreparedTranslation> } | null
   ) => void;
   setPendingEditText: (text: string) => void;
+  /** Bumped by ChatPage's conversation reset — see the guards in stopListening. */
+  chatEpochRef: MutableRefObject<number>;
 }
 
 /**
  * The mic/recording flow: tap-vs-hold pointer handling, dialect and English
  * recording, transcription, the 60s append window for dialect turns, and
  * practice-match scoring. Owns the recording refs (start time, trigger,
- * mode); the shared `lastRecordRef` / `messagesRef` come in via params.
+ * mode); the shared `lastRecordRef` / `messagesRef` / chat epoch come in via
+ * params.
+ *
+ * Transcription and translation take seconds, so stopListening captures the
+ * chat epoch and drops its writes when the conversation was reset (New Chat,
+ * Save, dialect switch) while the request was in flight.
  */
 export function useMicRecording({
   phrases,
@@ -69,6 +76,7 @@ export function useMicRecording({
   setStageIsUserSide,
   setPendingEnglish,
   setPendingEditText,
+  chatEpochRef,
 }: MicRecordingParams) {
   const [listeningMode, setListeningMode] = useState<"english" | "cantonese" | null>(null);
   const [isTapMode, setIsTapMode] = useState(false);
@@ -153,10 +161,13 @@ export function useMicRecording({
 
     setStageIsUserSide(mode === "english");
     setStage("transcribing");
+    const epoch = chatEpochRef.current;
+    const isStale = () => chatEpochRef.current !== epoch;
     try {
       const blob = await stopRecording();
       if (mode === "cantonese") {
         const [dialectText, audioDataUrl] = await Promise.all([transcribeDialect(blob), blobToDataUrl(blob)]);
+        if (isStale()) return; // conversation reset mid-transcription
         if (!dialectText) {
           toast.error("No speech detected. Please try again.");
           return;
@@ -170,6 +181,7 @@ export function useMicRecording({
           const combinedText = `${prev.fullText} ${dialectText}`;
           const accumulatedUrls = [...prev.audioDataUrls, audioDataUrl];
           const englishTranslation = await translateDialectToEnglish(combinedText);
+          if (isStale()) return; // conversation reset mid-translation
           updateMessage(prev.msgId, {
             text: combinedText,
             englishTranslation,
@@ -199,6 +211,7 @@ export function useMicRecording({
           toast.info("Added to previous message");
         } else {
           const englishTranslation = await translateDialectToEnglish(dialectText);
+          if (isStale()) return; // conversation reset mid-translation
           // Message id and derived phrase id are deliberately the same value.
           const msgId = newId();
           addPhrase({
@@ -243,6 +256,7 @@ export function useMicRecording({
         }
       } else {
         const englishText = await transcribeEnglish(blob);
+        if (isStale()) return; // conversation reset mid-transcription
         if (!englishText) {
           toast.error("No speech detected. Please try again.");
           return;
