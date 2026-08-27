@@ -68,13 +68,15 @@ function preparedTranslation(
   };
 }
 
-/** A promise plus its resolver, so a test can hold a translation mid-flight. */
+/** A promise plus its resolver/rejecter, so a test can hold a translation mid-flight. */
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((res) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
     resolve = res;
+    reject = rej;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -241,6 +243,71 @@ describe("useReplyFlow chat-epoch guard", () => {
     await act(async () => await flush());
 
     expect(setPlayingId).toHaveBeenCalledWith(null);
+  });
+});
+
+// Folded item F — a translation rejecting after the conversation was reset
+// (New Chat / Save / dialect switch) still toasted the failure, surfacing an
+// error about a turn the user already left behind into the middle of the
+// fresh conversation. Both reply paths now drop the toast, same as they
+// already drop the write, once the epoch no longer matches.
+describe("useReplyFlow failure toast epoch guard (folded item F)", () => {
+  test("a chip reply's failure after a reset does not toast into the new conversation", async () => {
+    const { result, chatEpochRef } = setup();
+    const translation = deferred<PreparedTranslation>();
+    mockPrepareTranslation.mockReturnValue(translation.promise);
+
+    act(() => void result.current.handleReply("thank you"));
+    chatEpochRef.current += 1;
+    await act(async () => {
+      translation.reject(new Error("network down"));
+      await flush();
+    });
+
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  test("a chip reply's failure in the same conversation still toasts", async () => {
+    const { result } = setup();
+    const translation = deferred<PreparedTranslation>();
+    mockPrepareTranslation.mockReturnValue(translation.promise);
+
+    act(() => void result.current.handleReply("thank you"));
+    await act(async () => {
+      translation.reject(new Error("network down"));
+      await flush();
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith("Reply failed: network down");
+  });
+
+  test("a confirmed transcript's failure after a reset does not toast into the new conversation", async () => {
+    const { result, chatEpochRef } = setup();
+    const translation = deferred<PreparedTranslation>();
+    act(() => result.current.setPendingEnglish({ text: "thank you", resultPromise: translation.promise }));
+
+    act(() => void result.current.confirmEnglishReply());
+    chatEpochRef.current += 1;
+    await act(async () => {
+      translation.reject(new Error("network down"));
+      await flush();
+    });
+
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  test("a confirmed transcript's failure in the same conversation still toasts", async () => {
+    const { result } = setup();
+    const translation = deferred<PreparedTranslation>();
+    act(() => result.current.setPendingEnglish({ text: "thank you", resultPromise: translation.promise }));
+
+    act(() => void result.current.confirmEnglishReply());
+    await act(async () => {
+      translation.reject(new Error("network down"));
+      await flush();
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith("Translation failed: network down");
   });
 });
 

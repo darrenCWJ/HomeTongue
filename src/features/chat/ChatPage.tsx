@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from "react";
+import { toast } from "sonner";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { useLibrary } from "../../app/context/LibraryProvider";
 import { useChat } from "../../app/context/ChatProvider";
@@ -166,7 +167,7 @@ export function ChatPage() {
     handleBubblePointerMove,
     handleSaveSelectedPhrase,
     cancelPhraseSelection,
-  } = usePhraseSelection({ addPhrase, activeLanguageCode, userProfile });
+  } = usePhraseSelection({ addPhrase, activeLanguageCode, userProfile, createTag });
 
   const {
     isSaveDialogOpen,
@@ -213,6 +214,8 @@ export function ChatPage() {
 
   // A dialect switch invalidates every artifact of the previous language.
   // Change-only: mounting is not a switch, so it must reset nothing.
+  // Must stay registered after useMicRecording's own dialect-stop effect —
+  // see the comment there for why the hook-call order matters.
   useEffect(() => {
     if (prevLanguageCodeRef.current === activeLanguageCode) return;
     prevLanguageCodeRef.current = activeLanguageCode;
@@ -274,6 +277,27 @@ export function ChatPage() {
     discardChat(messages);
   };
 
+  // A new save dialog and a new phrase-selection sheet both share the
+  // transcript-review overlay's z-30, and paint underneath it (later JSX
+  // siblings win ties) — so opening either while it's up would be invisible,
+  // then surface unexpectedly once the overlay closed. Guarding the trigger
+  // here keeps them mutually exclusive without touching z-index.
+  const guardTranscriptReviewOpen = () => {
+    if (pendingEnglish === null) return false;
+    toast.error("Finish reviewing your transcript first.");
+    return true;
+  };
+
+  const guardedOpenSaveDialog = () => {
+    if (guardTranscriptReviewOpen()) return;
+    openSaveDialog();
+  };
+
+  const guardedBubblePointerDown = (e: ReactPointerEvent, msg: Message) => {
+    if (guardTranscriptReviewOpen()) return;
+    handleBubblePointerDown(e, msg);
+  };
+
   const stageLabel = stage === "transcribing" ? "Listening..." : "Translating...";
 
   return (
@@ -286,7 +310,7 @@ export function ChatPage() {
         onOpenPersonaSheet={() => setIsPersonaSheetOpen(true)}
         onOpenDialectSheet={() => setIsDialectSheetOpen(true)}
         onNewChat={handleNewChat}
-        onOpenSaveDialog={openSaveDialog}
+        onOpenSaveDialog={guardedOpenSaveDialog}
       />
 
       {/* Empty state */}
@@ -321,7 +345,7 @@ export function ChatPage() {
           onReplay={replayPhrase}
           onReplaySlow={replayPhraseSlow}
           onUpdateMessage={handleUpdateMessage}
-          onBubblePointerDown={handleBubblePointerDown}
+          onBubblePointerDown={guardedBubblePointerDown}
           onBubblePointerMove={handleBubblePointerMove}
           onBubblePointerCancel={cancelBubbleLongPress}
           messagesEndRef={messagesEndRef}
@@ -415,6 +439,7 @@ export function ChatPage() {
         setPendingEditText={setPendingEditText}
         isEditingPending={isEditingPending}
         setIsEditingPending={setIsEditingPending}
+        dialectLabel={dialect}
         onConfirm={confirmEnglishReply}
         onCancel={cancelEnglishReply}
       />

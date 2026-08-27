@@ -99,3 +99,97 @@ describe("useSessionSave", () => {
     expect(result.current.isSaveDialogOpen).toBe(false);
   });
 });
+
+// CHAT-12 — openSaveDialog left isCreatingSessionTag/newSessionTagInput from
+// a previous, cancelled dialog session live. Reopening later and confirming
+// without touching the tag input silently auto-committed that stale typed
+// text as a brand-new tag on an unrelated session. Appending the created
+// tag's id must also dedupe against an already-selected tag with that id.
+describe("useSessionSave dialog-open reset and tag dedupe (CHAT-12)", () => {
+  test("openSaveDialog resets a stale creating-tag flag and its typed input", () => {
+    const { result } = setup();
+    act(() => result.current.openSaveDialog());
+    act(() => result.current.setIsCreatingSessionTag(true));
+    act(() => result.current.setNewSessionTagInput("Half-typed"));
+    act(() => result.current.setIsSaveDialogOpen(false)); // Cancel, as the dialog's own close would
+
+    act(() => result.current.openSaveDialog());
+
+    expect(result.current.isCreatingSessionTag).toBe(false);
+    expect(result.current.newSessionTagInput).toBe("");
+  });
+
+  test("a stale creating-tag flag left from a previous session cannot auto-commit on the next save", async () => {
+    const { result, saveSession, createTag } = setup();
+    act(() => result.current.openSaveDialog());
+    act(() => result.current.setIsCreatingSessionTag(true));
+    act(() => result.current.setNewSessionTagInput("Half-typed"));
+    act(() => result.current.setIsSaveDialogOpen(false));
+
+    openWithTitle(result, "Later run");
+    await act(async () => await result.current.confirmSave());
+
+    expect(createTag).not.toHaveBeenCalled();
+    expect(saveSession).toHaveBeenCalledWith(MESSAGES, "Later run", undefined);
+  });
+
+  test("the created tag id is deduped against an already-selected tag", async () => {
+    const { result, saveSession } = setup();
+    openWithTitle(result);
+    act(() => result.current.setSaveSessionTags([TAG.id]));
+    act(() => result.current.setIsCreatingSessionTag(true));
+    act(() => result.current.setNewSessionTagInput("Hawker"));
+
+    await act(async () => await result.current.confirmSave());
+
+    expect(saveSession).toHaveBeenCalledWith(MESSAGES, "Kopi run", [TAG.id]);
+  });
+});
+
+// Folded item A — onAfterSave (ChatPage's conversation reset) ran inside the
+// same try/catch as the save itself, so a throwing reset was caught as if
+// the save had failed: it toasted "Failed to save session" over a save that
+// actually succeeded, and re-ran the already-done dialog close.
+describe("useSessionSave onAfterSave failure isolation (folded item A)", () => {
+  /** confirmSave with a throwing onAfterSave, without letting the throw escape act(). */
+  async function confirmSaveCatchingThrow(result: { current: ReturnType<typeof useSessionSave> }) {
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.confirmSave();
+      } catch (err) {
+        caught = err;
+      }
+    });
+    return caught;
+  }
+
+  test("a throwing reset does not trigger the failure toast for a save that succeeded", async () => {
+    const { result, onAfterSave } = setup();
+    onAfterSave.mockImplementation(() => {
+      throw new Error("reset blew up");
+    });
+    openWithTitle(result);
+
+    const caught = await confirmSaveCatchingThrow(result);
+
+    expect(caught).toBeInstanceOf(Error);
+    expect(mockToastSuccess).toHaveBeenCalledWith("Session saved!");
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  test("a throwing reset still leaves the dialog closed and isSaving settled from the successful save", async () => {
+    const { result, onAfterSave } = setup();
+    onAfterSave.mockImplementation(() => {
+      throw new Error("reset blew up");
+    });
+    openWithTitle(result);
+
+    await confirmSaveCatchingThrow(result);
+
+    // The save's own try/catch/finally already ran and settled these before
+    // onAfterSave was ever called — its throw must not re-run or undo them.
+    expect(result.current.isSaveDialogOpen).toBe(false);
+    expect(result.current.isSaving).toBe(false);
+  });
+});

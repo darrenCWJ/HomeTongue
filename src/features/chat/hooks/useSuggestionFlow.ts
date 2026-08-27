@@ -52,6 +52,10 @@ export function useSuggestionFlow({
     if (lastRecordRef.current) {
       lastRecordRef.current = { ...lastRecordRef.current, suggestionMsgId };
     }
+    // Clear synchronously, before the network call: the old chips' suggestion
+    // message is already gone (removed above), so a failed or empty refresh
+    // must not leave them on screen pointing at nothing.
+    setLatestSuggestions([]);
     // Retrieval-lite personalization from the user's own data: bookmarked
     // vocabulary + replies they rated up in this conversation history.
     // Scoped to the active language so suggestions never mix dialects.

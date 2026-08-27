@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import type { Message, Phrase, UserProfile } from "../../../types";
+import type { Message, Phrase, Tag, TagType, UserProfile } from "../../../types";
 import { playDataUrl } from "../../../hooks/audio";
 import { speakTextAndCapture } from "../../../hooks/useGoogleTTS";
 import { newId } from "../../../utils/id";
@@ -10,6 +10,7 @@ interface PhraseSelectionParams {
   addPhrase: (phrase: Phrase) => void;
   activeLanguageCode: string;
   userProfile: UserProfile | null;
+  createTag: (name: string, type: TagType) => Tag;
 }
 
 /**
@@ -17,7 +18,12 @@ interface PhraseSelectionParams {
  * pressed bubble's dialect text, tracks the edited selection + tag picks, and
  * saves (replaying original audio for unedited text, fresh TTS for edits).
  */
-export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile }: PhraseSelectionParams) {
+export function usePhraseSelection({
+  addPhrase,
+  activeLanguageCode,
+  userProfile,
+  createTag,
+}: PhraseSelectionParams) {
   const [phraseSelectionMsg, setPhraseSelectionMsg] = useState<Message | null>(null);
   const [phraseSelectionText, setPhraseSelectionText] = useState("");
   const [phraseTagSelection, setPhraseTagSelection] = useState<string[]>([]);
@@ -54,6 +60,16 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
 
     isSavingPhraseRef.current = true;
     setIsSavingPhrase(true);
+    // Commit a half-typed new tag at save time — exactly like
+    // useSessionSave.confirmSave — so tapping Save instead of Enter/the tag's
+    // own check button never silently drops it.
+    let finalTags = phraseTagSelection;
+    if (isCreatingPhraseTag && newTagInput.trim()) {
+      const tag = createTag(newTagInput.trim(), "phrase");
+      finalTags = [...phraseTagSelection, tag.id];
+      setIsCreatingPhraseTag(false);
+      setNewTagInput("");
+    }
     try {
       if (!wasEdited) {
         const urls = msg.audioDataUrls ?? (msg.audioDataUrl ? [msg.audioDataUrl] : []);
@@ -66,7 +82,7 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
           context: "",
           audioDataUrl: urls[0],
           audioDataUrls: urls.length > 1 ? urls : undefined,
-          tags: phraseTagSelection,
+          tags: finalTags,
           languageCode: activeLanguageCode,
         });
         for (const url of urls) {
@@ -86,7 +102,7 @@ export function usePhraseSelection({ addPhrase, activeLanguageCode, userProfile 
           isBookmarked: true,
           context: "",
           audioDataUrl,
-          tags: phraseTagSelection,
+          tags: finalTags,
           languageCode: activeLanguageCode,
         });
         await play();

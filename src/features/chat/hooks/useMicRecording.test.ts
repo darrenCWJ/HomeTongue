@@ -52,13 +52,15 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 
-/** A promise plus its resolver, so a test can hold a request mid-flight. */
+/** A promise plus its resolver/rejecter, so a test can hold a request mid-flight. */
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((res) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
     resolve = res;
+    reject = rej;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -371,6 +373,13 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
       rerender({ languageCode: "nan-TW" });
       await flush();
     });
+
+    // The rerender's own stopListening (the too-short-recording path, since
+    // no time has passed) already called stopRecording once. Clear that call
+    // so the assertion below pins the orphaned-stream discard specifically —
+    // otherwise it would trivially pass on this earlier, unrelated call.
+    mockStopRecording.mockClear();
+
     await act(async () => {
       permission.resolve();
       await pending;
@@ -382,6 +391,60 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     expect(result.current.isListening).toBe(false);
     expect(result.current.listeningMode).toBeNull();
     expect(mockStopRecording).toHaveBeenCalled();
+  });
+
+  // Folded item C — startListening's catch block nulled recordingModeRef /
+  // recordingStartRef unconditionally. A permission prompt can be answered
+  // long after the user let go of it, so if a different mic arm had already
+  // taken ownership of those refs by the time a stale prompt came back
+  // denied, the denial wiped that other arm's ownership out from under it.
+  test("a late permission denial for one recording arm does not clear a different arm's ownership", async () => {
+    const { result } = setup();
+    const deniedPermission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(deniedPermission.promise);
+
+    let cantonesePending!: Promise<void>;
+    act(() => {
+      cantonesePending = result.current.handleMicPointerDown(
+        result.current.startListeningCantonese,
+        "cantonese"
+      );
+    });
+
+    // The user lets go before the browser's permission prompt answers,
+    // releasing cantonese's ownership without settling its promise.
+    await act(async () => {
+      result.current.handleMicPointerLeave("cantonese");
+      await flush();
+    });
+
+    // A new recording starts in a different mode and takes over ownership.
+    const grantedPermission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(grantedPermission.promise);
+    let englishPending!: Promise<void>;
+    act(() => {
+      englishPending = result.current.handleMicPointerDown(result.current.startListeningEnglish, "english");
+    });
+    await act(async () => {
+      grantedPermission.resolve();
+      await englishPending;
+      await flush();
+    });
+    expect(result.current.listeningMode).toBe("english");
+
+    // The stale cantonese prompt finally comes back denied.
+    await act(async () => {
+      deniedPermission.reject(new Error("denied"));
+      await cantonesePending;
+      await flush();
+    });
+
+    // English's ownership must survive the stale rejection: pointer-up on it
+    // still registers instead of being silently ignored.
+    act(() => {
+      result.current.handleMicPointerUp("english");
+    });
+    expect(result.current.isTapMode).toBe(true);
   });
 });
 

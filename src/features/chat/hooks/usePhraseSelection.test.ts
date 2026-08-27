@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
-import type { Message, Phrase } from "../../../types";
+import type { Message, Phrase, Tag } from "../../../types";
 import { usePhraseSelection } from "./usePhraseSelection";
 
 // CHAT-08 — saving a selected phrase runs for as long as its audio takes
@@ -72,12 +72,15 @@ const OTHER_BOT_MESSAGE: Message = {
   audioDataUrls: ["data:audio/webm;base64,BBB"],
 };
 
+const NEW_TAG: Tag = { id: "pt1", name: "Greetings", type: "phrase", createdAt: "2026-01-01T00:00:00.000Z" };
+
 function setup() {
   const addPhrase = vi.fn<(phrase: Phrase) => void>();
+  const createTag = vi.fn(() => NEW_TAG);
   const { result } = renderHook(() =>
-    usePhraseSelection({ addPhrase, activeLanguageCode: "yue-HK", userProfile: null })
+    usePhraseSelection({ addPhrase, activeLanguageCode: "yue-HK", userProfile: null, createTag })
   );
-  return { result, addPhrase };
+  return { result, addPhrase, createTag };
 }
 
 /** Open the sheet on the bot bubble with the given (possibly edited) selection. */
@@ -201,5 +204,80 @@ describe("usePhraseSelection double-save guard (CHAT-08)", () => {
     });
 
     expect(addPhrase).toHaveBeenCalledTimes(2);
+  });
+});
+
+// CHAT-11 — a half-typed new tag sitting in the "New" input was silently
+// dropped if the user tapped Save instead of Enter/the tag's own check
+// button. It is now committed at save time exactly like
+// useSessionSave.confirmSave does: trim, createTag, append the id.
+describe("usePhraseSelection tag commit at save time (CHAT-11)", () => {
+  test("a half-typed new tag is committed and attached to the saved phrase", async () => {
+    const { result, addPhrase, createTag } = setup();
+    openWith(result);
+    act(() => result.current.setIsCreatingPhraseTag(true));
+    act(() => result.current.setNewTagInput("Greetings"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(createTag).toHaveBeenCalledWith("Greetings", "phrase");
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: ["pt1"] }));
+  });
+
+  test("the tag-input state is cleared once the new tag is committed", async () => {
+    const { result } = setup();
+    openWith(result);
+    act(() => result.current.setIsCreatingPhraseTag(true));
+    act(() => result.current.setNewTagInput("Greetings"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(result.current.isCreatingPhraseTag).toBe(false);
+    expect(result.current.newTagInput).toBe("");
+  });
+
+  test("a blank new-tag input is not committed as a tag", async () => {
+    const { result, addPhrase, createTag } = setup();
+    openWith(result);
+    act(() => result.current.setIsCreatingPhraseTag(true));
+    act(() => result.current.setNewTagInput("   "));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(createTag).not.toHaveBeenCalled();
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+  });
+
+  test("an already-selected tag is preserved alongside a newly committed one", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result);
+    act(() => result.current.setPhraseTagSelection(["existing-tag"]));
+    act(() => result.current.setIsCreatingPhraseTag(true));
+    act(() => result.current.setNewTagInput("Greetings"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: ["existing-tag", "pt1"] }));
+  });
+
+  test("not creating a tag leaves the existing selection untouched", async () => {
+    const { result, addPhrase, createTag } = setup();
+    openWith(result);
+    act(() => result.current.setPhraseTagSelection(["existing-tag"]));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(createTag).not.toHaveBeenCalled();
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: ["existing-tag"] }));
   });
 });

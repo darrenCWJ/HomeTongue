@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Message, Phrase } from "../../types";
 import type { PreparedTranslation } from "./utils/prepareTranslation";
 import type { RecordRef } from "./hooks/useMicRecording";
@@ -19,6 +20,8 @@ const mockSaveSession = vi.fn();
 const mockInvalidateSuggestions = vi.fn();
 const mockSetLatestSuggestions = vi.fn();
 const mockSetPendingEnglish = vi.fn();
+const mockHandleBubblePointerDown = vi.fn();
+const mockToastError = vi.fn();
 
 let mockLanguageCode: string;
 let messages: Message[];
@@ -26,6 +29,9 @@ let prefetchCache: Map<string, Promise<PreparedTranslation>>;
 let lastRecordRef: { current: RecordRef | null };
 let chatEpochRef: { current: number } | undefined;
 let setStage: (stage: "transcribing" | "translating" | null) => void;
+// CHAT-07: null except when a test opens the transcript-review overlay.
+let mockPendingEnglish: { text: string; resultPromise: Promise<PreparedTranslation> } | null;
+let capturedOnBubblePointerDown: ((e: ReactPointerEvent, msg: Message) => void) | undefined;
 
 vi.mock("../../app/context/ProfileProvider", () => ({
   useProfile: () => ({
@@ -77,7 +83,7 @@ vi.mock("../../services/speechSampleService", () => ({
 }));
 
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+  toast: { error: (...args: unknown[]) => mockToastError(...args), success: vi.fn(), info: vi.fn() },
 }));
 
 // The flow hooks are stubbed so this file tests only ChatPage's reset wiring:
@@ -110,7 +116,7 @@ vi.mock("./hooks/useReplyFlow", () => ({
     chatEpochRef = params.chatEpochRef;
     lastRecordRef = params.lastRecordRef;
     return {
-      pendingEnglish: null,
+      pendingEnglish: mockPendingEnglish,
       setPendingEnglish: mockSetPendingEnglish,
       pendingEditText: "",
       setPendingEditText: vi.fn(),
@@ -156,7 +162,7 @@ vi.mock("./hooks/usePhraseSelection", () => ({
     isCreatingPhraseTag: false,
     setIsCreatingPhraseTag: vi.fn(),
     isSavingPhrase: false,
-    handleBubblePointerDown: vi.fn(),
+    handleBubblePointerDown: mockHandleBubblePointerDown,
     cancelBubbleLongPress: vi.fn(),
     handleBubblePointerMove: vi.fn(),
     handleSaveSelectedPhrase: vi.fn(),
@@ -193,7 +199,12 @@ vi.mock("./components/SaveSessionDialog", () => ({
 }));
 
 vi.mock("./components/DemoBubble", () => ({ DemoBubble: () => null }));
-vi.mock("./components/MessageList", () => ({ MessageList: () => null }));
+vi.mock("./components/MessageList", () => ({
+  MessageList: (props: { onBubblePointerDown: (e: ReactPointerEvent, msg: Message) => void }) => {
+    capturedOnBubblePointerDown = props.onBubblePointerDown;
+    return null;
+  },
+}));
 vi.mock("./components/ActionBar", () => ({ ActionBar: () => <div>action bar</div> }));
 vi.mock("./components/TypingOverlay", () => ({ TypingOverlay: () => null }));
 vi.mock("./components/PersonaSheet", () => ({ PersonaSheet: () => null }));
@@ -239,6 +250,8 @@ beforeEach(() => {
   // Placeholder: ChatPage owns lastRecordRef and chatEpochRef, so the
   // reply-flow stub re-captures the real ones on the first render.
   lastRecordRef = { current: null };
+  mockPendingEnglish = null;
+  capturedOnBubblePointerDown = undefined;
 });
 
 afterEach(cleanup);
@@ -317,5 +330,59 @@ describe("ChatPage conversation reset", () => {
     // The discarded translation's own request may still be seconds from
     // settling; the fresh conversation must be usable immediately.
     expect(screen.getByText("action bar")).toBeInTheDocument();
+  });
+});
+
+// CHAT-07 — the save dialog and the phrase-selection sheet share the
+// transcript-review overlay's z-30, and paint underneath it (later JSX
+// siblings win ties). Opening either while the overlay is up used to happen
+// invisibly, then surface unexpectedly once the overlay closed. Both
+// triggers are now guarded on pendingEnglish === null.
+describe("ChatPage transcript-review exclusivity (CHAT-07)", () => {
+  function openPendingEnglishTranscript() {
+    mockPendingEnglish = {
+      text: "one kopi please",
+      resultPromise: new Promise<PreparedTranslation>(() => {}),
+    };
+  }
+
+  test("opening the save dialog while a transcript is pending is ignored", () => {
+    openPendingEnglishTranscript();
+    render(<ChatPage />);
+
+    click("open save");
+
+    expect(screen.queryByRole("button", { name: "confirm save" })).not.toBeInTheDocument();
+    expect(mockToastError).toHaveBeenCalledWith("Finish reviewing your transcript first.");
+  });
+
+  test("opening the save dialog when nothing is pending proceeds as usual", () => {
+    render(<ChatPage />);
+
+    click("open save");
+
+    expect(screen.getByRole("button", { name: "confirm save" })).toBeInTheDocument();
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  test("starting a long-press while a transcript is pending is ignored", () => {
+    openPendingEnglishTranscript();
+    render(<ChatPage />);
+    const fakeEvent = {} as ReactPointerEvent;
+
+    act(() => capturedOnBubblePointerDown?.(fakeEvent, messages[0]));
+
+    expect(mockHandleBubblePointerDown).not.toHaveBeenCalled();
+    expect(mockToastError).toHaveBeenCalledWith("Finish reviewing your transcript first.");
+  });
+
+  test("starting a long-press when nothing is pending proceeds as usual", () => {
+    render(<ChatPage />);
+    const fakeEvent = {} as ReactPointerEvent;
+
+    act(() => capturedOnBubblePointerDown?.(fakeEvent, messages[0]));
+
+    expect(mockHandleBubblePointerDown).toHaveBeenCalledWith(fakeEvent, messages[0]);
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 });

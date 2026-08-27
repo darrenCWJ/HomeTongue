@@ -136,8 +136,15 @@ export function useMicRecording({
       if (mode === "english") setLatestSuggestions([]);
       setListeningMode(mode);
     } catch {
-      recordingStartRef.current = null;
-      recordingModeRef.current = null;
+      // Ownership may already belong to a different arm by the time a stale
+      // permission prompt answers (released by a pointer-up/leave or the
+      // dialect-switch effect, then re-armed by a new recording) — only
+      // clear the refs if this call still owns them, so a late denial can't
+      // wipe out a different arm's in-progress recording.
+      if (recordingModeRef.current === mode) {
+        recordingStartRef.current = null;
+        recordingModeRef.current = null;
+      }
       toast.error("Microphone access denied. Please allow microphone permissions.");
     }
   };

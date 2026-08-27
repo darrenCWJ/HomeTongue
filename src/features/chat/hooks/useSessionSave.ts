@@ -29,6 +29,10 @@ export function useSessionSave({ messages, saveSession, createTag, onAfterSave }
     }
     setSaveTitle("");
     setSaveSessionTags([]);
+    // A half-typed new-tag input left from a previous, cancelled dialog
+    // session must not survive to auto-commit itself onto this one.
+    setIsCreatingSessionTag(false);
+    setNewSessionTagInput("");
     setIsSaveDialogOpen(true);
   };
 
@@ -47,23 +51,29 @@ export function useSessionSave({ messages, saveSession, createTag, onAfterSave }
     let finalTags = saveSessionTags;
     if (isCreatingSessionTag && newSessionTagInput.trim()) {
       const tag = createTag(newSessionTagInput.trim(), "session");
-      finalTags = [...saveSessionTags, tag.id];
+      finalTags = [...new Set([...saveSessionTags, tag.id])];
       setIsCreatingSessionTag(false);
       setNewSessionTagInput("");
     }
+    let didSave = false;
     try {
       saveSession(messages, title, finalTags.length > 0 ? finalTags : undefined);
       setIsSaveDialogOpen(false);
       toast.success("Session saved!");
-      // A save ends the conversation exactly like New Chat does, so it must
-      // run the same reset — otherwise the append window, chips and prefetched
-      // audio of the saved conversation leak into the next one.
-      onAfterSave?.();
+      didSave = true;
     } catch {
       toast.error("Failed to save session.");
       setIsSaveDialogOpen(false);
     } finally {
       setIsSaving(false);
+    }
+    // Outside the try/catch: a throwing reset must not be caught as if this
+    // save had failed (wrong toast) or re-run the close it already did.
+    if (didSave) {
+      // A save ends the conversation exactly like New Chat does, so it must
+      // run the same reset — otherwise the append window, chips and
+      // prefetched audio of the saved conversation leak into the next one.
+      onAfterSave?.();
     }
   };
 

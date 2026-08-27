@@ -122,8 +122,12 @@ export function useReplyFlow({
         if (chatEpochRef.current === epoch) setPlayingId(null);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Translation failed: ${msg}`);
+      // A rejection that lands after a reset belongs to a conversation the
+      // user already left — same as the write above, it must not surface.
+      if (chatEpochRef.current === epoch) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error(`Translation failed: ${msg}`);
+      }
     } finally {
       // Only clear the stage this call set: after a reset it belongs to the
       // new conversation, which may already be busy with its own turn.
@@ -175,8 +179,12 @@ export function useReplyFlow({
         if (chatEpochRef.current === epoch) setPlayingId(null);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Reply failed: ${msg}`);
+      // A rejection that lands after a reset belongs to a conversation the
+      // user already left — same as the write above, it must not surface.
+      if (chatEpochRef.current === epoch) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error(`Reply failed: ${msg}`);
+      }
     } finally {
       // Only clear the stage this call set: after a reset it belongs to the
       // new conversation, which may already be busy with its own turn.

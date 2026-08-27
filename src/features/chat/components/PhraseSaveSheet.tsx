@@ -139,7 +139,8 @@ export function PhraseSaveSheet({
           </button>
           <button
             onClick={onCancel}
-            className="text-faint font-medium text-sm hover:text-muted-foreground text-center"
+            disabled={isSavingPhrase}
+            className="text-faint font-medium text-sm hover:text-muted-foreground text-center disabled:opacity-40"
           >
             Cancel
           </button>
