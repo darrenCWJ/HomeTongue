@@ -271,7 +271,9 @@ export function useMicRecording({
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Failed: ${msg}`);
     } finally {
-      setStage(null);
+      // Only clear the stage this call set: after a reset it belongs to the
+      // new conversation, which may already be busy with its own turn.
+      if (!isStale()) setStage(null);
     }
   };
 

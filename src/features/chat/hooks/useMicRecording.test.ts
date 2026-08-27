@@ -61,6 +61,7 @@ function setup() {
   const updateMessage = vi.fn<(id: string, updates: Partial<Message>) => void>();
   const fetchSuggestions = vi.fn();
   const setPendingEnglish = vi.fn();
+  const setStage = vi.fn<(stage: "transcribing" | "translating" | null) => void>();
   const chatEpochRef = { current: 0 };
   const lastRecordRef = { current: null as RecordRef | null };
   const { result } = renderHook(() =>
@@ -77,7 +78,7 @@ function setup() {
       messagesRef: { current: [] },
       fetchSuggestions,
       setLatestSuggestions: vi.fn(),
-      setStage: vi.fn(),
+      setStage,
       setStageIsUserSide: vi.fn(),
       setPendingEnglish,
       setPendingEditText: vi.fn(),
@@ -92,6 +93,7 @@ function setup() {
     updateMessage,
     fetchSuggestions,
     setPendingEnglish,
+    setStage,
     chatEpochRef,
     lastRecordRef,
   };
@@ -126,7 +128,7 @@ afterEach(() => {
 
 describe("useMicRecording chat-epoch guard", () => {
   test("a dialect turn that finishes in the same conversation is added", async () => {
-    const { result, addPhrase, addMessage, fetchSuggestions } = setup();
+    const { result, addPhrase, addMessage, fetchSuggestions, setStage } = setup();
     mockTranscribeDialect.mockResolvedValue("早晨");
     mockTranslateDialectToEnglish.mockResolvedValue("good morning");
 
@@ -136,10 +138,11 @@ describe("useMicRecording chat-epoch guard", () => {
     expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ dialect: "早晨" }));
     expect(addMessage).toHaveBeenCalledWith(expect.objectContaining({ text: "早晨", sender: "bot" }));
     expect(fetchSuggestions).toHaveBeenCalledWith("good morning", null);
+    expect(setStage).toHaveBeenCalledWith(null);
   });
 
   test("a dialect turn is discarded when the conversation resets mid-transcription", async () => {
-    const { result, addPhrase, addMessage, fetchSuggestions, chatEpochRef } = setup();
+    const { result, addPhrase, addMessage, fetchSuggestions, setStage, chatEpochRef } = setup();
     const transcription = deferred<string>();
     mockTranscribeDialect.mockReturnValue(transcription.promise);
 
@@ -151,6 +154,28 @@ describe("useMicRecording chat-epoch guard", () => {
     });
 
     expect(mockTranslateDialectToEnglish).not.toHaveBeenCalled();
+    expect(addPhrase).not.toHaveBeenCalled();
+    expect(addMessage).not.toHaveBeenCalled();
+    expect(fetchSuggestions).not.toHaveBeenCalled();
+    // The reset already cleared the stage; clearing it again would wipe the
+    // indicator of whatever the fresh conversation is doing now.
+    expect(setStage).not.toHaveBeenCalledWith(null);
+  });
+
+  test("a first dialect turn is discarded when the conversation resets mid-translation", async () => {
+    const { result, addPhrase, addMessage, fetchSuggestions, chatEpochRef, lastRecordRef } = setup();
+    expect(lastRecordRef.current).toBeNull(); // no append window: this is a fresh turn
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    const translation = deferred<string>();
+    mockTranslateDialectToEnglish.mockReturnValue(translation.promise);
+
+    await recordAndRelease(result, "cantonese");
+    chatEpochRef.current += 1;
+    await act(async () => {
+      translation.resolve("good morning");
+      await flush();
+    });
+
     expect(addPhrase).not.toHaveBeenCalled();
     expect(addMessage).not.toHaveBeenCalled();
     expect(fetchSuggestions).not.toHaveBeenCalled();

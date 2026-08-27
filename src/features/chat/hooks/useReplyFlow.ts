@@ -101,7 +101,9 @@ export function useReplyFlow({
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Translation failed: ${msg}`);
     } finally {
-      setStage(null);
+      // Only clear the stage this call set: after a reset it belongs to the
+      // new conversation, which may already be busy with its own turn.
+      if (chatEpochRef.current === epoch) setStage(null);
     }
   };
 
@@ -150,7 +152,9 @@ export function useReplyFlow({
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Reply failed: ${msg}`);
     } finally {
-      setStage(null);
+      // Only clear the stage this call set: after a reset it belongs to the
+      // new conversation, which may already be busy with its own turn.
+      if (chatEpochRef.current === epoch) setStage(null);
     }
   };
 

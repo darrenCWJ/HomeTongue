@@ -65,6 +65,7 @@ function setup() {
   const addMessage = vi.fn<(msg: Message) => void>();
   const setPlayingId = vi.fn<(id: string | null) => void>();
   const setLatestSuggestions = vi.fn<(suggestions: Phrase[]) => void>();
+  const setStage = vi.fn<(stage: "transcribing" | "translating" | null) => void>();
   const chatEpochRef = { current: 0 };
   const lastRecordRef = { current: null as RecordRef | null };
   const prefetchCacheRef = { current: new Map<string, Promise<PreparedTranslation>>() };
@@ -74,7 +75,7 @@ function setup() {
       userProfile: null,
       addPhrase,
       addMessage,
-      setStage: vi.fn(),
+      setStage,
       setStageIsUserSide: vi.fn(),
       setPlayingId,
       setLatestSuggestions,
@@ -83,7 +84,7 @@ function setup() {
       chatEpochRef,
     })
   );
-  return { result, addPhrase, addMessage, setPlayingId, chatEpochRef };
+  return { result, addPhrase, addMessage, setPlayingId, setStage, chatEpochRef };
 }
 
 beforeEach(() => {
@@ -94,7 +95,7 @@ afterEach(cleanup);
 
 describe("useReplyFlow chat-epoch guard", () => {
   test("a chip reply that finishes in the same conversation is added", async () => {
-    const { result, addPhrase, addMessage, setPlayingId } = setup();
+    const { result, addPhrase, addMessage, setPlayingId, setStage } = setup();
     const translation = deferred<PreparedTranslation>();
     mockPrepareTranslation.mockReturnValue(translation.promise);
 
@@ -107,10 +108,11 @@ describe("useReplyFlow chat-epoch guard", () => {
     expect(addPhrase).toHaveBeenCalledWith(PHRASE);
     expect(addMessage).toHaveBeenCalledWith(expect.objectContaining({ id: "p1", text: "thank you" }));
     expect(setPlayingId).toHaveBeenCalledWith("p1");
+    expect(setStage).toHaveBeenCalledWith(null);
   });
 
   test("a chip reply is discarded when the conversation resets mid-translation", async () => {
-    const { result, addPhrase, addMessage, setPlayingId, chatEpochRef } = setup();
+    const { result, addPhrase, addMessage, setPlayingId, setStage, chatEpochRef } = setup();
     const translation = deferred<PreparedTranslation>();
     mockPrepareTranslation.mockReturnValue(translation.promise);
 
@@ -126,10 +128,13 @@ describe("useReplyFlow chat-epoch guard", () => {
     expect(addMessage).not.toHaveBeenCalled();
     expect(setPlayingId).not.toHaveBeenCalledWith("p1");
     expect(mockToastError).not.toHaveBeenCalled();
+    // The reset already cleared the stage; clearing it again would wipe the
+    // indicator of whatever the fresh conversation is doing now.
+    expect(setStage).not.toHaveBeenCalledWith(null);
   });
 
   test("a confirmed English transcript is discarded when the conversation resets mid-translation", async () => {
-    const { result, addPhrase, addMessage, chatEpochRef } = setup();
+    const { result, addPhrase, addMessage, setStage, chatEpochRef } = setup();
     const translation = deferred<PreparedTranslation>();
     act(() =>
       result.current.setPendingEnglish({ text: "thank you", resultPromise: translation.promise })
@@ -144,6 +149,7 @@ describe("useReplyFlow chat-epoch guard", () => {
 
     expect(addPhrase).not.toHaveBeenCalled();
     expect(addMessage).not.toHaveBeenCalled();
+    expect(setStage).not.toHaveBeenCalledWith(null);
   });
 
   test("a confirmed English transcript in the same conversation is added", async () => {

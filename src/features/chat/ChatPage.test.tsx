@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Message, Phrase } from "../../types";
 import type { PreparedTranslation } from "./utils/prepareTranslation";
 import type { RecordRef } from "./hooks/useMicRecording";
@@ -25,6 +25,7 @@ let messages: Message[];
 let prefetchCache: Map<string, Promise<PreparedTranslation>>;
 let lastRecordRef: { current: RecordRef | null };
 let chatEpochRef: { current: number } | undefined;
+let setStage: (stage: "transcribing" | "translating" | null) => void;
 
 vi.mock("../../app/context/ProfileProvider", () => ({
   useProfile: () => ({
@@ -128,16 +129,19 @@ vi.mock("./hooks/useReplyFlow", () => ({
 }));
 
 vi.mock("./hooks/useMicRecording", () => ({
-  useMicRecording: () => ({
-    listeningMode: null,
-    isListening: false,
-    isTapMode: false,
-    handleMicPointerDown: vi.fn(),
-    handleMicPointerUp: vi.fn(),
-    handleMicPointerLeave: vi.fn(),
-    startListeningCantonese: vi.fn(),
-    startListeningEnglish: vi.fn(),
-  }),
+  useMicRecording: (params: { setStage: (stage: "transcribing" | "translating" | null) => void }) => {
+    setStage = params.setStage;
+    return {
+      listeningMode: null,
+      isListening: false,
+      isTapMode: false,
+      handleMicPointerDown: vi.fn(),
+      handleMicPointerUp: vi.fn(),
+      handleMicPointerLeave: vi.fn(),
+      startListeningCantonese: vi.fn(),
+      startListeningEnglish: vi.fn(),
+    };
+  },
 }));
 
 vi.mock("./hooks/usePhraseSelection", () => ({
@@ -189,7 +193,7 @@ vi.mock("./components/SaveSessionDialog", () => ({
 
 vi.mock("./components/DemoBubble", () => ({ DemoBubble: () => null }));
 vi.mock("./components/MessageList", () => ({ MessageList: () => null }));
-vi.mock("./components/ActionBar", () => ({ ActionBar: () => null }));
+vi.mock("./components/ActionBar", () => ({ ActionBar: () => <div>action bar</div> }));
 vi.mock("./components/TypingOverlay", () => ({ TypingOverlay: () => null }));
 vi.mock("./components/PersonaSheet", () => ({ PersonaSheet: () => null }));
 vi.mock("./components/DialectSheet", () => ({ DialectSheet: () => null }));
@@ -275,9 +279,10 @@ describe("ChatPage conversation reset", () => {
     expect(mockDiscardChat).not.toHaveBeenCalled();
   });
 
-  test("a re-render in the same dialect resets nothing", () => {
+  test("mounting and re-rendering in the same dialect resets nothing", () => {
     const { rerender } = render(<ChatPage />);
-    const epochBefore = chatEpochRef?.current ?? 0;
+    // Mounting is not a dialect switch: the effect must not fire on it.
+    expect(chatEpochRef?.current).toBe(0);
     seedStaleState();
 
     rerender(<ChatPage />);
@@ -285,6 +290,18 @@ describe("ChatPage conversation reset", () => {
     expect(mockInvalidateSuggestions).not.toHaveBeenCalled();
     expect(prefetchCache.size).toBe(1);
     expect(lastRecordRef.current).toBe(RECORD);
-    expect(chatEpochRef?.current).toBe(epochBefore);
+    expect(chatEpochRef?.current).toBe(0);
+  });
+
+  test("a reset unblocks the input even when the discarded turn was still translating", () => {
+    render(<ChatPage />);
+    act(() => setStage("translating"));
+    expect(screen.queryByText("action bar")).not.toBeInTheDocument();
+
+    click("new chat");
+
+    // The discarded translation's own request may still be seconds from
+    // settling; the fresh conversation must be usable immediately.
+    expect(screen.getByText("action bar")).toBeInTheDocument();
   });
 });

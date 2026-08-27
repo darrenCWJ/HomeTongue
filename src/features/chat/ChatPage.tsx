@@ -185,7 +185,9 @@ export function ChatPage() {
   // Everything a finished conversation must leave behind: in-flight
   // suggestion fetches, the TTS prefetch cache (keyed without a language, so
   // it must not survive a dialect switch), the 60s dialect append window, the
-  // visible chips, a pending transcript, and the save dialog itself.
+  // visible chips, a pending transcript, and the save dialog itself. The busy
+  // stage goes too — its request is discarded, and leaving it set would hide
+  // the input behind a spinner the new conversation can never clear.
   const resetConversationState = () => {
     chatEpochRef.current++;
     invalidateSuggestions();
@@ -193,6 +195,7 @@ export function ChatPage() {
     lastRecordRef.current = null;
     setPendingEnglish(null);
     setLatestSuggestions([]);
+    setStage(null);
     setIsSaveDialogOpen(false);
   };
   resetConversationRef.current = resetConversationState;
