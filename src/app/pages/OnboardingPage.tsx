@@ -37,8 +37,7 @@ export function OnboardingPage() {
     setVoiceId(displayVoices[0]?.key ?? "");
   }, [displayVoices]);
 
-  const handlePreview = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handlePreview = async (id: string) => {
     if (previewingId) return;
     setPreviewingId(id);
     try {
@@ -229,32 +228,40 @@ export function OnboardingPage() {
                   .map((voice) => {
                     const selected = voiceId === voice.key;
                     return (
-                      <button
+                      <div
                         key={voice.key}
-                        onClick={() => setVoiceId(voice.key)}
-                        className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${
+                        className={`w-full flex items-center gap-3 pr-3.5 rounded-2xl border-2 transition-all ${
                           selected
                             ? "border-brand-blue bg-brand-blue/10"
                             : "border-border-subtle bg-background hover:border-border"
                         }`}
                       >
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-secondary"}`}
+                        <button
+                          onClick={() => setVoiceId(voice.key)}
+                          aria-pressed={selected}
+                          className="flex-1 min-w-0 flex items-center gap-3 py-3.5 pl-3.5 rounded-2xl text-left"
                         >
-                          <Volume2 size={16} className={selected ? "text-white" : "text-muted-foreground"} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-foreground"}`}
-                            >
-                              {voice.label}
-                            </span>
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-secondary"}`}
+                          >
+                            <Volume2
+                              size={16}
+                              className={selected ? "text-white" : "text-muted-foreground"}
+                            />
                           </div>
-                        </div>
-                        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the preview control sits INSIDE the select <button>, so it cannot be a button or role="button" itself (nested interactive content); making it keyboard-reachable needs a sibling restructure of the row */}
-                        <div
-                          onClick={(e) => handlePreview(e, voice.key)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`font-semibold text-sm ${selected ? "text-brand-blue" : "text-foreground"}`}
+                              >
+                                {voice.label}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => handlePreview(voice.key)}
+                          aria-label={`Preview the ${voice.label} voice`}
                           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                             previewingId === voice.key
                               ? "bg-brand-blue/15"
@@ -266,13 +273,13 @@ export function OnboardingPage() {
                           ) : (
                             <Volume2 size={14} className="text-muted-foreground" />
                           )}
-                        </div>
+                        </button>
                         {selected && (
                           <div className="w-5 h-5 bg-brand-blue rounded-full flex items-center justify-center shrink-0">
                             <Check size={12} className="text-white" />
                           </div>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
               </div>
