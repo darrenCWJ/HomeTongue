@@ -2,12 +2,13 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 
 export default tseslint.config(
   { ignores: ['dist/', 'android/', 'node_modules/', 'public/', 'coverage/'] },
   {
     files: ['**/*.{ts,tsx}'],
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended, jsxA11y.flatConfigs.recommended],
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
@@ -22,6 +23,11 @@ export default tseslint.config(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': 'off',
+      // The rule targets page-load focus stealing; every autoFocus in this app
+      // is the move-focus-into-a-just-opened-surface pattern (title dialogs,
+      // tag editors, typing overlay, the single-field access gate), which is
+      // the recommended behavior for those surfaces.
+      'jsx-a11y/no-autofocus': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],

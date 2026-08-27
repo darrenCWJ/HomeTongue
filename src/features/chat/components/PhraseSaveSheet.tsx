@@ -58,9 +58,8 @@ export function PhraseSaveSheet({
             rows={3}
             className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground text-base resize-none mb-4"
           />
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            Tags
-          </label>
+          {/* Group caption, not a form label — the "controls" are toggle buttons. */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tags</p>
           <div className="flex flex-wrap gap-2 mb-3">
             {phraseTags.map((tag) => {
               const isSelected = phraseTagSelection.includes(tag.id);

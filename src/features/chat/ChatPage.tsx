@@ -136,6 +136,7 @@ export function ChatPage() {
     handleMicPointerDown,
     handleMicPointerUp,
     handleMicPointerLeave,
+    handleMicKeyboardToggle,
     startListeningCantonese,
     startListeningEnglish,
   } = useMicRecording({
@@ -378,6 +379,12 @@ export function ChatPage() {
           onEnglishPointerDown={() => handleMicPointerDown(startListeningEnglish, "english")}
           onMicPointerUp={handleMicPointerUp}
           onMicPointerLeave={handleMicPointerLeave}
+          onMicKeyboardToggle={(mode) =>
+            handleMicKeyboardToggle(
+              mode === "cantonese" ? startListeningCantonese : startListeningEnglish,
+              mode
+            )
+          }
           onOpenTyping={() => setIsTyping(true)}
         />
       )}

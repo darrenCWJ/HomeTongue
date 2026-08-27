@@ -391,3 +391,135 @@ describe("ExamView mic hold", () => {
     expect(screen.getByText("88%")).toBeInTheDocument();
   });
 });
+
+// The mic button was operated only through pointer events, so a keyboard user
+// who tabbed to it and pressed Enter/Space got nothing: keyboard activation of
+// a native button synthesizes a click (detail === 0), not pointer events. The
+// keyboard path toggles — activate to start (armed exactly like a tap, so the
+// recording keeps running), activate again to stop — while clicks that trail a
+// real pointer gesture (detail >= 1) stay ignored, since the pointer handlers
+// already ran.
+describe("ExamView keyboard operation", () => {
+  test("a keyboard activation starts recording and a second one stops and scores it", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.click(mic());
+      await flush();
+    });
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1500;
+    await act(async () => {
+      fireEvent.click(mic());
+      await flush();
+    });
+
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  test("the click a browser synthesizes after a pointer tap does not stop the armed recording", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 100;
+    await act(async () => {
+      fireEvent.pointerUp(mic());
+      // The trailing click of a real pointer gesture carries detail >= 1.
+      fireEvent.click(mic(), { detail: 1 });
+      await flush();
+    });
+
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+  });
+
+  test("a keyboard activation stops a recording armed by a pointer tap", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 100;
+    await act(async () => {
+      fireEvent.pointerUp(mic());
+      await flush();
+    });
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1500;
+    await act(async () => {
+      fireEvent.click(mic());
+      await flush();
+    });
+
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  test("a mouse passing over the button does not end a keyboard-started recording", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.click(mic());
+      await flush();
+    });
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerLeave(mic());
+      await flush();
+    });
+
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+  });
+
+  test("a keyboard activation during a slow permission prompt stops the mic when it arms", async () => {
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+    renderExam();
+
+    fireEvent.click(mic());
+    // The prompt is still up and the user toggles again to cancel.
+    fireEvent.click(mic());
+
+    await act(async () => {
+      permission.resolve();
+      await flush();
+    });
+
+    expect(mockStopRecording).toHaveBeenCalled();
+    expect(screen.getByText("Tap or hold to record")).toBeInTheDocument();
+  });
+
+  // The tap arming must only happen once the mic actually armed: a denied
+  // start that left the trigger ref reading "tap" would make pointer-leave
+  // ignore the next hold's drag-off, leaving that recording running.
+  test("after a denied keyboard start, dragging off a later hold still ends the recording", async () => {
+    mockStartRecording.mockRejectedValueOnce(new Error("denied"));
+    renderExam();
+
+    await act(async () => {
+      fireEvent.click(mic());
+      await flush();
+    });
+    expect(screen.getByText("Tap or hold to record")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerLeave(mic());
+      await flush();
+    });
+
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+});

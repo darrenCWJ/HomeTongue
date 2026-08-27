@@ -31,6 +31,7 @@ export function AudioPlayer({ path }: AudioPlayerProps) {
   }
 
   if (state === "ready" && url) {
+    // eslint-disable-next-line jsx-a11y/media-has-caption -- the recording IS the artifact under review (reviewers listen to verify the transcript beside it); no caption track can exist for it
     return <audio className="audio-player" controls src={url} preload="metadata" />;
   }
 

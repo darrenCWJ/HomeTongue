@@ -89,6 +89,7 @@ export function PhraseTagFilterBar({
           >
             {tag.name}
             {isEditingTags && (
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the delete control sits INSIDE the filter-toggle <button>, so it cannot be a button or role="button" itself (nested interactive content); making it keyboard-reachable needs a sibling restructure of the chip
               <span
                 onClick={(e) => {
                   e.stopPropagation();

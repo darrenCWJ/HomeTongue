@@ -1,6 +1,7 @@
 import React from "react";
 import { BookOpen, Briefcase, Check, ChevronDown, Home, Mic, MoreHorizontal, X } from "lucide-react";
 import type { ConversationLesson, Session, Tag } from "../../../types";
+import { activationKeyHandler } from "../../../utils/a11y";
 
 export interface SessionCardProps {
   session: Session;
@@ -70,8 +71,14 @@ export function SessionCard({
       {/* Session header */}
       <div className="p-5 flex items-center gap-3">
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={expandedSessionId === session.id}
           className="flex-1 min-w-0 cursor-pointer"
           onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}
+          onKeyDown={activationKeyHandler(() =>
+            setExpandedSessionId(expandedSessionId === session.id ? null : session.id)
+          )}
         >
           <div className="flex items-center gap-2 flex-wrap">
             {editingSessionId === session.id ? (

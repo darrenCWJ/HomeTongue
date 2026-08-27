@@ -1,4 +1,9 @@
-import { useState, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useState,
+  useRef,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { ArrowLeft, X, Loader2, Mic, MicOff, Trophy } from "lucide-react";
 import { useAudioRecorder } from "../../../hooks/audio";
 import {
@@ -207,6 +212,32 @@ export function ExamView({
     stopListening();
   };
 
+  // Keyboard/AT path. Enter/Space on a native button synthesizes a click
+  // (detail 0), never pointer events, so the handlers above never run for a
+  // keyboard user. Toggle with tap semantics: start and arm as a tap, the
+  // next activation stops. The click trailing a real pointer gesture carries
+  // detail >= 1 and is ignored — its pointerdown/up already ran.
+  const handleMicClick = async (e: ReactMouseEvent<HTMLButtonElement>) => {
+    if (e.detail !== 0) return;
+    if (isRecording) {
+      stopListening();
+      return;
+    }
+    if (isStartingRef.current) {
+      // A start is still waiting on the mic — complete-and-stop it when it
+      // arms, exactly as a pointer release during the prompt would.
+      releasedDuringStartRef.current = true;
+      return;
+    }
+    await startListening();
+    // Arm as a tap only once the mic actually armed: a denied start must not
+    // leave a stale tap trigger, which would make pointer-leave ignore the
+    // next hold's drag-off and leave that recording running.
+    if (recordingStartRef.current !== null) {
+      recordingTriggerRef.current = "tap";
+    }
+  };
+
   const handleRetry = () => {
     setItemScore(null);
     setItemMethod(null);
@@ -330,6 +361,7 @@ export function ExamView({
                   onPointerUp={handleMicPointerUp}
                   onPointerLeave={handleMicPointerLeave}
                   onPointerCancel={handleMicPointerCancel}
+                  onClick={handleMicClick}
                   onContextMenu={(e) => e.preventDefault()}
                   aria-label={isRecording ? "Stop recording" : "Record your answer"}
                   className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none touch-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-brand-blue shadow-brand-blue/20 hover:scale-105"}`}

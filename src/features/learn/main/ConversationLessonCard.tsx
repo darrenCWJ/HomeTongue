@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronRight, Check, X, MessageCircle, Trash2, Pencil, MoreHorizontal } from "lucide-react";
 import type { ConversationLesson } from "../../../types";
+import { activationKeyHandler } from "../../../utils/a11y";
 
 // ─── ConversationLessonCard ───────────────────────────────────────────────────
 
@@ -61,7 +62,12 @@ export function ConversationLessonCard({
   };
 
   return (
+    // The whole card is a mouse-convenience click surface (presentation: it
+    // contains the menu button, so it cannot be role="button" itself); the
+    // SEMANTIC open control is the content block below, which holds no
+    // nested controls while not editing.
     <div
+      role="presentation"
       onClick={editing || menuOpen ? undefined : onClick}
       className="relative bg-card rounded-2xl p-4 shadow-sm border border-border-subtle flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-brand-blue/15 hover:shadow-md"
     >
@@ -106,7 +112,12 @@ export function ConversationLessonCard({
       <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
         <MessageCircle size={20} className="text-brand-blue" />
       </div>
-      <div className="flex-1 min-w-0 pr-6">
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={editing || menuOpen ? undefined : activationKeyHandler(onClick)}
+        className="flex-1 min-w-0 pr-6"
+      >
         {editing ? (
           <div className="flex items-center gap-1.5">
             <input

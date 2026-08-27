@@ -19,6 +19,12 @@ interface ActionBarProps {
   onEnglishPointerDown: () => void;
   onMicPointerUp: (mode: MicMode) => void;
   onMicPointerLeave: (mode: MicMode) => void;
+  /**
+   * Keyboard/AT activation (Enter/Space synthesizes a click with detail 0,
+   * never pointer events): toggle — start armed as a tap, next activation
+   * stops. Pointer-gesture clicks (detail >= 1) never reach this.
+   */
+  onMicKeyboardToggle: (mode: MicMode) => void;
   onOpenTyping: () => void;
 }
 
@@ -32,6 +38,7 @@ export function ActionBar({
   onEnglishPointerDown,
   onMicPointerUp,
   onMicPointerLeave,
+  onMicKeyboardToggle,
   onOpenTyping,
 }: ActionBarProps) {
   return (
@@ -48,6 +55,9 @@ export function ActionBar({
             onPointerDown={onDialectPointerDown}
             onPointerUp={() => onMicPointerUp("cantonese")}
             onPointerLeave={() => onMicPointerLeave("cantonese")}
+            onClick={(e) => {
+              if (e.detail === 0) onMicKeyboardToggle("cantonese");
+            }}
             onContextMenu={(e) => e.preventDefault()}
             disabled={isListening && listeningMode !== "cantonese"}
             className={`relative flex items-center justify-center gap-2 w-[7.5rem] py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "cantonese" ? "bg-brand-red shadow-brand-red/30 scale-105" : "bg-brand-red shadow-brand-red/20"}`}
@@ -79,6 +89,9 @@ export function ActionBar({
           onPointerDown={onEnglishPointerDown}
           onPointerUp={() => onMicPointerUp("english")}
           onPointerLeave={() => onMicPointerLeave("english")}
+          onClick={(e) => {
+            if (e.detail === 0) onMicKeyboardToggle("english");
+          }}
           onContextMenu={(e) => e.preventDefault()}
           disabled={isListening && listeningMode !== "english"}
           className={`relative flex items-center justify-center gap-2 w-[7.5rem] py-3 rounded-full text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 select-none ${listeningMode === "english" ? "bg-brand-red shadow-brand-red/20 scale-105" : "bg-brand-blue shadow-brand-blue/20"}`}

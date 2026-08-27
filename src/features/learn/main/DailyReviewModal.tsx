@@ -4,6 +4,7 @@ import { useProfile } from "../../../app/context/ProfileProvider";
 import { motion, AnimatePresence } from "motion/react";
 import type { VocabItem } from "../../../types";
 import { PlayButton, personalise } from "../shared";
+import { activationKeyHandler } from "../../../utils/a11y";
 
 // ─── DailyReviewModal ─────────────────────────────────────────────────────────
 
@@ -49,7 +50,10 @@ export function DailyReviewModal({ card, onClose }: { card: VocabItem; onClose: 
           {/* Flashcard */}
           <div className="p-6">
             <div
+              role="button"
+              tabIndex={0}
               onClick={() => setFlipped((f) => !f)}
+              onKeyDown={activationKeyHandler(() => setFlipped((f) => !f))}
               className="cursor-pointer select-none mb-6"
               style={{ perspective: 1000 }}
             >
