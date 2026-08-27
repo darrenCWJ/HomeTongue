@@ -15,10 +15,11 @@ interface ActionBarProps {
   dialectMicEnabled: boolean;
   /** Active dialect label for the hint copy, e.g. "Hokkien". */
   dialectLabel: string;
-  onDialectPointerDown: () => void;
-  onEnglishPointerDown: () => void;
-  onMicPointerUp: (mode: MicMode) => void;
-  onMicPointerLeave: (mode: MicMode) => void;
+  /** Pointer ids scope each gesture to the pointer that started it — see useMicRecording's ownerPointerIdRef. */
+  onDialectPointerDown: (pointerId: number) => void;
+  onEnglishPointerDown: (pointerId: number) => void;
+  onMicPointerUp: (mode: MicMode, pointerId: number) => void;
+  onMicPointerLeave: (mode: MicMode, pointerId: number) => void;
   /**
    * Keyboard/AT activation (Enter/Space synthesizes a click with detail 0,
    * never pointer events): toggle — start armed as a tap, next activation
@@ -52,9 +53,9 @@ export function ActionBar({
         {dialectMicEnabled && (
           <button
             data-tour="chat-dialect-mic"
-            onPointerDown={onDialectPointerDown}
-            onPointerUp={() => onMicPointerUp("cantonese")}
-            onPointerLeave={() => onMicPointerLeave("cantonese")}
+            onPointerDown={(e) => onDialectPointerDown(e.pointerId)}
+            onPointerUp={(e) => onMicPointerUp("cantonese", e.pointerId)}
+            onPointerLeave={(e) => onMicPointerLeave("cantonese", e.pointerId)}
             onClick={(e) => {
               if (e.detail === 0) onMicKeyboardToggle("cantonese");
             }}
@@ -86,9 +87,9 @@ export function ActionBar({
 
         <button
           data-tour="chat-english-mic"
-          onPointerDown={onEnglishPointerDown}
-          onPointerUp={() => onMicPointerUp("english")}
-          onPointerLeave={() => onMicPointerLeave("english")}
+          onPointerDown={(e) => onEnglishPointerDown(e.pointerId)}
+          onPointerUp={(e) => onMicPointerUp("english", e.pointerId)}
+          onPointerLeave={(e) => onMicPointerLeave("english", e.pointerId)}
           onClick={(e) => {
             if (e.detail === 0) onMicKeyboardToggle("english");
           }}

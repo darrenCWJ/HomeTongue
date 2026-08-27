@@ -62,6 +62,10 @@ interface MicRecordingParams {
  * chat epoch and drops its writes when the conversation was reset (New Chat,
  * Save, dialect switch) while the request was in flight.
  */
+// Keyboard activation has no pointer, so its composed press+release pairs
+// with a sentinel id no browser pointer ever uses (real ids are >= 0).
+const KEYBOARD_POINTER_ID = -1;
+
 export function useMicRecording({
   phrasesRef,
   addPhrase,
@@ -96,19 +100,58 @@ export function useMicRecording({
   // The token identifies the specific call, so a superseded one (denied or
   // granted) discards instead of touching state a newer attempt now owns.
   const startTokenRef = useRef(0);
+  // The pointer that owns the current mic gesture, from its pointerdown until
+  // its release/leave ends it (or until any stop path runs — stopListening
+  // clears it). Up and leave from any OTHER pointer are ignored: a palm edge
+  // pressing the button or a mouse gliding over it mid-hold must not release
+  // a hold it never started. Tap-to-stop stays any-pointer — on touch, every
+  // tap is a new pointer id. pointerdown is never hard-gated on this id alone
+  // (see the reclaim fall-through in the down handler), so a stale id cannot
+  // leave the button permanently inert. Mirrors ExamView's ownerPointerIdRef;
+  // unlike the exam, chat takes no explicit pointer capture — touch gets
+  // implicit capture, and a mouse gesture ends at the button boundary via
+  // leave — so the only staleness path is a mouse release lost without a
+  // boundary crossing, which the same-id fall-through recovers.
+  const ownerPointerIdRef = useRef<number | null>(null);
 
-  const handleMicPointerDown = async (startFn: () => Promise<void>, mode: "cantonese" | "english") => {
+  const handleMicPointerDown = async (
+    startFn: () => Promise<void>,
+    mode: "cantonese" | "english",
+    pointerId: number
+  ) => {
     if (isListening || recordingModeRef.current) {
+      if (recordingTriggerRef.current === "tap") {
+        // Tap-to-stop accepts any pointer id — the arming gesture is over.
+        stopListening();
+        return;
+      }
+      // A hold is live or a start is pending, with the owner's finger still
+      // down: an incidental second pointer (palm edge, second finger) must
+      // not stop or discard the take. Scoped to OTHER pointers only — the
+      // owner itself pressing again proves its release was lost (a pointer
+      // cannot press twice while down), and that press must fall through to
+      // the stop below and reclaim the mic, not find it inert.
+      const owner = ownerPointerIdRef.current;
+      if (owner !== null && pointerId !== owner) return;
       stopListening();
       return;
     }
+    ownerPointerIdRef.current = pointerId;
     recordingStartRef.current = Date.now();
     recordingModeRef.current = mode;
     await startFn();
   };
 
-  const handleMicPointerUp = (mode: "cantonese" | "english") => {
+  const handleMicPointerUp = (mode: "cantonese" | "english", pointerId: number) => {
     if (recordingModeRef.current !== mode) return;
+    // Only the gesture's own release may act. A null owner means the gesture
+    // already ended (tap-armed, or stopped by leave / a programmatic stop)
+    // and this is a stray or replayed release; a different id is an
+    // incidental second pointer whose lift must not end the hold the owning
+    // finger is still holding.
+    if (ownerPointerIdRef.current === null || pointerId !== ownerPointerIdRef.current) return;
+    // The owning pointer lifted: whichever branch runs, its gesture is over.
+    ownerPointerIdRef.current = null;
     const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 999;
     if (elapsed < 1000) {
       recordingTriggerRef.current = "tap";
@@ -119,8 +162,17 @@ export function useMicRecording({
     }
   };
 
-  const handleMicPointerLeave = (mode: "cantonese" | "english") => {
+  const handleMicPointerLeave = (mode: "cantonese" | "english", pointerId: number) => {
+    // Gated to the owning pointer: a mouse merely passing over the button
+    // during a touch hold fires its own leave and must not end a hold it
+    // never started. (The owner crossing the OTHER mic button mid-drag is
+    // rejected by the mode guard instead — neither early return clears the
+    // claim, so the owner keeps its gesture either way.)
+    if (ownerPointerIdRef.current === null || pointerId !== ownerPointerIdRef.current) return;
     if (recordingModeRef.current !== mode || recordingTriggerRef.current === "tap") return;
+    // Leaving ends the gesture — an armed hold or a pending start alike (no
+    // pointer capture here, so the release would land elsewhere anyway).
+    ownerPointerIdRef.current = null;
     stopListening();
   };
 
@@ -133,8 +185,8 @@ export function useMicRecording({
    * permission-prompt guard on this path too.
    */
   const handleMicKeyboardToggle = (startFn: () => Promise<void>, mode: "cantonese" | "english") => {
-    const pending = handleMicPointerDown(startFn, mode);
-    handleMicPointerUp(mode);
+    const pending = handleMicPointerDown(startFn, mode, KEYBOARD_POINTER_ID);
+    handleMicPointerUp(mode, KEYBOARD_POINTER_ID);
     return pending;
   };
 
@@ -180,10 +232,13 @@ export function useMicRecording({
     } catch {
       // Only clear the refs if this call is still the current attempt — a
       // stale rejection must not wipe out a different (or same-mode,
-      // released-then-re-armed) attempt that has since taken ownership.
+      // released-then-re-armed) attempt that has since taken ownership. The
+      // pointer claim goes with them: the denial killed this gesture, and no
+      // stop path runs here to clear it.
       if (isCurrentAttempt()) {
         recordingStartRef.current = null;
         recordingModeRef.current = null;
+        ownerPointerIdRef.current = null;
       }
       toast.error("Microphone access denied. Please allow microphone permissions.");
     }
@@ -195,6 +250,10 @@ export function useMicRecording({
 
   const stopListening = async () => {
     const mode = listeningMode || recordingModeRef.current;
+    // Every stop ends whatever gesture was live, including programmatic stops
+    // (the dialect-switch effect) where no releasing pointer event will ever
+    // fire to clear the claim itself.
+    ownerPointerIdRef.current = null;
     recordingTriggerRef.current = null;
     recordingModeRef.current = null;
     setIsTapMode(false);

@@ -150,12 +150,13 @@ function setup() {
 /** Press and hold the mic long enough to count as a real recording. */
 async function startRecordingFor(
   result: { current: ReturnType<typeof useMicRecording> },
-  mode: "cantonese" | "english"
+  mode: "cantonese" | "english",
+  pointerId = 1
 ) {
   const start =
     mode === "cantonese" ? result.current.startListeningCantonese : result.current.startListeningEnglish;
   await act(async () => {
-    await result.current.handleMicPointerDown(start, mode);
+    await result.current.handleMicPointerDown(start, mode, pointerId);
   });
   now += 1500;
 }
@@ -163,11 +164,12 @@ async function startRecordingFor(
 /** Hold the mic long enough to count as a real recording, then release it. */
 async function recordAndRelease(
   result: { current: ReturnType<typeof useMicRecording> },
-  mode: "cantonese" | "english"
+  mode: "cantonese" | "english",
+  pointerId = 1
 ) {
-  await startRecordingFor(result, mode);
+  await startRecordingFor(result, mode, pointerId);
   await act(async () => {
-    result.current.handleMicPointerUp(mode);
+    result.current.handleMicPointerUp(mode, pointerId);
     await flush();
   });
 }
@@ -365,7 +367,7 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
 
     let pending!: Promise<void>;
     act(() => {
-      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 1);
     });
     expect(result.current.isListening).toBe(false); // nothing is recording yet
 
@@ -407,14 +409,15 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     act(() => {
       cantonesePending = result.current.handleMicPointerDown(
         result.current.startListeningCantonese,
-        "cantonese"
+        "cantonese",
+        1
       );
     });
 
     // The user lets go before the browser's permission prompt answers,
     // releasing cantonese's ownership without settling its promise.
     await act(async () => {
-      result.current.handleMicPointerLeave("cantonese");
+      result.current.handleMicPointerLeave("cantonese", 1);
       await flush();
     });
 
@@ -423,7 +426,11 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     mockStartRecording.mockReturnValueOnce(grantedPermission.promise);
     let englishPending!: Promise<void>;
     act(() => {
-      englishPending = result.current.handleMicPointerDown(result.current.startListeningEnglish, "english");
+      englishPending = result.current.handleMicPointerDown(
+        result.current.startListeningEnglish,
+        "english",
+        2
+      );
     });
     await act(async () => {
       grantedPermission.resolve();
@@ -442,7 +449,7 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     // English's ownership must survive the stale rejection: pointer-up on it
     // still registers instead of being silently ignored.
     act(() => {
-      result.current.handleMicPointerUp("english");
+      result.current.handleMicPointerUp("english", 2);
     });
     expect(result.current.isTapMode).toBe(true);
   });
@@ -459,25 +466,31 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
 
     let firstPending!: Promise<void>;
     act(() => {
-      firstPending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+      firstPending = result.current.handleMicPointerDown(
+        result.current.startListeningCantonese,
+        "cantonese",
+        1
+      );
     });
 
     // Released before the first prompt answers — same release mechanism as
     // the cross-mode test above.
     await act(async () => {
-      result.current.handleMicPointerLeave("cantonese");
+      result.current.handleMicPointerLeave("cantonese", 1);
       await flush();
     });
 
     // Pressed again in the SAME mode — ownership was released, so the
-    // reentry guard sees this as a brand new attempt.
+    // reentry guard sees this as a brand new attempt. On touch a fresh
+    // contact gets a fresh pointer id.
     const grantedPermission = deferred<void>();
     mockStartRecording.mockReturnValueOnce(grantedPermission.promise);
     let secondPending!: Promise<void>;
     act(() => {
       secondPending = result.current.handleMicPointerDown(
         result.current.startListeningCantonese,
-        "cantonese"
+        "cantonese",
+        2
       );
     });
 
@@ -522,12 +535,16 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
 
     let firstPending!: Promise<void>;
     act(() => {
-      firstPending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+      firstPending = result.current.handleMicPointerDown(
+        result.current.startListeningCantonese,
+        "cantonese",
+        1
+      );
     });
 
     // Released before the first prompt answers.
     await act(async () => {
-      result.current.handleMicPointerLeave("cantonese");
+      result.current.handleMicPointerLeave("cantonese", 1);
       await flush();
     });
 
@@ -537,7 +554,8 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     act(() => {
       secondPending = result.current.handleMicPointerDown(
         result.current.startListeningCantonese,
-        "cantonese"
+        "cantonese",
+        2
       );
     });
     await act(async () => {
@@ -565,7 +583,7 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     // Attempt 2's own lifecycle still completes the turn normally.
     now += 1500;
     await act(async () => {
-      result.current.handleMicPointerUp("cantonese");
+      result.current.handleMicPointerUp("cantonese", 2);
       await flush();
     });
     expect(mockStopRecording).toHaveBeenCalledTimes(1);
@@ -585,12 +603,12 @@ describe("useMicRecording pending-prompt slide-off", () => {
 
     let pending!: Promise<void>;
     act(() => {
-      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 1);
     });
     expect(result.current.isListening).toBe(false); // nothing is recording yet
 
     await act(async () => {
-      result.current.handleMicPointerLeave("cantonese");
+      result.current.handleMicPointerLeave("cantonese", 1);
       await flush();
     });
 
@@ -691,6 +709,187 @@ describe("useMicRecording English mic permission (CHAT-10)", () => {
   });
 });
 
+// Mirrors the exam mic's pointer-ownership fix (ExamView's ownerPointerIdRef):
+// the pointerdown that starts a gesture claims ownership, and up/leave from
+// any OTHER pointer are ignored — a palm edge or a mouse gliding over the
+// button must not end a hold it never started. Tap-to-stop stays any-pointer
+// (on touch, every tap is a new pointer id), and pointerdown is never
+// hard-gated on the id alone: a press by the same id as a stale owner falls
+// through to the stop path and reclaims the mic, so a stale owner can never
+// dead-lock the button.
+describe("useMicRecording pointer ownership", () => {
+  test("a different pointer's leave during an armed hold does not stop the recording", async () => {
+    const { result } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    await startRecordingFor(result, "cantonese", 1);
+    // A mouse glides across the button while the finger is still holding it.
+    await act(async () => {
+      result.current.handleMicPointerLeave("cantonese", 2);
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(true);
+    expect(mockStopRecording).not.toHaveBeenCalled();
+
+    // The owning finger's release still ends the hold normally.
+    await act(async () => {
+      result.current.handleMicPointerUp("cantonese", 1);
+      await flush();
+    });
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+    expect(result.current.isListening).toBe(false);
+  });
+
+  test("a second pointer's press during an armed hold does not stop or restart the recording", async () => {
+    const { result } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    await startRecordingFor(result, "cantonese", 1);
+    // A palm edge or second finger presses the button mid-take.
+    await act(async () => {
+      await result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 2);
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(true);
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(mockStartRecording).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result.current.handleMicPointerUp("cantonese", 1);
+      await flush();
+    });
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+  });
+
+  test("a second pointer's press while a start is pending does not abort the pending start", async () => {
+    const { result } = setup();
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 1);
+    });
+
+    // While the permission prompt is up, a palm edge lands on the other mic
+    // (it is not disabled yet — nothing is listening).
+    await act(async () => {
+      await result.current.handleMicPointerDown(result.current.startListeningEnglish, "english", 2);
+      await flush();
+    });
+    expect(mockStartRecording).toHaveBeenCalledTimes(1); // the palm press never armed anything
+
+    await act(async () => {
+      permission.resolve();
+      await pending;
+      await flush();
+    });
+
+    // The owner's pending start survives the incidental press and arms.
+    expect(result.current.isListening).toBe(true);
+    expect(result.current.listeningMode).toBe("cantonese");
+  });
+
+  test("a different pointer's release during an armed hold does not end it or arm tap mode", async () => {
+    const { result } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    await startRecordingFor(result, "cantonese", 1);
+    // The palm edge whose press was ignored lifts over the button.
+    act(() => {
+      result.current.handleMicPointerUp("cantonese", 2);
+    });
+
+    expect(result.current.isListening).toBe(true);
+    expect(result.current.isTapMode).toBe(false);
+    expect(mockStopRecording).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.handleMicPointerUp("cantonese", 1);
+      await flush();
+    });
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+  });
+
+  test("a tap recording is stopped by a press from any pointer", async () => {
+    const { result } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    // Quick press-release arms tap mode; the recording keeps running.
+    await act(async () => {
+      await result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 1);
+    });
+    now += 300;
+    act(() => {
+      result.current.handleMicPointerUp("cantonese", 1);
+    });
+    expect(result.current.isTapMode).toBe(true);
+
+    // On touch the stopping tap is a brand new pointer id — it must still stop.
+    now += 1200;
+    await act(async () => {
+      await result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 7);
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(false);
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+  });
+
+  test("a stray release after a tap is armed does not stop the tap recording", async () => {
+    const { result } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    await act(async () => {
+      await result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 1);
+    });
+    now += 300;
+    act(() => {
+      result.current.handleMicPointerUp("cantonese", 1);
+    });
+    expect(result.current.isTapMode).toBe(true);
+    now += 1200;
+
+    // A pointer that pressed elsewhere is dragged over the button and lifts
+    // there; a replayed release of the original id is equally stray — the
+    // arming gesture already ended.
+    act(() => {
+      result.current.handleMicPointerUp("cantonese", 2);
+    });
+    act(() => {
+      result.current.handleMicPointerUp("cantonese", 1);
+    });
+
+    expect(result.current.isListening).toBe(true);
+    expect(mockStopRecording).not.toHaveBeenCalled();
+  });
+
+  test("a press with the stale owner's id reclaims a hold whose release was lost", async () => {
+    const { result } = setup();
+    mockTranscribeDialect.mockResolvedValue("早晨");
+    mockTranslateDialectToEnglish.mockResolvedValue("good morning");
+
+    await startRecordingFor(result, "cantonese", 1);
+    // The release never arrived (a mouse lifted off-page without crossing the
+    // button's boundary); the same pointer presses again. It must not find
+    // the button inert — the press falls through and stops the orphaned hold.
+    await act(async () => {
+      await result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese", 1);
+      await flush();
+    });
+
+    expect(result.current.isListening).toBe(false);
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+  });
+});
+
 // The chat mics were operated only through pointer events, so a keyboard user
 // who tabbed to one and pressed Enter/Space could not record. The keyboard
 // path is a toggle with tap semantics: one activation arms the mic exactly
@@ -728,7 +927,7 @@ describe("useMicRecording keyboard toggle", () => {
     expect(result.current.isListening).toBe(true);
 
     await act(async () => {
-      result.current.handleMicPointerLeave("cantonese");
+      result.current.handleMicPointerLeave("cantonese", 2);
       await flush();
     });
 
