@@ -8,6 +8,16 @@ import { PlayButton } from "../shared";
 
 // ─── ConvFlashcardExercise ────────────────────────────────────────────────────
 
+const CARD_EXIT_S = 0.18;
+/** Bounded for the same reason as FlashcardExercise — see the note there. */
+const CARD_EXIT_TIMEOUT_MS = 400;
+
+const bounded = (exit: { then: (onResolve: VoidFunction) => Promise<void> }) =>
+  Promise.race([
+    exit.then(() => {}),
+    new Promise<void>((resolve) => setTimeout(resolve, CARD_EXIT_TIMEOUT_MS)),
+  ]);
+
 export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
   const { phrases, addPhrase, toggleBookmark } = useLibrary();
   const [index, setIndex] = useState(0);
@@ -60,7 +70,7 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
     setSwipeDir(null);
     const exitX = dir === "left" ? -420 : 420;
     const enterX = dir === "left" ? 420 : -420;
-    await animate(x, exitX, { duration: 0.18, ease: [0.32, 0.72, 0, 1] });
+    await bounded(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
     if (nextIndex >= vocab.length) {
       // Stays latched on purpose: onComplete tears this exercise down.
       onComplete();

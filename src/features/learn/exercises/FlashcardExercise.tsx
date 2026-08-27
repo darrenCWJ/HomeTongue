@@ -12,6 +12,24 @@ import { PlayButton, personalise } from "../shared";
 
 type ExampleMeta = { translation: string; pronunciation: string };
 
+const CARD_EXIT_S = 0.18;
+/**
+ * Ceiling on how long a card exit may be awaited. motion resolves an
+ * animation's promise only on natural completion (JSAnimation.finish →
+ * notifyFinished); stop() and cancel() tear the animation down WITHOUT
+ * resolving, and a drag landing inside the exit window stops the tween on that
+ * motion value. Awaiting it bare would leave the advance guard below latched
+ * forever — every control on the deck dead — so the wait is bounded well clear
+ * of a healthy tween's duration.
+ */
+const CARD_EXIT_TIMEOUT_MS = 400;
+
+const bounded = (exit: { then: (onResolve: VoidFunction) => Promise<void> }) =>
+  Promise.race([
+    exit.then(() => {}),
+    new Promise<void>((resolve) => setTimeout(resolve, CARD_EXIT_TIMEOUT_MS)),
+  ]);
+
 export function FlashcardExercise({
   level,
   onComplete,
@@ -77,7 +95,7 @@ export function FlashcardExercise({
     setSwipeDir(null);
     const exitX = dir === "left" ? -420 : 420;
     const enterX = dir === "left" ? 420 : -420;
-    await animate(x, exitX, { duration: 0.18, ease: [0.32, 0.72, 0, 1] });
+    await bounded(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
     if (nextIndex >= items.length) {
       // Stays latched on purpose: onComplete tears this exercise down, and a
       // queued tap must not fire it a second time on the way out.

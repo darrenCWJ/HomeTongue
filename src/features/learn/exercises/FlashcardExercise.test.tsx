@@ -112,6 +112,33 @@ describe("FlashcardExercise advance guard", () => {
     expect(screen.getByText("3 / 3")).toBeInTheDocument();
   });
 
+  // motion resolves an animation's promise only on natural completion; a drag
+  // landing inside the exit window stops the tween, and a stopped tween never
+  // settles. Awaiting it bare would leave the guard latched and the whole deck
+  // dead, so the wait has to be bounded.
+  test("an exit animation that never settles does not freeze the deck", async () => {
+    vi.useFakeTimers();
+    try {
+      render(<FlashcardExercise level={levelWith(3)} onComplete={vi.fn()} onBack={vi.fn()} />);
+
+      // Tapped, then the tween is torn down mid-flight and never resolves.
+      click("Next");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(screen.getByText("2 / 3")).toBeInTheDocument();
+
+      // The deck must still take the next tap.
+      click("Next");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("cards still advance one at a time when taps do not overlap", async () => {
     render(<FlashcardExercise level={levelWith(3)} onComplete={vi.fn()} onBack={vi.fn()} />);
 

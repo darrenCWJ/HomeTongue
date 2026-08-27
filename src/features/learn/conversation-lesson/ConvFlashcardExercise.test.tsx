@@ -73,6 +73,29 @@ describe("ConvFlashcardExercise advance guard", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
+  // A stopped motion tween never settles its promise (see FlashcardExercise's
+  // note) — awaiting it bare would latch the guard and kill the deck.
+  test("an exit animation that never settles does not freeze the deck", async () => {
+    vi.useFakeTimers();
+    try {
+      render(<ConvFlashcardExercise vocab={vocabOf(3)} onComplete={vi.fn()} />);
+
+      click("Next");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(screen.getByText("2 / 3")).toBeInTheDocument();
+
+      click("Next");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("a Back tap chasing a Next tap is ignored instead of reversing it", async () => {
     render(<ConvFlashcardExercise vocab={vocabOf(3)} onComplete={vi.fn()} />);
 
