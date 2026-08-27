@@ -106,6 +106,26 @@ describe("ConvFlashcardExercise advance guard", () => {
     }
   });
 
+  // Twin of FlashcardExercise's case — here the post-departure onComplete
+  // persists the lesson's currentPhase as "done".
+  test("finishing after the user has left does not complete the lesson", async () => {
+    vi.useFakeTimers();
+    try {
+      const onComplete = vi.fn();
+      const { unmount } = render(<ConvFlashcardExercise vocab={vocabOf(1)} onComplete={onComplete} />);
+
+      click("Finish");
+      unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+
+      expect(onComplete).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("a Back tap chasing a Next tap is ignored instead of reversing it", async () => {
     render(<ConvFlashcardExercise vocab={vocabOf(3)} onComplete={vi.fn()} />);
 

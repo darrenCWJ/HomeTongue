@@ -55,7 +55,10 @@ export function ExamView({
   const { startRecording, stopRecording } = useAudioRecorder();
   const current = vocab[index];
   const recordingStartRef = useRef<number | null>(null);
-  const recordingTriggerRef = useRef<"tap" | "hold" | null>(null);
+  // "tap" means an armed recording the user is no longer holding; null means a
+  // hold in progress (or nothing armed). There is no "hold" member on purpose —
+  // the null branch is what every hold check reads.
+  const recordingTriggerRef = useRef<"tap" | null>(null);
   // A release that lands while getUserMedia is still pending has no recorder
   // to stop yet. It used to be dropped, so the prompt resolved into a hot mic
   // nobody was holding and the next tap restarted it, discarding the audio.

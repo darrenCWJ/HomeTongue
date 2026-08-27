@@ -152,6 +152,44 @@ describe("FlashcardExercise advance guard", () => {
     }
   });
 
+  // The exit wait outlives the exercise: AnimatePresence keeps LevelView
+  // mounted through its own ~400ms exit, so tapping Finish and then Back left
+  // this continuation to fire onComplete — persisting completedLevels for a
+  // level the user had already walked away from. Same hazard class as
+  // MatchingExercise's unmounted batch advance.
+  test("finishing after the user has left does not complete the level", async () => {
+    vi.useFakeTimers();
+    try {
+      const onComplete = vi.fn();
+      const { unmount } = render(
+        <FlashcardExercise level={levelWith(1)} onComplete={onComplete} onBack={vi.fn()} />
+      );
+
+      click("Finish");
+      unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+
+      expect(onComplete).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("finishing after the user has left does not complete it when the tween resolves", async () => {
+    const onComplete = vi.fn();
+    const { unmount } = render(
+      <FlashcardExercise level={levelWith(1)} onComplete={onComplete} onBack={vi.fn()} />
+    );
+
+    click("Finish");
+    unmount();
+    await settleAnimations();
+
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
   test("cards still advance one at a time when taps do not overlap", async () => {
     render(<FlashcardExercise level={levelWith(3)} onComplete={vi.fn()} onBack={vi.fn()} />);
 

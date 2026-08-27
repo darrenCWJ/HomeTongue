@@ -501,23 +501,20 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     expect(result.current.isListening).toBe(true);
   });
 
-  // Coordinator round-2 IMPORTANT — the same-mode late-GRANT case is worse
-  // than the denial one above: audio.ts's useAudioRecorder has a single
-  // shared mediaRecorderRef, and startRecording() unconditionally makes
-  // whichever call's getUserMedia() resolves LAST own it (see audio.ts:64-73
-  // — its own "stop the existing recorder" guard only runs synchronously
-  // *before* its own getUserMedia() await, so it never sees a recorder a
-  // same-mode attempt 2 created *after* attempt 1 started awaiting). So by
-  // the time attempt 1's stale prompt is finally granted here, the shared
-  // recorder already belongs to attempt 2 — unconditionally calling
-  // stopRecording() in the discard path would tear that down: attempt 2's
-  // UI would stay "listening" with nothing actually recording, and its
-  // eventual pointer-up would hit audio.ts's "Recording already stopped"
-  // rejection. audio.ts itself is out of scope, so the in-fence fix is to
-  // recognize that recordingModeRef.current !== null means a newer attempt
-  // now owns whatever startRecording() last produced, and skip the
-  // recorder-tearing-down stopRecording() call entirely in that case —
-  // discarding only touches recording state when nothing else owns it.
+  // Coordinator round-2 IMPORTANT — the same-mode late-GRANT case. When a
+  // released attempt's prompt is finally granted, a newer attempt may already
+  // own the mode, and the discard path must not reach for the shared recorder
+  // on its behalf: tearing it down would leave attempt 2's UI "listening" with
+  // nothing recording, and its pointer-up would hit audio.ts's "Recording
+  // already stopped" rejection. The fix is that recordingModeRef.current !==
+  // null means someone else owns the recording now — discarding only touches
+  // recorder state when nothing else does.
+  //
+  // audio.ts has since been made to serialize overlapping starts, so it no
+  // longer hands ownership to whichever getUserMedia() resolves last and only
+  // one recorder is ever live. This test still pins the hook's own contract:
+  // it mocks useAudioRecorder outright, so it asserts what THIS hook may do in
+  // the discard path regardless of how audio.ts arbitrates underneath.
   test("a late permission GRANT for a released same-mode attempt does not tear down the one that replaced it", async () => {
     const { result } = setup();
     const firstPermission = deferred<void>();

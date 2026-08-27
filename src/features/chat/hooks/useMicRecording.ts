@@ -141,18 +141,19 @@ export function useMicRecording({
       await startRecording();
       if (!isCurrentAttempt()) {
         // audio.ts's useAudioRecorder has a single shared mediaRecorderRef,
-        // and startRecording() unconditionally makes whichever call's
-        // getUserMedia() resolves LAST own it (its own "stop the existing
-        // recorder" guard only runs synchronously before its own await, so
-        // it can't see a recorder a newer same-mode attempt creates while
-        // this one is still pending). So by the time we get here, the
-        // shared recorder is either this attempt's own orphan (safe to
-        // stop — nothing else owns the mode) or a newer attempt's live
-        // recording (recordingModeRef is non-null again) — stopping it then
-        // would tear that down instead of an orphan. audio.ts itself is
-        // out of scope, so this in-fence check is the only distinction
-        // available: skip the stop and let the owner's own lifecycle
-        // manage it.
+        // and its startRecording() now serializes overlapping calls behind a
+        // promise chain, so each start's "release the existing recorder"
+        // cleanup sees its true predecessor and only one recorder is ever
+        // live. Reaching here means this attempt no longer owns the mode
+        // anyway (released, superseded, or switched away from).
+        //
+        // The distinction below still matters. With nothing else owning the
+        // mode, the recorder this attempt just armed is a genuine orphan and
+        // no further start is coming to release it — stop it here or the mic
+        // stays hot. When a NEWER attempt owns the mode, that attempt's own
+        // start is what releases whatever this one left behind, so stopping
+        // here would duplicate its cleanup and race its lifecycle: leave it
+        // to the owner.
         if (recordingModeRef.current === null) {
           stopRecording().catch(() => {});
         }

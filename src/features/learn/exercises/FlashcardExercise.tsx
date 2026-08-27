@@ -7,28 +7,11 @@ import { getActiveLanguagePack } from "../../../languages";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { LessonLevel } from "../../../types";
 import { PlayButton, personalise } from "../shared";
+import { CARD_EXIT_S, awaitCardExit } from "./cardExit";
 
 // ─── Flashcard Exercise ───────────────────────────────────────────────────────
 
 type ExampleMeta = { translation: string; pronunciation: string };
-
-const CARD_EXIT_S = 0.18;
-/**
- * Ceiling on how long a card exit may be awaited. motion resolves an
- * animation's promise only on natural completion (JSAnimation.finish →
- * notifyFinished); stop() and cancel() tear the animation down WITHOUT
- * resolving, and a drag landing inside the exit window stops the tween on that
- * motion value. Awaiting it bare would leave the advance guard below latched
- * forever — every control on the deck dead — so the wait is bounded well clear
- * of a healthy tween's duration.
- */
-const CARD_EXIT_TIMEOUT_MS = 400;
-
-const bounded = (exit: { then: (onResolve: VoidFunction) => Promise<void> }) =>
-  Promise.race([
-    exit.then(() => {}),
-    new Promise<void>((resolve) => setTimeout(resolve, CARD_EXIT_TIMEOUT_MS)),
-  ]);
 
 export function FlashcardExercise({
   level,
@@ -46,6 +29,18 @@ export function FlashcardExercise({
   const [exampleCache, setExampleCache] = useState<Record<number, ExampleMeta | "loading">>({});
   const dragOccurred = React.useRef(false);
   const isAnimatingRef = React.useRef(false);
+  // The exit wait outlives this component: AnimatePresence keeps the pane that
+  // owns it mounted through its own exit, so a Finish (or advance) tapped just
+  // before Back would otherwise land after the user had gone — persisting
+  // progress for a level they walked away from. Re-armed in the effect body so
+  // StrictMode's mount → unmount → mount cycle does not leave it false.
+  const isMountedRef = React.useRef(true);
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const x = useMotionValue(0);
   const items = level.vocabulary;
   const current = items[index];
@@ -95,7 +90,8 @@ export function FlashcardExercise({
     setSwipeDir(null);
     const exitX = dir === "left" ? -420 : 420;
     const enterX = dir === "left" ? 420 : -420;
-    await bounded(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
+    await awaitCardExit(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
+    if (!isMountedRef.current) return;
     if (nextIndex >= items.length) {
       // Stays latched on purpose: onComplete tears this exercise down, and a
       // queued tap must not fire it a second time on the way out.

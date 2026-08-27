@@ -5,18 +5,9 @@ import { getActiveLanguagePack } from "../../../languages";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { VocabItem } from "../../../types";
 import { PlayButton } from "../shared";
+import { CARD_EXIT_S, awaitCardExit } from "../exercises/cardExit";
 
 // ─── ConvFlashcardExercise ────────────────────────────────────────────────────
-
-const CARD_EXIT_S = 0.18;
-/** Bounded for the same reason as FlashcardExercise — see the note there. */
-const CARD_EXIT_TIMEOUT_MS = 400;
-
-const bounded = (exit: { then: (onResolve: VoidFunction) => Promise<void> }) =>
-  Promise.race([
-    exit.then(() => {}),
-    new Promise<void>((resolve) => setTimeout(resolve, CARD_EXIT_TIMEOUT_MS)),
-  ]);
 
 export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[]; onComplete: () => void }) {
   const { phrases, addPhrase, toggleBookmark } = useLibrary();
@@ -25,6 +16,15 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | null>(null);
   const dragOccurred = React.useRef(false);
   const isAnimatingRef = React.useRef(false);
+  // Same post-departure guard as FlashcardExercise — see the note there. Here
+  // a late onComplete persists the lesson's currentPhase as "done".
+  const isMountedRef = React.useRef(true);
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const x = useMotionValue(0);
   const current = vocab[index];
   const isLast = index === vocab.length - 1;
@@ -70,7 +70,8 @@ export function ConvFlashcardExercise({ vocab, onComplete }: { vocab: VocabItem[
     setSwipeDir(null);
     const exitX = dir === "left" ? -420 : 420;
     const enterX = dir === "left" ? 420 : -420;
-    await bounded(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
+    await awaitCardExit(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
+    if (!isMountedRef.current) return;
     if (nextIndex >= vocab.length) {
       // Stays latched on purpose: onComplete tears this exercise down.
       onComplete();
