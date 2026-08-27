@@ -135,6 +135,25 @@ describe("ExamView mic hold", () => {
     expect(screen.getByText("88%")).toBeInTheDocument();
   });
 
+  // The released-during-start flag is set from pointer-up, and pointer-leave
+  // deliberately does not set it (it also fires for a mouse merely passing
+  // over the button). This pins that the leave path still ends a real hold.
+  test("dragging off the mic during a hold still ends the recording", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerLeave(mic());
+      await flush();
+    });
+
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
   test("a tap arms the mic and a second tap stops it", async () => {
     renderExam();
 
