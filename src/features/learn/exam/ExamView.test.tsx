@@ -215,4 +215,179 @@ describe("ExamView mic hold", () => {
 
     expect(screen.getByText("88%")).toBeInTheDocument();
   });
+
+  // ─── The pending-start slide-off hole ───────────────────────────────────────
+  // While getUserMedia's prompt is up isRecording is still false, so
+  // pointer-leave is deliberately ignored (a finger can drift off and back, and
+  // a passing mouse fires it too). But a finger that slid off and lifted
+  // elsewhere fired its pointerup somewhere else entirely: the release flag
+  // stayed unset and the prompt resolved into a recording nobody was holding.
+  // The button now captures the pointer on press, which makes the browser
+  // retarget that outside release to the button — fired directly on it below,
+  // since jsdom implements no capture. (Verified in Chromium: capture also
+  // suppresses boundary events while held, so a drag off an armed hold ends it
+  // at release rather than at the boundary crossing — matching touch, whose
+  // implicit capture always worked that way.)
+
+  test("capture makes a release far from the button end a hold begun during the permission prompt", async () => {
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+    renderExam();
+
+    const captureSpy = vi.fn();
+    mic().setPointerCapture = captureSpy;
+    fireEvent.pointerDown(mic(), { pointerId: 7 });
+    // The load-bearing half of the fix: capture is what routes a release that
+    // happens outside the button back to it in a real browser.
+    expect(captureSpy).toHaveBeenCalledWith(7);
+
+    fireEvent.pointerLeave(mic());
+    fireEvent.pointerUp(mic(), { pointerId: 7 });
+
+    await act(async () => {
+      permission.resolve();
+      await flush();
+    });
+
+    expect(mockStopRecording).toHaveBeenCalled();
+    expect(screen.getByText("Tap or hold to record")).toBeInTheDocument();
+  });
+
+  // A gesture the browser takes over (a touch slide becoming a scroll, palm
+  // rejection, an app switch) fires pointercancel and then never fires
+  // pointerup at all — capture cannot route a release that no longer exists.
+  // During the prompt the cancel must complete the hold itself, or the
+  // resolved start arms a mic with no release ever coming.
+  test("a gesture cancelled during the permission prompt does not leave the mic hot", async () => {
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+    renderExam();
+
+    fireEvent.pointerDown(mic());
+    fireEvent.pointerCancel(mic());
+    // Browsers follow pointercancel with pointerout/pointerleave.
+    fireEvent.pointerLeave(mic());
+
+    await act(async () => {
+      permission.resolve();
+      await flush();
+    });
+
+    expect(mockStopRecording).toHaveBeenCalled();
+    expect(screen.getByText("Tap or hold to record")).toBeInTheDocument();
+  });
+
+  // With the finger still on the button there is no boundary crossing, so a
+  // cancelled armed hold gets no pointerleave either — the cancel handler is
+  // the only thing that can end it.
+  test("a gesture cancelled during an armed hold ends the recording", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerCancel(mic());
+      await flush();
+    });
+
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  // Off the button, losing capture after a cancel replays the boundary
+  // crossing as a trailing pointerleave. The stop must run once — a second
+  // stopListening would see the cleared start time and report a spurious
+  // "too short" on a recording that was already processed.
+  test("the pointer-leave trailing a cancelled hold does not stop the recording twice", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerCancel(mic());
+      fireEvent.pointerLeave(mic());
+      await flush();
+    });
+
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  // The same replay after an ordinary release: a pointerup near the button's
+  // edge is also followed by the boundary crossing capture had suppressed.
+  // The guard is shared with the cancel path, but pin it from the up side too.
+  test("the pointer-leave trailing a released hold does not stop the recording twice", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerUp(mic());
+      fireEvent.pointerLeave(mic());
+      await flush();
+    });
+
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  // Tap mode has no live gesture: the finger already lifted, so a cancel
+  // arriving later (a second pointer's, or a stray one) must not end the
+  // recording the tap deliberately left running.
+  test("a pointer cancel while the mic is tap-armed leaves the recording running", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic());
+      await flush();
+    });
+    now += 100;
+    await act(async () => {
+      fireEvent.pointerUp(mic());
+      await flush();
+    });
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.pointerCancel(mic());
+      await flush();
+    });
+
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+  });
+
+  // Why pointer-leave must stay ignored while the start is pending: the finger
+  // can drift off and drift back without ever letting go. Only the release
+  // ends the hold — and captured, it reaches the button from anywhere.
+  test("drifting off and back during the permission prompt keeps the hold alive", async () => {
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+    renderExam();
+
+    fireEvent.pointerDown(mic());
+    fireEvent.pointerLeave(mic());
+    fireEvent.pointerEnter(mic());
+
+    await act(async () => {
+      permission.resolve();
+      await flush();
+    });
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerUp(mic());
+      await flush();
+    });
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
 });
