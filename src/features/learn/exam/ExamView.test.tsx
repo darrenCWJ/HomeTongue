@@ -391,3 +391,136 @@ describe("ExamView mic hold", () => {
     expect(screen.getByText("88%")).toBeInTheDocument();
   });
 });
+
+// ─── Pointer ownership ────────────────────────────────────────────────────────
+// Reviewer finding: none of the up/leave/cancel handlers checked e.pointerId,
+// so any pointer's events acted on the single shared recording state. A palm
+// edge grazing the ~96px button during the permission prompt lifted and ended
+// the hold the primary finger still held; a second finger pressing during an
+// armed hold restarted the recorder and discarded the live take; a mouse
+// merely passing over the button during a touch hold fired its own
+// pointerleave and stopped the hold. The gesture now belongs to the pointer
+// that started it, and only that pointer's release/leave/cancel act on it.
+
+describe("ExamView mic pointer ownership", () => {
+  test("a second pointer's release during the permission prompt does not end the primary hold", async () => {
+    const permission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(permission.promise);
+    renderExam();
+
+    const captureSpy = vi.fn();
+    mic().setPointerCapture = captureSpy;
+    fireEvent.pointerDown(mic(), { pointerId: 1 });
+    // A palm edge grazes the button and lifts; finger 1 is still holding.
+    fireEvent.pointerDown(mic(), { pointerId: 2 });
+    fireEvent.pointerUp(mic(), { pointerId: 2 });
+    // Only the claiming pointer is captured — capturing the ignored one is
+    // what used to retarget its off-button release back onto the button.
+    expect(captureSpy).toHaveBeenCalledWith(1);
+    expect(captureSpy).not.toHaveBeenCalledWith(2);
+
+    await act(async () => {
+      permission.resolve();
+      await flush();
+    });
+
+    // The hold must arm and stay armed for the finger that owns it.
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerUp(mic(), { pointerId: 1 });
+      await flush();
+    });
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  test("a second pointer pressing during an armed hold neither restarts nor stops the recording", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic(), { pointerId: 1 });
+      await flush();
+    });
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 50;
+    await act(async () => {
+      fireEvent.pointerDown(mic(), { pointerId: 2 });
+      fireEvent.pointerUp(mic(), { pointerId: 2 });
+      await flush();
+    });
+
+    // Starting again would have discarded the live recorder mid-take.
+    expect(mockStartRecording).toHaveBeenCalledTimes(1);
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1450;
+    await act(async () => {
+      fireEvent.pointerUp(mic(), { pointerId: 1 });
+      await flush();
+    });
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  test("another pointer's leave during an armed hold does not end it", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic(), { pointerId: 5 });
+      await flush();
+    });
+
+    // A mouse glides across the button while the touch hold is armed.
+    now += 50;
+    await act(async () => {
+      fireEvent.pointerLeave(mic(), { pointerId: 1 });
+      await flush();
+    });
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1450;
+    await act(async () => {
+      fireEvent.pointerUp(mic(), { pointerId: 5 });
+      await flush();
+    });
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+
+  // The safety valve the ownership gate must not break: without capture (the
+  // call is unavailable or threw) the owning release can land off-button and
+  // never reach these handlers, leaving an armed hold and a stale owner id.
+  // Only a mouse can get here — touch and pen receive implicit capture, so
+  // their release always retargets to the button — and a mouse keeps a stable
+  // pointerId. The same pointer pressing again is proof the old gesture ended
+  // (a pointer cannot press twice while down), so the press reclaims the mic
+  // — restarting the recording, exactly as before this fix — instead of
+  // finding it permanently inert until remount.
+  test("a press by the stale owning pointer reclaims a hold whose release was lost", async () => {
+    renderExam();
+
+    await act(async () => {
+      fireEvent.pointerDown(mic(), { pointerId: 1 });
+      await flush();
+    });
+    // The release happened off-button and never arrived: the hold is armed,
+    // nobody is holding, and pointer 1 still owns it. The same mouse presses
+    // again.
+    await act(async () => {
+      fireEvent.pointerDown(mic(), { pointerId: 1 });
+      await flush();
+    });
+    expect(mockStartRecording).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Recording… tap to stop")).toBeInTheDocument();
+
+    now += 1500;
+    await act(async () => {
+      fireEvent.pointerUp(mic(), { pointerId: 1 });
+      await flush();
+    });
+    expect(screen.getByText("88%")).toBeInTheDocument();
+  });
+});
