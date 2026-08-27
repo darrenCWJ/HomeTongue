@@ -40,6 +40,8 @@ const updateSpy = vi.fn();
 
 vi.mock("../../repositories", () => ({
   isCloudStorageMode: false,
+  // Local mode: the session router never sends calls to the cloud set.
+  isSessionRoutedToCloud: () => false,
   setCloudWriteHold: vi.fn(),
   repositories: {
     phrases: { getAll: () => Promise.resolve([]) },
