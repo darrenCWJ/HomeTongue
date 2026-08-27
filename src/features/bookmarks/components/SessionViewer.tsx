@@ -4,7 +4,10 @@ import { motion, AnimatePresence } from "motion/react";
 import type { Message, Phrase, Session } from "../../../types";
 
 interface SessionViewerProps {
+  /** Snapshot taken when the conversation was opened; identifies the session. */
   session: Session | null;
+  /** Live provider sessions — the actual source of the rendered messages. */
+  sessions: Session[];
   onClose: () => void;
   phrases: Phrase[];
   playingId: string | null;
@@ -20,10 +23,13 @@ interface SessionViewerProps {
   onBubblePointerDown: (e: React.PointerEvent, dialectText: string, originalText: string) => void;
   onBubblePointerMove: (e: React.PointerEvent) => void;
   onBubblePointerCancel: () => void;
+  /** useActiveCapabilities().tts — gates the per-message play control (BM-02). */
+  ttsEnabled: boolean;
 }
 
 export function SessionViewer({
   session,
+  sessions,
   onClose,
   phrases,
   playingId,
@@ -34,10 +40,17 @@ export function SessionViewer({
   onBubblePointerDown,
   onBubblePointerMove,
   onBubblePointerCancel,
+  ttsEnabled,
 }: SessionViewerProps) {
+  // Render live provider state, never the open-time snapshot: a message
+  // deleted while the viewer is open must stay deleted across a remount
+  // (BM-05). The snapshot is only a fallback for a session that has since
+  // disappeared from the provider — e.g. during the closing animation.
+  const liveSession = session ? (sessions.find((s) => s.id === session.id) ?? session) : null;
+
   return (
     <AnimatePresence>
-      {session && (
+      {liveSession && (
         <motion.div
           initial={{ opacity: 0, x: "100%" }}
           animate={{ opacity: 1, x: 0 }}
@@ -52,28 +65,38 @@ export function SessionViewer({
             </button>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-foreground text-base truncate">
-                {session.title ?? "Conversation"}
+                {liveSession.title ?? "Conversation"}
               </p>
               <p className="text-xs text-faint">
-                {session.date} · {session.messages.length} messages
+                {liveSession.date} · {liveSession.messages.length} messages
               </p>
             </div>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-none">
-            {session.messages
+            {liveSession.messages
               .filter((m) => !pendingMsgDeletions.has(m.id))
               .filter((m) => m.sender !== "bot" || !!m.englishTranslation || !!m.dialectText)
               .map((msg, i) => {
                 const isBot = msg.sender === "bot";
                 const displayText = isBot ? msg.text : (msg.dialectText ?? msg.text);
                 const subText = isBot ? msg.englishTranslation : msg.text;
-                const audioKey = `view-${session.id}-${i}`;
+                // Keyed by message id, not array index: pending-deletion
+                // filtering and the live-session derivation above both shift
+                // indices, which used to move the "Playing…" pulse onto
+                // whichever message happened to land at the old index
+                // (folded item C, Task 10).
+                const audioKey = `view-${liveSession.id}-${msg.id}`;
                 const isPlaying = playingId === audioKey;
                 const hasAudioForMsg =
                   !!msg.audioDataUrl || (msg.audioDataUrls && msg.audioDataUrls.length > 0);
                 const fallback = isBot ? msg.text : (msg.dialectText ?? msg.text);
+                // Voice-less packs (capabilities.tts false): onPlayMessage
+                // would silently no-op for a message with no stored clip,
+                // which reads as a broken control — hide it instead (BM-02).
+                // Stored audio always plays regardless of ttsEnabled.
+                const canPlay = hasAudioForMsg || (!!fallback && ttsEnabled);
                 const isBookmarked = phrases.find((p) => p.id === msg.id)?.isBookmarked ?? false;
 
                 return (
@@ -93,7 +116,7 @@ export function SessionViewer({
                       onDragEnd={(_e, info) => {
                         const shouldDelete = isBot ? info.offset.x > 80 : info.offset.x < -80;
                         if (shouldDelete) {
-                          onDeleteMessage(session.id, msg.id);
+                          onDeleteMessage(liveSession.id, msg.id);
                         }
                       }}
                       className={`relative flex items-end gap-2 bg-background ${isBot ? "justify-start" : "justify-end"}`}
@@ -140,7 +163,7 @@ export function SessionViewer({
                             {subText}
                           </p>
                         )}
-                        {(hasAudioForMsg || fallback) && (
+                        {canPlay && (
                           <button
                             onClick={() =>
                               onPlayMessage(audioKey, msg.audioDataUrl, msg.audioDataUrls, fallback)

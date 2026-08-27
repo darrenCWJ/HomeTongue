@@ -2,11 +2,28 @@ import { useState } from "react";
 import { User, Loader2, LogOut, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import type { AuthUser } from "../../../lib/authGateway";
-import { importLocalDataToCloud } from "../../../services/cloudImportService";
+import { performFullSignOut } from "../../../lib/fullSignOut";
+import { importLocalDataToCloud, type CloudImportCounts } from "../../../services/cloudImportService";
 
 interface CloudAccountSectionProps {
   authUser: AuthUser;
   signOut: () => Promise<void>;
+}
+
+// Sums every entity in a CloudImportCounts-shaped object. Shared by both the
+// imported total and the sourceCounts total below so they can never drift
+// apart over which entities they cover (see the reviewStates regression
+// test in CloudAccountSection.test.tsx).
+function totalCounts(counts: CloudImportCounts): number {
+  return (
+    counts.phrases +
+    counts.reviewStates +
+    counts.sessions +
+    counts.tags +
+    counts.conversationLessons +
+    counts.lessonProgress +
+    counts.profile
+  );
 }
 
 /**
@@ -27,18 +44,26 @@ export function CloudAccountSection({ authUser, signOut }: CloudAccountSectionPr
     setIsImporting(true);
     try {
       const counts = await importLocalDataToCloud();
-      const total =
-        counts.phrases +
-        counts.sessions +
-        counts.tags +
-        counts.conversationLessons +
-        counts.lessonProgress +
-        counts.profile;
-      toast.success(
-        total === 0
-          ? "Nothing new to import — your account already has this device's data."
-          : `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags.`
-      );
+      const total = totalCounts(counts);
+      if (total > 0) {
+        // reviewStates has no dedicated slot in the sentence above — append
+        // it only when nonzero so the message stays truthful without
+        // cluttering the common case (most imports don't touch it).
+        const reviewStatesNote = counts.reviewStates > 0 ? `, ${counts.reviewStates} review schedules` : "";
+        toast.success(
+          `Imported ${counts.phrases} phrases, ${counts.sessions} sessions, ${counts.conversationLessons} lessons, ${counts.tags} tags${reviewStatesNote}.`
+        );
+      } else {
+        // Nothing was newly imported — sourceCounts (total local rows, import
+        // status aside) tells apart a genuinely empty device from one whose
+        // data already matches the cloud (PROF-07). Same totalCounts helper
+        // as above, so both totals cover the same entity set.
+        toast.success(
+          totalCounts(counts.sourceCounts) === 0
+            ? "This device has no local data to import."
+            : "Nothing new to import — your account already has this device's data."
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Import failed. Please try again.");
     } finally {
@@ -46,16 +71,20 @@ export function CloudAccountSection({ authUser, signOut }: CloudAccountSectionPr
     }
   };
 
+  // Reuses the same full sign-out flow as the bottom Sign Out button
+  // (src/lib/fullSignOut.ts): ends the cloud session, clears both gate
+  // flags, and reloads. The reload is what flushes the signed-out user's
+  // profile/library out of React state — without it the next "Continue as
+  // Guest" on this device would still see the previous account's data.
   const handleCloudSignOut = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
-      await signOut();
-      localStorage.removeItem("ht_email_authed");
-      toast.success("Signed out of your account.");
+      await performFullSignOut({ hasCloudSession: true, signOutCloud: signOut });
+      // No success toast: the reload above navigates away before it could
+      // ever be seen.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to sign out. Please try again.");
-    } finally {
       setIsSigningOut(false);
     }
   };

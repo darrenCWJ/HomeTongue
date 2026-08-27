@@ -64,6 +64,16 @@ export function setOutboxUser(userId: string | null): void {
 }
 
 /**
+ * The auth user the outbox is currently tracking, or null for a guest. This is
+ * the single source of "is anyone signed in?" for the repository layer — the
+ * guest/cloud router (src/repositories/routing.ts) reads it rather than opening
+ * a second auth subscription.
+ */
+export function getOutboxUserId(): string | null {
+  return currentUserId;
+}
+
+/**
  * Hold mode: while held, the decorator enqueues writes directly instead of
  * attempting the network. LibraryProvider sets this when the cloud initial
  * load fails (writing from an unhydrated state must not touch the cloud) and

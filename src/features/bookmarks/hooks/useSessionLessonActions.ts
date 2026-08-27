@@ -34,7 +34,13 @@ export function useSessionLessonActions({
 
   const commitTitle = (id: string) => {
     const trimmed = editingTitle.trim();
-    if (trimmed) renameSession(id, trimmed);
+    if (!trimmed) {
+      // Keep the editor open — closing here would read as a successful save
+      // when nothing was renamed (BM-09).
+      toast.error("Name can't be empty.");
+      return;
+    }
+    renameSession(id, trimmed);
     setEditingSessionId(null);
   };
 

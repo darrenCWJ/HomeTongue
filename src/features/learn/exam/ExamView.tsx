@@ -55,16 +55,41 @@ export function ExamView({
   const { startRecording, stopRecording } = useAudioRecorder();
   const current = vocab[index];
   const recordingStartRef = useRef<number | null>(null);
-  const recordingTriggerRef = useRef<"tap" | "hold" | null>(null);
+  // "tap" means an armed recording the user is no longer holding; null means a
+  // hold in progress (or nothing armed). There is no "hold" member on purpose —
+  // the null branch is what every hold check reads.
+  const recordingTriggerRef = useRef<"tap" | null>(null);
+  // A release that lands while getUserMedia is still pending has no recorder
+  // to stop yet. It used to be dropped, so the prompt resolved into a hot mic
+  // nobody was holding and the next tap restarted it, discarding the audio.
+  const releasedDuringStartRef = useRef(false);
+  // Set synchronously, before the first await, so a second press landing in the
+  // same prompt window is ignored rather than stacking another start. Without
+  // it the two presses shared one release flag: the first start consumed what
+  // was really the second press's release, and the second armed a recorder
+  // nobody was holding — and a tap could not stop it, since the trigger ref
+  // reads as a hold. (Mirrors useMicRecording's synchronous ownership ref.)
+  const isStartingRef = useRef(false);
   const HOLD_THRESHOLD_MS = 300;
 
   const startListening = async () => {
+    isStartingRef.current = true;
+    releasedDuringStartRef.current = false;
     try {
       await startRecording();
-      recordingStartRef.current = Date.now();
-      setIsRecording(true);
     } catch {
+      isStartingRef.current = false;
       toast.error("Microphone access denied.");
+      return;
+    }
+    isStartingRef.current = false;
+    recordingStartRef.current = Date.now();
+    setIsRecording(true);
+    if (releasedDuringStartRef.current) {
+      releasedDuringStartRef.current = false;
+      // The hold ended before the mic came up — complete it now (the elapsed
+      // check in stopListening reports the too-short recording honestly).
+      await stopListening();
     }
   };
 
@@ -118,11 +143,18 @@ export function ExamView({
       stopListening();
       return;
     }
+    // A start already waiting on the mic owns this press.
+    if (isStartingRef.current) return;
     await startListening();
   };
 
   const handleMicPointerUp = () => {
-    if (!isRecording) return;
+    if (!isRecording) {
+      // Nothing is armed yet: either a start is still waiting on the mic (the
+      // start path completes the hold for us) or a tap just stopped one.
+      releasedDuringStartRef.current = true;
+      return;
+    }
     const elapsed = recordingStartRef.current ? Date.now() - recordingStartRef.current : 999;
     if (elapsed < HOLD_THRESHOLD_MS) {
       recordingTriggerRef.current = "tap";
@@ -179,9 +211,7 @@ export function ExamView({
           )}
         </div>
         <h2 className="text-3xl font-extrabold text-foreground mb-1">{finalScore}%</h2>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-2">
-          Word accuracy
-        </p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-2">Word accuracy</p>
         <p className={`text-lg font-bold mb-1 ${passed ? "text-green-600" : "text-red-600"}`}>
           {passed ? "Passed!" : "Not quite"}
         </p>
@@ -262,6 +292,7 @@ export function ExamView({
                   onPointerUp={handleMicPointerUp}
                   onPointerLeave={handleMicPointerLeave}
                   onContextMenu={(e) => e.preventDefault()}
+                  aria-label={isRecording ? "Stop recording" : "Record your answer"}
                   className={`relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-xl transition-transform active:scale-95 select-none ${isRecording ? "bg-red-500 shadow-red-200 scale-105" : "bg-brand-blue shadow-brand-blue/20 hover:scale-105"}`}
                 >
                   {isRecording && (

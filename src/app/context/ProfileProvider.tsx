@@ -1,10 +1,22 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  ReactNode,
+} from "react";
 import { repositories, isCloudStorageMode } from "../../repositories";
 import type { Tone, Message, UserProfile, PersonaType } from "../../types";
 import { updatePersona } from "../../services/personaService";
 import { newId } from "../../utils/id";
 import { resolveLanguagePackByLabel, setActiveLanguage } from "../../languages";
 import { useAuth } from "./AuthProvider";
+
+/** Where the stored profile is in its load: "loaded" also covers "none stored". */
+export type ProfileStatus = "loading" | "loaded" | "error";
 
 interface ProfileContextType {
   dialect: string;
@@ -15,6 +27,12 @@ interface ProfileContextType {
   isSignedIn: boolean;
   setIsSignedIn: (val: boolean) => void;
   userProfile: UserProfile | null;
+  /**
+   * Distinguishes "no profile stored" from "not loaded yet". Consumers must not
+   * treat a missing profile as a new user until this is "loaded".
+   */
+  profileStatus: ProfileStatus;
+  retryProfileLoad: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   updatePersonaInBackground: (msgs: Message[]) => void;
 }
@@ -23,10 +41,43 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 const DEFAULT_DIALECT = "Cantonese";
 
+// If the load never settles (dead network, a stalled IndexedDB transaction),
+// stop blocking on a spinner the user cannot escape and offer the retry path
+// instead. Mirrors AuthProvider's SESSION_RESTORE_TIMEOUT_MS.
+const PROFILE_LOAD_TIMEOUT_MS = 8_000;
+
+/**
+ * Guards every write that would CREATE a profile out of nothing. Until the load
+ * settles, "no profile in memory" may only mean "not loaded yet", and the fresh
+ * profile would be upserted over the stored row (saveProfile conflicts on
+ * user_id). Returns true when the caller must leave state untouched.
+ */
+function shouldIgnoreUnhydratedWrite(prev: UserProfile | null, status: ProfileStatus): boolean {
+  if (prev !== null || status === "loaded") return false;
+  console.warn("[profile] write ignored: profile not hydrated yet");
+  return true;
+}
+
 export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   const { authEpoch } = useAuth();
   const [isSignedIn, setIsSignedInState] = useState(() => localStorage.getItem("ht_signed_in") === "true");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Mirror of `profileStatus` for the write guards below. They read it through
+  // a ref, not the state value, so `updateUserProfile` and
+  // `updatePersonaInBackground` keep stable identities across load transitions
+  // (the context value itself still changes — `profileStatus` is in its deps).
+  // The load effect is the only writer and sets both together, so they cannot
+  // drift.
+  const statusRef = useRef<ProfileStatus>("loading");
+
+  // Identifies the current load run. Background work captures it when it starts
+  // and drops its result once a newer run has begun: after a user switch the
+  // profile in state and the row behind `repositories` belong to someone else,
+  // so a late write would land in the wrong account.
+  const loadGenerationRef = useRef(0);
 
   const activePersona: PersonaType = userProfile?.activePersona ?? "personal";
   const activePersonaProfile = userProfile?.personaProfiles?.[activePersona];
@@ -53,15 +104,53 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     void reloadEpoch;
+    void retryCount;
+    // An earlier run's promise may still be in flight (epoch change mid-load,
+    // or a retry). Ignore whatever it settles to: a stale "null" landing last
+    // would blank a loaded profile and hand the user straight to onboarding.
+    let cancelled = false;
+    loadGenerationRef.current += 1;
+    const applyStatus = (next: ProfileStatus) => {
+      statusRef.current = next;
+      setProfileStatus(next);
+    };
+
+    // Drop the previous run's profile before loading the next. On an auth-epoch
+    // change it belongs to the account that just signed out while
+    // `repositories` already point at the new one, so leaving it in state would
+    // let it be edited — and saved — into someone else's row.
+    setUserProfile(null);
+    applyStatus("loading");
+
+    const loadTimeout = setTimeout(() => {
+      if (cancelled) return;
+      console.error(`Profile load timed out after ${PROFILE_LOAD_TIMEOUT_MS}ms`);
+      applyStatus("error");
+    }, PROFILE_LOAD_TIMEOUT_MS);
+
     repositories.user
       .getProfile()
       .then((u) => {
+        if (cancelled) return;
         setUserProfile(u);
+        applyStatus("loaded");
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("Failed to load saved data from local storage:", err);
-      });
-  }, [reloadEpoch]);
+        applyStatus("error");
+      })
+      .finally(() => clearTimeout(loadTimeout));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(loadTimeout);
+    };
+  }, [reloadEpoch, retryCount]);
+
+  const retryProfileLoad = useCallback(() => {
+    setRetryCount((count) => count + 1);
+  }, []);
 
   const setIsSignedIn = useCallback((val: boolean) => {
     localStorage.setItem("ht_signed_in", String(val));
@@ -70,6 +159,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
     setUserProfile((prev) => {
+      if (shouldIgnoreUnhydratedWrite(prev, statusRef.current)) return prev;
       const now = new Date().toISOString();
       const updated: UserProfile = prev
         ? { ...prev, ...updates, updatedAt: now }
@@ -124,34 +214,43 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         createdAt: now,
         updatedAt: now,
       };
+      const generation = loadGenerationRef.current;
       updatePersona(msgs, effectiveProfile).then((result) => {
-        if (result) {
-          setUserProfile((prev) => {
-            const base = prev ?? effectiveProfile;
-            const existingPersonaProfile = base.personaProfiles?.[activePersona];
-            const updated: UserProfile = {
-              ...base,
-              personaProfiles: {
-                ...base.personaProfiles,
-                [activePersona]: {
-                  ...existingPersonaProfile,
+        if (!result) return;
+        // A load run has started since this summary was requested — most
+        // importantly a user switch, after which both the profile in state and
+        // the row behind `repositories` belong to another account. Drop the
+        // summary rather than write one user's persona into another's row.
+        if (loadGenerationRef.current !== generation) return;
+        setUserProfile((prev) => {
+          // By the time the summary lands the load may have settled; if it
+          // still has not, drop it rather than let a background job be the
+          // thing that invents a profile row.
+          if (shouldIgnoreUnhydratedWrite(prev, statusRef.current)) return prev;
+          const base = prev ?? effectiveProfile;
+          const existingPersonaProfile = base.personaProfiles?.[activePersona];
+          const updated: UserProfile = {
+            ...base,
+            personaProfiles: {
+              ...base.personaProfiles,
+              [activePersona]: {
+                ...existingPersonaProfile,
+                personaSummary: result.personaSummary,
+                characteristicPhrases: result.characteristicPhrases,
+                tone: existingPersonaProfile?.tone ?? base.preferredTone ?? "casual",
+              },
+            },
+            ...(activePersona === "personal"
+              ? {
                   personaSummary: result.personaSummary,
                   characteristicPhrases: result.characteristicPhrases,
-                  tone: existingPersonaProfile?.tone ?? base.preferredTone ?? "casual",
-                },
-              },
-              ...(activePersona === "personal"
-                ? {
-                    personaSummary: result.personaSummary,
-                    characteristicPhrases: result.characteristicPhrases,
-                  }
-                : {}),
-              updatedAt: new Date().toISOString(),
-            };
-            repositories.user.saveProfile(updated);
-            return updated;
-          });
-        }
+                }
+              : {}),
+            updatedAt: new Date().toISOString(),
+          };
+          repositories.user.saveProfile(updated);
+          return updated;
+        });
       });
     },
     [userProfile, activePersona]
@@ -167,6 +266,8 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       isSignedIn,
       setIsSignedIn,
       userProfile,
+      profileStatus,
+      retryProfileLoad,
       updateUserProfile,
       updatePersonaInBackground,
     }),
@@ -179,6 +280,8 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
       isSignedIn,
       setIsSignedIn,
       userProfile,
+      profileStatus,
+      retryProfileLoad,
       updateUserProfile,
       updatePersonaInBackground,
     ]

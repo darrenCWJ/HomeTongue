@@ -1,47 +1,34 @@
-import { useState } from "react";
 import { Bookmark, BookmarkCheck, MessageCircle, Star } from "lucide-react";
 import { motion } from "motion/react";
-import { useLibrary } from "../../../app/context/LibraryProvider";
-import { newId } from "../../../utils/id";
 import type { RoleplayScenario, RoleplayTurn } from "../../../services/roleplayService";
 
 interface RoleplaySummaryProps {
   scenario: RoleplayScenario;
   turns: RoleplayTurn[];
+  /**
+   * Ids of turns already saved to the library. Owned by RoleplayView: this
+   * component unmounts every time the user goes back to practising, and
+   * summary-local state would forget the saves each time.
+   */
+  savedTurnIds: ReadonlySet<string>;
+  onSaveTurn: (turn: RoleplayTurn) => void;
   onKeepPractising: () => void;
   onDone: () => void;
 }
 
-export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: RoleplaySummaryProps) {
-  const { addPhrase } = useLibrary();
-  const [savedTurnIds, setSavedTurnIds] = useState<ReadonlySet<string>>(new Set());
-
+export function RoleplaySummary({
+  scenario,
+  turns,
+  savedTurnIds,
+  onSaveTurn,
+  onKeepPractising,
+  onDone,
+}: RoleplaySummaryProps) {
   const userTurns = turns.filter((t) => t.speaker === "user");
   const botTurns = turns.filter((t) => t.speaker === "bot");
   const scores = userTurns.map((t) => t.coach?.score).filter((s): s is number => typeof s === "number");
   const avgScore =
     scores.length > 0 ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length) : null;
-
-  const saveTurn = (turn: RoleplayTurn) => {
-    if (savedTurnIds.has(turn.id)) return;
-    addPhrase({
-      id: `roleplay-${newId()}`,
-      original: turn.english || turn.text,
-      dialect: turn.text,
-      pronunciation: turn.romanization ?? "",
-      isBookmarked: true,
-      context: `Roleplay: ${scenario.title}`,
-      // Stamp the SCENARIO's language, not the module-level active pack: the
-      // scenario is the source of truth for what was rehearsed, and the
-      // active-pack module state can lag a render behind a dialect switch.
-      languageCode: scenario.languageCode,
-    });
-    setSavedTurnIds((prev) => {
-      const next = new Set(prev);
-      next.add(turn.id);
-      return next;
-    });
-  };
 
   const unsavedBotTurns = botTurns.filter((t) => !savedTurnIds.has(t.id));
 
@@ -65,26 +52,30 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
             <MessageCircle size={16} className="text-brand-blue" />
           </div>
           <span className="text-xl font-bold text-foreground">{userTurns.length}</span>
-          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Your Turns</span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+            Your Turns
+          </span>
         </div>
         <div className="bg-card p-3 rounded-xl shadow-sm border border-border-subtle flex flex-col items-center">
           <div className="w-8 h-8 rounded-full bg-brand-red/15 flex items-center justify-center mb-1.5">
             <Star size={16} className="text-brand-red" />
           </div>
-          <span className="text-xl font-bold text-foreground">{avgScore !== null ? `${avgScore}%` : "–"}</span>
-          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Avg Score</span>
+          <span className="text-xl font-bold text-foreground">
+            {avgScore !== null ? `${avgScore}%` : "–"}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
+            Avg Score
+          </span>
         </div>
       </div>
 
       {botTurns.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-faint">
-              Save these phrases
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-faint">Save these phrases</p>
             {unsavedBotTurns.length > 0 && (
               <button
-                onClick={() => unsavedBotTurns.forEach(saveTurn)}
+                onClick={() => unsavedBotTurns.forEach(onSaveTurn)}
                 className="text-xs font-semibold text-brand-blue hover:underline"
               >
                 Save all
@@ -107,8 +98,9 @@ export function RoleplaySummary({ scenario, turns, onKeepPractising, onDone }: R
                     {turn.english && <p className="text-xs text-muted-foreground mt-0.5">{turn.english}</p>}
                   </div>
                   <button
-                    onClick={() => saveTurn(turn)}
+                    onClick={() => onSaveTurn(turn)}
                     disabled={isSaved}
+                    aria-label={isSaved ? "Saved to phrases" : "Save phrase"}
                     className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
                       isSaved
                         ? "bg-green-50 text-green-600"

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo, ReactNode } from "react";
 import { authGateway, type AuthUser, type SignUpResult } from "../../lib/authGateway";
+import { notifyAuthUser } from "../../repositories";
 
 interface AuthContextType {
   /** The signed-in Supabase user, or null (always null when cloud auth is disabled). */
@@ -36,6 +37,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false;
     const applyUser = (user: AuthUser | null) => {
       if (cancelled) return;
+      // FIRST, before any state update: point the repository layer at this
+      // user. Providers re-load when `authEpoch` changes below, and they must
+      // find the router already resolving to the matching (cloud vs local)
+      // repositories — otherwise a signed-in user could re-load from local
+      // Dexie with no further epoch bump to correct it.
+      notifyAuthUser(user?.id ?? null);
       setAuthUser(user);
       setAuthLoading(false);
       const userId = user?.id ?? null;

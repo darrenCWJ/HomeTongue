@@ -62,8 +62,20 @@ export function LearnPage() {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<ActiveLevel | null>(null);
   const [dailyCard, setDailyCard] = useState<VocabItem | null>(null);
-  const [activeConversationLesson, setActiveConversationLesson] = useState<ConversationLesson | null>(null);
+  const [activeConversationLessonId, setActiveConversationLessonId] = useState<string | null>(null);
   const [activeRoleplayScenario, setActiveRoleplayScenario] = useState<RoleplayScenario | null>(null);
+
+  // Derived, never snapshotted: an opened lesson keeps changing underneath us
+  // (breakdown enrichment, phase, exam result), and a held copy would both
+  // render stale data and revert live writes when passed back to the provider.
+  const activeConversationLesson =
+    conversationLessons.find((l) => l.id === activeConversationLessonId) ?? null;
+
+  // A lesson can vanish underneath an open pane (deleted from another surface,
+  // a persona or language switch). Both the lesson and exam panes render
+  // nothing without one, so fall back to the list instead of a blank screen.
+  const isMainView =
+    view === "main" || ((view === "conversation-lesson" || view === "exam") && !activeConversationLesson);
 
   // Single queue instance shared with PracticeView so the due-count badge on
   // this page stays accurate as cards are graded.
@@ -118,7 +130,7 @@ export function LearnPage() {
   const handleBackToMain = () => {
     setActiveCategoryId(null);
     setActiveLevel(null);
-    setActiveConversationLesson(null);
+    setActiveConversationLessonId(null);
     setActiveRoleplayScenario(null);
     setView("main");
   };
@@ -128,8 +140,8 @@ export function LearnPage() {
     setView("roleplay");
   };
 
-  const handleSelectConversationLesson = (lesson: ConversationLesson) => {
-    setActiveConversationLesson(lesson);
+  const handleSelectConversationLesson = (lessonId: string) => {
+    setActiveConversationLessonId(lessonId);
     setView("conversation-lesson");
   };
 
@@ -138,26 +150,26 @@ export function LearnPage() {
   };
 
   const handleExamComplete = (score: number) => {
-    if (!activeConversationLesson) return;
-    const passed = score >= 60;
-    const updated: ConversationLesson = {
-      ...activeConversationLesson,
-      examAttempts: activeConversationLesson.examAttempts + 1,
-      examBestScore:
-        activeConversationLesson.examBestScore === undefined
-          ? score
-          : Math.max(activeConversationLesson.examBestScore, score),
-      examCompleted: activeConversationLesson.examCompleted || passed,
-    };
-    updateConversationLesson(updated);
-    setActiveConversationLesson(updated);
+    // Leave the exam FIRST: a lesson that vanished mid-exam must not strand
+    // the user on the exam pane just because there is no result to record.
     setView("conversation-lesson");
+    // Attempts and best score come from the lesson as it stands right now, so
+    // an exam taken after other writes counts on top of them rather than on
+    // top of whatever the lesson looked like when it was opened.
+    const current = activeConversationLesson;
+    if (!current) return;
+    const passed = score >= 60;
+    updateConversationLesson(current.id, {
+      examAttempts: current.examAttempts + 1,
+      examBestScore: current.examBestScore === undefined ? score : Math.max(current.examBestScore, score),
+      examCompleted: current.examCompleted || passed,
+    });
   };
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
       <AnimatePresence initial={false} mode="wait">
-        {view === "main" && (
+        {isMainView && (
           <motion.div
             key="main"
             initial={{ x: "-100%", opacity: 0 }}
@@ -334,7 +346,9 @@ export function LearnPage() {
                   {personalLessons.length === 0 ? (
                     <div className="bg-card rounded-2xl p-8 text-center border border-border-subtle shadow-sm">
                       <BookOpen size={32} className="text-faint mx-auto mb-3" />
-                      <p className="text-sm font-semibold text-muted-foreground mb-1">No custom lessons yet</p>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">
+                        No custom lessons yet
+                      </p>
                       <p className="text-xs text-faint">
                         Go to Saved Conversations and tap the bookmark icon to convert a chat into a lesson.
                       </p>
@@ -345,10 +359,10 @@ export function LearnPage() {
                         <ConversationLessonCard
                           key={cl.id}
                           lesson={cl}
-                          onClick={() => handleSelectConversationLesson(cl)}
+                          onClick={() => handleSelectConversationLesson(cl.id)}
                           onDelete={() => deleteConversationLesson(cl.id)}
                           onEditTitle={(newTitle) => {
-                            updateConversationLesson({ ...cl, title: newTitle });
+                            updateConversationLesson(cl.id, { title: newTitle });
                           }}
                         />
                       ))}

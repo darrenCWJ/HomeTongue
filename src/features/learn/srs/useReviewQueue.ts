@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../../app/context/AuthProvider";
 import { useLibrary } from "../../../app/context/LibraryProvider";
 import { repositories } from "../../../repositories";
 import { filterByLanguage } from "../../../languages/scope";
@@ -30,13 +31,20 @@ export interface ReviewQueue {
 
 export function useReviewQueue(): ReviewQueue {
   const { phrases } = useLibrary();
+  const { authEpoch } = useAuth();
   const activeLanguageCode = useActiveLanguageCode();
   const [states, setStates] = useState<Record<string, PhraseReviewState>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Keyed on authEpoch (the providers' reload signal): a sign-in, sign-out, or
+  // user switch has to re-read the schedule, or the queue keeps showing the
+  // previous account's. Constant 0 in local mode, so this runs once on mount
+  // there — and setting the same initial values below is a no-op on that run.
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
     repositories.reviewStates
       .getAll()
       .then((rows) => {
@@ -53,7 +61,7 @@ export function useReviewQueue(): ReviewQueue {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authEpoch]);
 
   // The practice queue is scoped to the active language so a dialect switch
   // never mixes review cards from different packs.

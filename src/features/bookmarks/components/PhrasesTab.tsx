@@ -6,24 +6,28 @@ interface PhrasesTabProps {
   bookmarkedPhrases: Phrase[];
   isTourMode: boolean;
   phraseTags: Tag[];
+  pendingTagDeletions: Set<string>;
   editingTagsPhraseId: string | null;
   setEditingTagsPhraseId: (id: string | null) => void;
   playingId: string | null;
   onSpeak: (phraseId: string, text: string, audioDataUrl?: string, audioDataUrls?: string[]) => void;
   updatePhrase: (phrase: Phrase) => void;
   setPhraseTags: (phraseId: string, tagIds: string[]) => void;
+  ttsEnabled: boolean;
 }
 
 export function PhrasesTab({
   bookmarkedPhrases,
   isTourMode,
   phraseTags,
+  pendingTagDeletions,
   editingTagsPhraseId,
   setEditingTagsPhraseId,
   playingId,
   onSpeak,
   updatePhrase,
   setPhraseTags,
+  ttsEnabled,
 }: PhrasesTabProps) {
   return bookmarkedPhrases.length === 0 && !isTourMode ? (
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">
@@ -64,12 +68,14 @@ export function PhrasesTab({
           phrase={phrase}
           isFirst={phraseIdx === 0}
           phraseTags={phraseTags}
+          pendingTagDeletions={pendingTagDeletions}
           editingTagsPhraseId={editingTagsPhraseId}
           setEditingTagsPhraseId={setEditingTagsPhraseId}
           playingId={playingId}
           onSpeak={onSpeak}
           updatePhrase={updatePhrase}
           setPhraseTags={setPhraseTags}
+          ttsEnabled={ttsEnabled}
         />
       ))}
     </>

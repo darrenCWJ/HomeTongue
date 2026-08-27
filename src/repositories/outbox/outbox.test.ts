@@ -3,7 +3,13 @@ import type { Phrase } from "../../types";
 import type { Repositories } from "../interfaces";
 import { subscribeSyncEvents, type SyncEvent } from "../../lib/syncEvents";
 import { createOutboxRepositories } from "./OutboxRepositories";
-import { _resetOutboxForTests, flushOutbox, setOutboxHold, setOutboxUser } from "./outboxStore";
+import {
+  _resetOutboxForTests,
+  flushOutbox,
+  getOutboxUserId,
+  setOutboxHold,
+  setOutboxUser,
+} from "./outboxStore";
 import type { OutboxEntry } from "./types";
 
 // The invariants under test: a failed cloud write RESOLVES (the UI's
@@ -305,5 +311,20 @@ describe("outbox flush", () => {
     // Assert
     expect(inner.phrases.put).toHaveBeenCalledWith(phrase);
     expect(await queuedEntries()).toHaveLength(0);
+  });
+});
+
+describe("outbox user tracking", () => {
+  test("exposes the tracked auth user id, which repository routing reads to detect guests", async () => {
+    // Arrange
+    const inner = createInner();
+    createOutboxRepositories(inner);
+
+    // Act + Assert — before any session lands, then after sign-in and sign-out
+    expect(getOutboxUserId()).toBeNull();
+    await signIn(USER_A);
+    expect(getOutboxUserId()).toBe(USER_A);
+    setOutboxUser(null);
+    expect(getOutboxUserId()).toBeNull();
   });
 });

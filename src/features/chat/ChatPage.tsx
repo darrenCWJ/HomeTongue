@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { useLibrary } from "../../app/context/LibraryProvider";
 import { useChat } from "../../app/context/ChatProvider";
@@ -57,6 +58,19 @@ export function ChatPage() {
   const lastRecordRef = useRef<RecordRef | null>(null);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+  // Same latest-ref pattern: flows that await for seconds must read the phrase
+  // library as it is when they write, not as it was when they started.
+  const phrasesRef = useRef(phrases);
+  phrasesRef.current = phrases;
+
+  // Every conversation reset bumps this. Flows that await for seconds capture
+  // it before the await and discard their result if it changed, so nothing
+  // from a finished conversation can land in the next one.
+  const chatEpochRef = useRef(0);
+  // resetConversationState is defined below (it needs setters from the hooks
+  // that follow), so it reaches useSessionSave and the effect through a ref.
+  const resetConversationRef = useRef<() => void>(() => {});
+  const prevLanguageCodeRef = useRef(activeLanguageCode);
 
   const {
     latestSuggestions,
@@ -95,7 +109,9 @@ export function ChatPage() {
   } = useReplyFlow({
     tone,
     userProfile,
+    phrasesRef,
     addPhrase,
+    updatePhrase,
     addMessage,
     setStage,
     setStageIsUserSide,
@@ -103,7 +119,15 @@ export function ChatPage() {
     setLatestSuggestions,
     lastRecordRef,
     prefetchCacheRef,
+    chatEpochRef,
   });
+
+  // usePhraseSelection's long-press callback can fire up to 500ms after
+  // pointer-down (see useBubbleLongPress), so it reads this live rather than
+  // a pendingEnglish value snapshotted at pointer-down time — otherwise a
+  // transcript review that opens mid-press would go unnoticed.
+  const isTranscriptReviewOpenRef = useRef(pendingEnglish !== null);
+  isTranscriptReviewOpenRef.current = pendingEnglish !== null;
 
   const {
     listeningMode,
@@ -115,7 +139,7 @@ export function ChatPage() {
     startListeningCantonese,
     startListeningEnglish,
   } = useMicRecording({
-    phrases,
+    phrasesRef,
     addPhrase,
     updatePhrase,
     addMessage,
@@ -131,6 +155,7 @@ export function ChatPage() {
     setStageIsUserSide,
     setPendingEnglish,
     setPendingEditText,
+    chatEpochRef,
   });
 
   const {
@@ -143,12 +168,19 @@ export function ChatPage() {
     setNewTagInput,
     isCreatingPhraseTag,
     setIsCreatingPhraseTag,
+    isSavingPhrase,
     handleBubblePointerDown,
     cancelBubbleLongPress,
     handleBubblePointerMove,
     handleSaveSelectedPhrase,
     cancelPhraseSelection,
-  } = usePhraseSelection({ addPhrase, activeLanguageCode, userProfile });
+  } = usePhraseSelection({
+    addPhrase,
+    activeLanguageCode,
+    userProfile,
+    createTag,
+    isTranscriptReviewOpenRef,
+  });
 
   const {
     isSaveDialogOpen,
@@ -164,11 +196,44 @@ export function ChatPage() {
     setSaveSessionTags,
     openSaveDialog,
     confirmSave,
-  } = useSessionSave({ messages, saveSession, createTag });
+  } = useSessionSave({
+    messages,
+    saveSession,
+    createTag,
+    onAfterSave: () => resetConversationRef.current(),
+  });
+
+  // Everything a finished conversation must leave behind: in-flight
+  // suggestion fetches, the TTS prefetch cache (keyed without a language, so
+  // it must not survive a dialect switch), the 60s dialect append window, the
+  // visible chips, a pending transcript, and the save dialog itself. The busy
+  // stage goes too — its request is discarded, and leaving it set would hide
+  // the input behind a spinner the new conversation can never clear.
+  const resetConversationState = () => {
+    chatEpochRef.current++;
+    invalidateSuggestions();
+    prefetchCacheRef.current.clear();
+    lastRecordRef.current = null;
+    setPendingEnglish(null);
+    setLatestSuggestions([]);
+    setStage(null);
+    setIsSaveDialogOpen(false);
+  };
+  resetConversationRef.current = resetConversationState;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, stage]);
+
+  // A dialect switch invalidates every artifact of the previous language.
+  // Change-only: mounting is not a switch, so it must reset nothing.
+  // Must stay registered after useMicRecording's own dialect-stop effect —
+  // see the comment there for why the hook-call order matters.
+  useEffect(() => {
+    if (prevLanguageCodeRef.current === activeLanguageCode) return;
+    prevLanguageCodeRef.current = activeLanguageCode;
+    resetConversationRef.current();
+  }, [activeLanguageCode]);
 
   const isBusy = stage !== null || pendingEnglish !== null;
 
@@ -221,12 +286,27 @@ export function ChatPage() {
 
   const handleNewChat = () => {
     if (messages.length === 0) return;
-    invalidateSuggestions(); // invalidate any in-flight suggestion fetches
-    prefetchCacheRef.current.clear();
-    lastRecordRef.current = null;
-    setPendingEnglish(null);
-    setLatestSuggestions([]);
+    resetConversationState();
     discardChat(messages);
+  };
+
+  // A new save dialog shares the transcript-review overlay's z-30 and paints
+  // underneath it (later JSX siblings win ties) if opened while it's up.
+  // openSaveDialog is a single atomic click, so guarding it here at the
+  // trigger is sufficient — nothing can go stale between the check and the
+  // open the way it can for a long-press (see usePhraseSelection's own
+  // check, which the phrase-selection sheet needs instead — it fires up to
+  // 500ms later). toast.info, not .error: nothing failed, the action is
+  // just deferred until the review is done.
+  const blockedByTranscriptReview = () => {
+    if (pendingEnglish === null) return false;
+    toast.info("Finish reviewing your transcript first.");
+    return true;
+  };
+
+  const guardedOpenSaveDialog = () => {
+    if (blockedByTranscriptReview()) return;
+    openSaveDialog();
   };
 
   const stageLabel = stage === "transcribing" ? "Listening..." : "Translating...";
@@ -241,7 +321,7 @@ export function ChatPage() {
         onOpenPersonaSheet={() => setIsPersonaSheetOpen(true)}
         onOpenDialectSheet={() => setIsDialectSheetOpen(true)}
         onNewChat={handleNewChat}
-        onOpenSaveDialog={openSaveDialog}
+        onOpenSaveDialog={guardedOpenSaveDialog}
       />
 
       {/* Empty state */}
@@ -347,7 +427,15 @@ export function ChatPage() {
 
       {/* Save partial phrase sheet */}
       <PhraseSaveSheet
-        isOpen={!!phraseSelectionMsg}
+        // usePhraseSelection's own long-press callback already checks
+        // pendingEnglish live (via isTranscriptReviewOpenRef) before opening
+        // a NEW selection, so this is defense-in-depth for a sheet that was
+        // ALREADY open: if a transcript review appears while the user is
+        // mid-edit here, the sheet hides — phraseSelectionMsg/Text and any
+        // tag picks are untouched, not cleared — and reappears once the
+        // review clears. A brief, accepted pause with no data loss, not a
+        // silent drop.
+        isOpen={!!phraseSelectionMsg && pendingEnglish === null}
         phraseSelectionText={phraseSelectionText}
         setPhraseSelectionText={setPhraseSelectionText}
         phraseTags={phraseTags}
@@ -358,6 +446,7 @@ export function ChatPage() {
         isCreatingPhraseTag={isCreatingPhraseTag}
         setIsCreatingPhraseTag={setIsCreatingPhraseTag}
         createTag={createTag}
+        isSavingPhrase={isSavingPhrase}
         onSave={handleSaveSelectedPhrase}
         onCancel={cancelPhraseSelection}
       />
@@ -369,6 +458,7 @@ export function ChatPage() {
         setPendingEditText={setPendingEditText}
         isEditingPending={isEditingPending}
         setIsEditingPending={setIsEditingPending}
+        dialectLabel={dialect}
         onConfirm={confirmEnglishReply}
         onCancel={cancelEnglishReply}
       />

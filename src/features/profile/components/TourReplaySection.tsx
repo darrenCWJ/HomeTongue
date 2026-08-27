@@ -1,11 +1,32 @@
+import { useRef } from "react";
 import { HelpCircle, MessageCircle, BookOpen, Bookmark, User } from "lucide-react";
 import { useNavigate } from "react-router";
+import type { TourPageId } from "@/types";
 import { useTour } from "../../../app/components/tour/TourProvider";
+
+/** Head start for the destination route's lazy chunk before the tour looks for its anchors. */
+const NAVIGATE_SETTLE_MS = 300;
 
 /** Per-surface tour replay buttons (tour anchor: profile-tour-replay). */
 export function TourReplaySection() {
   const { startTour } = useTour();
   const navigate = useNavigate();
+  const pendingStartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Deliberately NOT cleared on unmount: navigating away unmounts this section
+  // while the tour it queued still has to start on the destination page (the
+  // TourProvider above stays mounted). Firing before the page is ready is now
+  // harmless — TourOverlay retries the first anchor and, if it never appears,
+  // cancels without writing `tourCompleted`, so a slow chunk can no longer
+  // mark a tour seen that was never shown. Replacing any queued start keeps a
+  // double tap from launching two tours.
+  const queueStart = (pageId: TourPageId) => {
+    if (pendingStartRef.current !== null) clearTimeout(pendingStartRef.current);
+    pendingStartRef.current = setTimeout(() => {
+      pendingStartRef.current = null;
+      startTour(pageId);
+    }, NAVIGATE_SETTLE_MS);
+  };
 
   return (
     <section data-tour="profile-tour-replay">
@@ -32,7 +53,7 @@ export function TourReplaySection() {
                 startTour("profile");
               } else {
                 navigate(tour.path);
-                setTimeout(() => startTour(tour.id), 300);
+                queueStart(tour.id);
               }
             }}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border-subtle shadow-sm hover:border-brand-blue/50 hover:bg-brand-blue/10 transition-all"

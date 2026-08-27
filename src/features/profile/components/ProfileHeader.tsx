@@ -16,7 +16,13 @@ export function ProfileHeader({ userProfile, updateUserProfile, personaSummary }
 
   const handleNameBlur = () => {
     const trimmed = nameInput.trim();
-    if (trimmed !== (userProfile?.name ?? "")) {
+    const currentName = userProfile?.name ?? "";
+    if (!trimmed) {
+      // Clearing the field and tapping away is an abandoned edit, not a
+      // request to be nameless: persisting "" wiped the stored name and left
+      // the header on its placeholder with no way back. Restore the draft.
+      setNameInput(currentName);
+    } else if (trimmed !== currentName) {
       updateUserProfile({ name: trimmed });
     }
     setIsEditingName(false);

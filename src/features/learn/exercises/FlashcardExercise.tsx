@@ -7,6 +7,7 @@ import { getActiveLanguagePack } from "../../../languages";
 import { motion, animate, useMotionValue } from "motion/react";
 import type { LessonLevel } from "../../../types";
 import { PlayButton, personalise } from "../shared";
+import { CARD_EXIT_S, awaitCardExit } from "./cardExit";
 
 // ─── Flashcard Exercise ───────────────────────────────────────────────────────
 
@@ -27,6 +28,19 @@ export function FlashcardExercise({
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | null>(null);
   const [exampleCache, setExampleCache] = useState<Record<number, ExampleMeta | "loading">>({});
   const dragOccurred = React.useRef(false);
+  const isAnimatingRef = React.useRef(false);
+  // The exit wait outlives this component: AnimatePresence keeps the pane that
+  // owns it mounted through its own exit, so a Finish (or advance) tapped just
+  // before Back would otherwise land after the user had gone — persisting
+  // progress for a level they walked away from. Re-armed in the effect body so
+  // StrictMode's mount → unmount → mount cycle does not leave it false.
+  const isMountedRef = React.useRef(true);
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const x = useMotionValue(0);
   const items = level.vocabulary;
   const current = items[index];
@@ -40,6 +54,9 @@ export function FlashcardExercise({
     getExampleMeta(sentence).then((meta) => {
       setExampleCache((prev) => ({ ...prev, [index]: meta }));
     });
+    // Keyed on the card being flipped open: the cache and the card's own
+    // fields are read at that moment, and adding them would refire the fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flipped, index]);
 
   const phraseId = `lesson-${current.dialect}`;
@@ -64,17 +81,29 @@ export function FlashcardExercise({
   };
 
   const goToCard = async (nextIndex: number, dir: "left" | "right") => {
+    // `index` only moves after the exit tween below, so a tap landing inside
+    // it would run a second full advance off the same stale index: two Finish
+    // taps completed the deck twice, and a Back chasing a Next landed on
+    // whichever tween resolved last.
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setSwipeDir(null);
     const exitX = dir === "left" ? -420 : 420;
     const enterX = dir === "left" ? 420 : -420;
-    await animate(x, exitX, { duration: 0.18, ease: [0.32, 0.72, 0, 1] });
+    await awaitCardExit(animate(x, exitX, { duration: CARD_EXIT_S, ease: [0.32, 0.72, 0, 1] }));
+    if (!isMountedRef.current) return;
     if (nextIndex >= items.length) {
+      // Stays latched on purpose: onComplete tears this exercise down, and a
+      // queued tap must not fire it a second time on the way out.
       onComplete();
       return;
     }
     x.set(enterX);
     setIndex(nextIndex);
     setFlipped(false);
+    // Released once the new card is in place — the incoming tween is not
+    // awaited, so the deck stays responsive to the next deliberate tap.
+    isAnimatingRef.current = false;
     animate(x, 0, { duration: 0.22, ease: [0.32, 0.72, 0, 1] });
   };
 
@@ -106,7 +135,9 @@ export function FlashcardExercise({
         <div
           className={`absolute inset-y-0 left-0 flex items-center pl-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "right" && index > 0 ? "opacity-100" : "opacity-0"}`}
         >
-          <div className="bg-muted text-muted-foreground rounded-xl px-2.5 py-1 text-xs font-bold">← Back</div>
+          <div className="bg-muted text-muted-foreground rounded-xl px-2.5 py-1 text-xs font-bold">
+            ← Back
+          </div>
         </div>
         <div
           className={`absolute inset-y-0 right-0 flex items-center pr-2 z-10 pointer-events-none transition-opacity duration-100 ${swipeDir === "left" ? "opacity-100" : "opacity-0"}`}

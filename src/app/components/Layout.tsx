@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Outlet, NavLink } from "react-router";
-import { MessageSquare, BookOpen, Bookmark, User } from "lucide-react";
+import { MessageSquare, BookOpen, Bookmark, User, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileProvider";
 import { useTheme } from "../../hooks/useTheme";
@@ -16,7 +16,7 @@ const HAS_ACCESS_CODE = !!import.meta.env.VITE_ACCESS_CODE;
 
 export function Layout() {
   const { isCloudAuthEnabled, authUser, authLoading } = useAuth();
-  const { isSignedIn, userProfile } = useProfile();
+  const { isSignedIn, userProfile, profileStatus, retryProfileLoad } = useProfile();
   // Resolved (not raw) theme: sonner's own "system" mode would follow the OS
   // even though the app defaults to light until the user opts in.
   const { resolvedTheme } = useTheme();
@@ -47,7 +47,11 @@ export function Layout() {
 
   // If no access code is configured, treat the gate as already passed
   const accessCodePassed = !HAS_ACCESS_CODE || isSignedIn;
-  const needsOnboarding = accessCodePassed && emailGatePassed && !userProfile?.name;
+  // A nameless profile only means "new user" once the load has settled. While
+  // it is loading or failed, onboarding would overwrite a returning user's
+  // stored profile with an empty one — so it stays unreachable until "loaded".
+  const needsOnboarding =
+    accessCodePassed && emailGatePassed && profileStatus === "loaded" && !userProfile?.name;
 
   // dark:bg-background keeps the desktop letterbox coherent in dark mode;
   // light mode keeps the original brand-white wash untouched.
@@ -61,6 +65,10 @@ export function Layout() {
           isCloudAuthEnabled && authLoading ? null : (
             <AuthPage onComplete={() => setIsEmailAuthed(true)} />
           )
+        ) : profileStatus === "loading" ? (
+          <ProfileLoadingScreen />
+        ) : profileStatus === "error" ? (
+          <ProfileLoadErrorScreen onRetry={retryProfileLoad} />
         ) : needsOnboarding ? (
           <OnboardingPage />
         ) : (
@@ -70,6 +78,30 @@ export function Layout() {
         )}
         <Toaster position="top-center" richColors theme={resolvedTheme} />
       </div>
+    </div>
+  );
+}
+
+function ProfileLoadingScreen() {
+  return (
+    <div className="flex-1 flex items-center justify-center" role="status">
+      <Loader2 size={24} className="animate-spin text-faint" />
+      <span className="sr-only">Loading your profile</span>
+    </div>
+  );
+}
+
+function ProfileLoadErrorScreen({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center">
+      <p className="text-sm text-muted-foreground">Couldn't load your data.</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="bg-brand-blue hover:bg-brand-blue/90 active:bg-brand-blue/80 text-white font-semibold rounded-xl px-6 py-3 transition-all"
+      >
+        Retry
+      </button>
     </div>
   );
 }

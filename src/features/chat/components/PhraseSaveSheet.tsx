@@ -15,6 +15,8 @@ interface PhraseSaveSheetProps {
   isCreatingPhraseTag: boolean;
   setIsCreatingPhraseTag: (value: boolean) => void;
   createTag: (name: string, type: TagType) => Tag;
+  /** A save in flight — the button stays down until its audio settles. */
+  isSavingPhrase: boolean;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -31,6 +33,7 @@ export function PhraseSaveSheet({
   isCreatingPhraseTag,
   setIsCreatingPhraseTag,
   createTag,
+  isSavingPhrase,
   onSave,
   onCancel,
 }: PhraseSaveSheetProps) {
@@ -55,7 +58,9 @@ export function PhraseSaveSheet({
             rows={3}
             className="w-full px-4 py-3 border-2 border-brand-blue/20 rounded-xl focus:border-brand-blue focus:outline-none text-foreground text-base resize-none mb-4"
           />
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tags</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            Tags
+          </label>
           <div className="flex flex-wrap gap-2 mb-3">
             {phraseTags.map((tag) => {
               const isSelected = phraseTagSelection.includes(tag.id);
@@ -127,14 +132,15 @@ export function PhraseSaveSheet({
           </div>
           <button
             onClick={onSave}
-            disabled={!phraseSelectionText.trim()}
+            disabled={!phraseSelectionText.trim() || isSavingPhrase}
             className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-semibold text-base hover:bg-brand-blue/90 transition-colors disabled:opacity-40 mb-3"
           >
-            Save Phrase
+            {isSavingPhrase ? "Processing…" : "Save Phrase"}
           </button>
           <button
             onClick={onCancel}
-            className="text-faint font-medium text-sm hover:text-muted-foreground text-center"
+            disabled={isSavingPhrase}
+            className="text-faint font-medium text-sm hover:text-muted-foreground text-center disabled:opacity-40"
           >
             Cancel
           </button>

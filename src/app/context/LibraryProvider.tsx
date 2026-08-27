@@ -12,6 +12,7 @@ import { repositories, isCloudStorageMode, setCloudWriteHold } from "../../repos
 import type { Phrase, Session, LessonProgress, ConversationLesson, Tag, TagType } from "../../types";
 import { newId } from "../../utils/id";
 import { useAuth } from "./AuthProvider";
+import { emitSyncEvent } from "../../lib/syncEvents";
 import { useSyncToasts } from "../../lib/useSyncToasts";
 
 interface LibraryContextType {
@@ -35,7 +36,12 @@ interface LibraryContextType {
   deleteSessionMessage: (sessionId: string, messageId: string) => void;
   conversationLessons: ConversationLesson[];
   saveConversationLesson: (lesson: ConversationLesson) => void;
-  updateConversationLesson: (lesson: ConversationLesson) => void;
+  /**
+   * Patch-merge a lesson by id. Callers name only the fields they change —
+   * passing a whole lesson would replace the stored record with a snapshot
+   * that is already stale, reverting any write that landed in between.
+   */
+  updateConversationLesson: (id: string, patch: Partial<ConversationLesson>) => void;
   deleteConversationLesson: (id: string) => void;
   lessonProgress: Record<string, LessonProgress>;
   updateLessonProgress: (progress: LessonProgress) => void;
@@ -62,6 +68,11 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   // A ref (not state) so the stable `persist` callback reads the latest value.
   const loadFailedRef = useRef(false);
 
+  // One degraded-storage announcement per provider — i.e. per session, since
+  // the provider mounts once. Repeated failing load passes (a remount, a
+  // future epoch bump) must not re-announce.
+  const persistenceDisabledNotifiedRef = useRef(false);
+
   // Surface outbox events (queued / synced / dropped) as toasts.
   useSyncToasts();
 
@@ -72,6 +83,14 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     void reloadEpoch;
+    // An earlier run's promise may still be in flight when the epoch changes.
+    // Ignore whatever it settles to — every write below belongs to the run
+    // that is still current. On a cold start in a cloud build the epoch-0
+    // guest load reads local Dexie, which can still be opening (a slow
+    // Capacitor webview) when a sign-in bumps the epoch; if that guest
+    // snapshot landed last it would replace the signed-in library in memory,
+    // and the user's next edit would persist guest rows into their account.
+    let cancelled = false;
     Promise.all([
       repositories.phrases.getAll(),
       repositories.conversations.getAll(),
@@ -80,6 +99,7 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
       repositories.tags.getAll(),
     ])
       .then(([p, s, lp, cl, t]) => {
+        if (cancelled) return;
         loadFailedRef.current = false;
         // Hydrated: cloud writes may flow again; held writes flush now.
         setCloudWriteHold(false);
@@ -90,20 +110,38 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
         setTags(t);
       })
       .catch((err) => {
+        // Same fence on the failure path: a dead run must not disable
+        // persistence — or re-hold cloud writes — for the run that replaced it.
+        if (cancelled) return;
         loadFailedRef.current = true;
         // Cloud: capture writes durably in the outbox instead (no-op locally).
         setCloudWriteHold(true);
+        // Local mode has no outbox to fall back on — writes are skipped for
+        // the rest of the session, so say so instead of letting the user
+        // work on into an empty reload. useSyncToasts renders the banner.
+        if (!isCloudStorageMode && !persistenceDisabledNotifiedRef.current) {
+          persistenceDisabledNotifiedRef.current = true;
+          emitSyncEvent({ type: "persistence-disabled" });
+        }
         console.error(
           "[library] initial load failed — direct persistence disabled to protect stored data:",
           err
         );
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [reloadEpoch]);
 
   /**
    * Run a single repository write with error handling. After a failed load:
-   * local mode skips the write entirely; cloud mode still runs it because the
-   * outbox is in hold mode and queues it locally (see loadFailedRef above).
+   * local mode skips the write entirely and the change lives in memory only
+   * (the user is told once — see the load catch above). Cloud mode still runs
+   * it, because a SIGNED-IN cloud write goes through the outbox, which the
+   * failed load just put in hold mode, so it is captured durably for a later
+   * flush. (A guest in a cloud build is routed per call to local Dexie and
+   * never reaches the outbox — see src/repositories/routing.ts.)
    */
   const persist = useCallback((op: string, write: () => Promise<unknown>) => {
     if (loadFailedRef.current && !isCloudStorageMode) {
@@ -312,9 +350,20 @@ export const LibraryProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const updateConversationLesson = useCallback(
-    (lesson: ConversationLesson) => {
-      setConversationLessons((prev) => prev.map((l) => (l.id === lesson.id ? lesson : l)));
-      persist("updateConversationLesson", () => repositories.conversationLessons.update(lesson));
+    (id: string, patch: Partial<ConversationLesson>) => {
+      setConversationLessons((prev) => {
+        const current = prev.find((l) => l.id === id);
+        if (!current) {
+          console.warn(`[library] updateConversationLesson ignored: unknown lesson ${id}`);
+          return prev;
+        }
+        // Merge over CURRENT state, and persist the merged record: the
+        // repository replaces the whole row, so it needs every field, and the
+        // caller's patch must not carry stale copies of the ones it omits.
+        const merged = { ...current, ...patch };
+        persist("updateConversationLesson", () => repositories.conversationLessons.update(merged));
+        return prev.map((l) => (l.id === id ? merged : l));
+      });
     },
     [persist]
   );

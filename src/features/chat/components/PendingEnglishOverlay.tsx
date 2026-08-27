@@ -7,6 +7,8 @@ interface PendingEnglishOverlayProps {
   setPendingEditText: (value: string) => void;
   isEditingPending: boolean;
   setIsEditingPending: (value: boolean) => void;
+  /** Active pack's display label, e.g. "Cantonese" — same reactive source ActionBar's dialectLabel uses. */
+  dialectLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -17,6 +19,7 @@ export function PendingEnglishOverlay({
   setPendingEditText,
   isEditingPending,
   setIsEditingPending,
+  dialectLabel,
   onConfirm,
   onCancel,
 }: PendingEnglishOverlayProps) {
@@ -35,7 +38,7 @@ export function PendingEnglishOverlay({
               Non-Dialect speaker
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">Did you say this?</h3>
-            <p className="text-sm text-muted-foreground">Check your recording, then send in Cantonese</p>
+            <p className="text-sm text-muted-foreground">Check your recording, then send in {dialectLabel}</p>
           </div>
           <div className="w-full max-w-md mb-8">
             {isEditingPending ? (
@@ -68,9 +71,12 @@ export function PendingEnglishOverlay({
             onClick={onConfirm}
             className="w-full max-w-md py-3.5 bg-brand-blue text-white rounded-2xl font-semibold text-base hover:bg-brand-blue/90 transition-colors"
           >
-            Send in Cantonese
+            Send in {dialectLabel}
           </button>
-          <button onClick={onCancel} className="mt-4 text-faint font-medium text-sm hover:text-muted-foreground">
+          <button
+            onClick={onCancel}
+            className="mt-4 text-faint font-medium text-sm hover:text-muted-foreground"
+          >
             Cancel
           </button>
         </motion.div>

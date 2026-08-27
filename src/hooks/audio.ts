@@ -41,6 +41,13 @@ export function playDataUrl(dataUrl: string): Promise<void> {
 export function useAudioRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  // Tail of the in-flight start chain. Overlapping starts must run one after
+  // the other: the "release the previous recorder" step below is synchronous
+  // and happens BEFORE getUserMedia resolves, so two concurrent calls would
+  // each see an empty ref, each create a recorder, and whichever resolved last
+  // would overwrite the other in mediaRecorderRef — leaving that one recording
+  // with nothing able to stop it (hot mic until reload).
+  const startChainRef = useRef<Promise<void>>(Promise.resolve());
 
   // Release the microphone if the component unmounts mid-recording
   useEffect(() => {
@@ -57,7 +64,7 @@ export function useAudioRecorder() {
     };
   }, []);
 
-  const startRecording = async (): Promise<void> => {
+  const beginRecording = async (): Promise<void> => {
     // Guard against re-entrant calls (e.g. a rapid double-tap firing both
     // touch and mouse events): stop and fully release any recorder that is
     // still active so its mic stream is never orphaned (mic light stuck on).
@@ -86,6 +93,14 @@ export function useAudioRecorder() {
     };
 
     mediaRecorder.start();
+  };
+
+  const startRecording = (): Promise<void> => {
+    const run = startChainRef.current.then(beginRecording);
+    // Settle-tolerant: a denied permission rejects `run`, and the chain must
+    // still advance for the next caller instead of deadlocking on it.
+    startChainRef.current = run.catch(() => {});
+    return run;
   };
 
   const stopRecording = (): Promise<Blob> => {

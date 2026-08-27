@@ -31,10 +31,22 @@ export interface CloudImportCounts {
   profile: number;
 }
 
+/**
+ * Imported counts plus sourceCounts: the total local row count per entity,
+ * independent of how many were already in the cloud. The caller needs this
+ * to distinguish "this device has no local data" from "this device's data
+ * is already synced" — both otherwise look identical (every imported count
+ * is 0). Additive over CloudImportCounts so existing imported-count fields
+ * are unchanged.
+ */
+export interface CloudImportResult extends CloudImportCounts {
+  sourceCounts: CloudImportCounts;
+}
+
 /** Called after each entity group finishes: (completed, total, label). */
 export type CloudImportProgress = (completed: number, total: number, label: string) => void;
 
-type Importer = (onProgress?: CloudImportProgress) => Promise<CloudImportCounts>;
+type Importer = (onProgress?: CloudImportProgress) => Promise<CloudImportResult>;
 
 function createDisabledImporter(): Importer {
   return () => Promise.reject(new Error("Cloud import is not available in this build."));
@@ -51,7 +63,8 @@ function createCloudImporter(): Importer {
     // skipped, so re-running the import never duplicates data.
     const phraseRepo = new CloudPhraseRepository();
     const cloudPhraseIds = new Set((await phraseRepo.getAll()).map((p) => p.id));
-    const newPhrases = (await db.phrases.toArray()).filter((p) => !cloudPhraseIds.has(p.id));
+    const localPhrases = await db.phrases.toArray();
+    const newPhrases = localPhrases.filter((p) => !cloudPhraseIds.has(p.id));
     if (newPhrases.length > 0) {
       // putMany is upsert-only (never prunes), so only the genuinely new
       // phrases need to be written — existing cloud rows are untouched.
@@ -65,9 +78,8 @@ function createCloudImporter(): Importer {
     // filtering is needed beyond the same idempotency check as above.
     const reviewStateRepo = new CloudReviewStateRepository();
     const cloudReviewPhraseIds = new Set((await reviewStateRepo.getAll()).map((s) => s.phraseId));
-    const newReviewStates = (await db.reviewStates.toArray()).filter(
-      (s) => !cloudReviewPhraseIds.has(s.phraseId)
-    );
+    const localReviewStates = await db.reviewStates.toArray();
+    const newReviewStates = localReviewStates.filter((s) => !cloudReviewPhraseIds.has(s.phraseId));
     if (newReviewStates.length > 0) {
       await reviewStateRepo.putMany(newReviewStates);
     }
@@ -75,7 +87,8 @@ function createCloudImporter(): Importer {
 
     const sessionRepo = new CloudConversationRepository();
     const cloudSessionIds = new Set((await sessionRepo.getAll()).map((s) => s.id));
-    const newSessions = (await db.sessions.toArray()).filter((s) => !cloudSessionIds.has(s.id));
+    const localSessions = await db.sessions.toArray();
+    const newSessions = localSessions.filter((s) => !cloudSessionIds.has(s.id));
     for (const session of newSessions) {
       await sessionRepo.addSession(session);
     }
@@ -83,7 +96,8 @@ function createCloudImporter(): Importer {
 
     const tagRepo = new CloudTagRepository();
     const cloudTagIds = new Set((await tagRepo.getAll()).map((t) => t.id));
-    const newTags = (await db.tags.toArray()).filter((t) => !cloudTagIds.has(t.id));
+    const localTags = await db.tags.toArray();
+    const newTags = localTags.filter((t) => !cloudTagIds.has(t.id));
     for (const tag of newTags) {
       await tagRepo.create(tag);
     }
@@ -91,7 +105,8 @@ function createCloudImporter(): Importer {
 
     const lessonRepo = new CloudConversationLessonRepository();
     const cloudLessonIds = new Set((await lessonRepo.getAll()).map((l) => l.id));
-    const newLessons = (await db.conversationLessons.toArray()).filter((l) => !cloudLessonIds.has(l.id));
+    const localLessons = await db.conversationLessons.toArray();
+    const newLessons = localLessons.filter((l) => !cloudLessonIds.has(l.id));
     for (const lesson of newLessons) {
       await lessonRepo.save(lesson);
     }
@@ -99,7 +114,8 @@ function createCloudImporter(): Importer {
 
     const progressRepo = new CloudLessonRepository();
     const cloudProgress = await progressRepo.getAllProgress();
-    const newProgress = (await db.lessonProgress.toArray()).filter((p) => !(p.lessonId in cloudProgress));
+    const localProgress = await db.lessonProgress.toArray();
+    const newProgress = localProgress.filter((p) => !(p.lessonId in cloudProgress));
     for (const progress of newProgress) {
       await progressRepo.updateProgress(progress);
     }
@@ -124,6 +140,15 @@ function createCloudImporter(): Importer {
       conversationLessons: newLessons.length,
       lessonProgress: newProgress.length,
       profile: importedProfile,
+      sourceCounts: {
+        phrases: localPhrases.length,
+        reviewStates: localReviewStates.length,
+        sessions: localSessions.length,
+        tags: localTags.length,
+        conversationLessons: localLessons.length,
+        lessonProgress: localProgress.length,
+        profile: localProfile ? 1 : 0,
+      },
     };
   };
 }
@@ -137,7 +162,8 @@ function createImporter(): Importer {
 
 /**
  * Import all local (IndexedDB) data into the signed-in user's cloud account.
- * One-way: local data is NOT deleted. Returns per-entity imported counts.
+ * One-way: local data is NOT deleted. Returns per-entity imported counts
+ * plus sourceCounts (total local rows per entity, imported or not).
  * Requires cloud auth to be configured and the user to be signed in.
  */
 export const importLocalDataToCloud: Importer = createImporter();
