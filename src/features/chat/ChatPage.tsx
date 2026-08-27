@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useProfile } from "../../app/context/ProfileProvider";
 import { useLibrary } from "../../app/context/LibraryProvider";
@@ -122,6 +122,13 @@ export function ChatPage() {
     chatEpochRef,
   });
 
+  // usePhraseSelection's long-press callback can fire up to 500ms after
+  // pointer-down (see useBubbleLongPress), so it reads this live rather than
+  // a pendingEnglish value snapshotted at pointer-down time — otherwise a
+  // transcript review that opens mid-press would go unnoticed.
+  const isTranscriptReviewOpenRef = useRef(pendingEnglish !== null);
+  isTranscriptReviewOpenRef.current = pendingEnglish !== null;
+
   const {
     listeningMode,
     isListening,
@@ -167,7 +174,13 @@ export function ChatPage() {
     handleBubblePointerMove,
     handleSaveSelectedPhrase,
     cancelPhraseSelection,
-  } = usePhraseSelection({ addPhrase, activeLanguageCode, userProfile, createTag });
+  } = usePhraseSelection({
+    addPhrase,
+    activeLanguageCode,
+    userProfile,
+    createTag,
+    isTranscriptReviewOpenRef,
+  });
 
   const {
     isSaveDialogOpen,
@@ -277,25 +290,23 @@ export function ChatPage() {
     discardChat(messages);
   };
 
-  // A new save dialog and a new phrase-selection sheet both share the
-  // transcript-review overlay's z-30, and paint underneath it (later JSX
-  // siblings win ties) — so opening either while it's up would be invisible,
-  // then surface unexpectedly once the overlay closed. Guarding the trigger
-  // here keeps them mutually exclusive without touching z-index.
-  const guardTranscriptReviewOpen = () => {
+  // A new save dialog shares the transcript-review overlay's z-30 and paints
+  // underneath it (later JSX siblings win ties) if opened while it's up.
+  // openSaveDialog is a single atomic click, so guarding it here at the
+  // trigger is sufficient — nothing can go stale between the check and the
+  // open the way it can for a long-press (see usePhraseSelection's own
+  // check, which the phrase-selection sheet needs instead — it fires up to
+  // 500ms later). toast.info, not .error: nothing failed, the action is
+  // just deferred until the review is done.
+  const blockedByTranscriptReview = () => {
     if (pendingEnglish === null) return false;
-    toast.error("Finish reviewing your transcript first.");
+    toast.info("Finish reviewing your transcript first.");
     return true;
   };
 
   const guardedOpenSaveDialog = () => {
-    if (guardTranscriptReviewOpen()) return;
+    if (blockedByTranscriptReview()) return;
     openSaveDialog();
-  };
-
-  const guardedBubblePointerDown = (e: ReactPointerEvent, msg: Message) => {
-    if (guardTranscriptReviewOpen()) return;
-    handleBubblePointerDown(e, msg);
   };
 
   const stageLabel = stage === "transcribing" ? "Listening..." : "Translating...";
@@ -345,7 +356,7 @@ export function ChatPage() {
           onReplay={replayPhrase}
           onReplaySlow={replayPhraseSlow}
           onUpdateMessage={handleUpdateMessage}
-          onBubblePointerDown={guardedBubblePointerDown}
+          onBubblePointerDown={handleBubblePointerDown}
           onBubblePointerMove={handleBubblePointerMove}
           onBubblePointerCancel={cancelBubbleLongPress}
           messagesEndRef={messagesEndRef}
@@ -416,12 +427,14 @@ export function ChatPage() {
 
       {/* Save partial phrase sheet */}
       <PhraseSaveSheet
-        // guardedBubblePointerDown only checks pendingEnglish at the START of
-        // a long-press; usePhraseSelection's own timer opens the sheet up to
-        // 500ms later, with no re-check there. Gating render here as well
-        // closes that gap unconditionally: the sheet can never paint behind
-        // the transcript-review overlay no matter when phraseSelectionMsg
-        // was set — it renders normally once pendingEnglish clears.
+        // usePhraseSelection's own long-press callback already checks
+        // pendingEnglish live (via isTranscriptReviewOpenRef) before opening
+        // a NEW selection, so this is defense-in-depth for a sheet that was
+        // ALREADY open: if a transcript review appears while the user is
+        // mid-edit here, the sheet hides — phraseSelectionMsg/Text and any
+        // tag picks are untouched, not cleared — and reappears once the
+        // review clears. A brief, accepted pause with no data loss, not a
+        // silent drop.
         isOpen={!!phraseSelectionMsg && pendingEnglish === null}
         phraseSelectionText={phraseSelectionText}
         setPhraseSelectionText={setPhraseSelectionText}

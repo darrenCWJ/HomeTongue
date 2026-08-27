@@ -22,6 +22,7 @@ const mockSetLatestSuggestions = vi.fn();
 const mockSetPendingEnglish = vi.fn();
 const mockHandleBubblePointerDown = vi.fn();
 const mockToastError = vi.fn();
+const mockToastInfo = vi.fn();
 
 let mockLanguageCode: string;
 let messages: Message[];
@@ -86,7 +87,11 @@ vi.mock("../../services/speechSampleService", () => ({
 }));
 
 vi.mock("sonner", () => ({
-  toast: { error: (...args: unknown[]) => mockToastError(...args), success: vi.fn(), info: vi.fn() },
+  toast: {
+    error: (...args: unknown[]) => mockToastError(...args),
+    success: vi.fn(),
+    info: (...args: unknown[]) => mockToastInfo(...args),
+  },
 }));
 
 // The flow hooks are stubbed so this file tests only ChatPage's reset wiring:
@@ -342,8 +347,20 @@ describe("ChatPage conversation reset", () => {
 // CHAT-07 — the save dialog and the phrase-selection sheet share the
 // transcript-review overlay's z-30, and paint underneath it (later JSX
 // siblings win ties). Opening either while the overlay is up used to happen
-// invisibly, then surface unexpectedly once the overlay closed. Both
-// triggers are now guarded on pendingEnglish === null.
+// invisibly, then surface unexpectedly once the overlay closed.
+//
+// Coordinator round-2 IMPORTANT #1 — the long-press guard used to live here
+// too, checked at pointer-down: it toasted (as an error) on every bubble
+// pointer-down while the overlay was open, including scroll drags and taps
+// that were never going to open anything, and left a race where
+// pendingEnglish turning true up to 500ms later (after that check already
+// passed) still let the sheet open. That guard now lives inside
+// usePhraseSelection's own long-press callback instead (see
+// usePhraseSelection.test.ts's "transcript-review guard" suite) — it only
+// fires once a real long-press has actually completed. ChatPage keeps only
+// the save-dialog guard, which is a single atomic click with no such
+// window, and the render gate below as defense-in-depth for a sheet that
+// was already open.
 describe("ChatPage transcript-review exclusivity (CHAT-07)", () => {
   function openPendingEnglishTranscript() {
     mockPendingEnglish = {
@@ -359,7 +376,8 @@ describe("ChatPage transcript-review exclusivity (CHAT-07)", () => {
     click("open save");
 
     expect(screen.queryByRole("button", { name: "confirm save" })).not.toBeInTheDocument();
-    expect(mockToastError).toHaveBeenCalledWith("Finish reviewing your transcript first.");
+    expect(mockToastInfo).toHaveBeenCalledWith("Finish reviewing your transcript first.");
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 
   test("opening the save dialog when nothing is pending proceeds as usual", () => {
@@ -368,37 +386,27 @@ describe("ChatPage transcript-review exclusivity (CHAT-07)", () => {
     click("open save");
 
     expect(screen.getByRole("button", { name: "confirm save" })).toBeInTheDocument();
-    expect(mockToastError).not.toHaveBeenCalled();
+    expect(mockToastInfo).not.toHaveBeenCalled();
   });
 
-  test("starting a long-press while a transcript is pending is ignored", () => {
-    openPendingEnglishTranscript();
+  test("the bubble pointer-down handler is passed through unwrapped", () => {
+    // usePhraseSelection's own handleBubblePointerDown does the transcript-
+    // review check now (at the moment a long-press actually completes, not
+    // at pointer-down) — ChatPage must not reintroduce a pointer-down-time
+    // wrapper around it.
     render(<ChatPage />);
-    const fakeEvent = {} as ReactPointerEvent;
 
-    act(() => capturedOnBubblePointerDown?.(fakeEvent, messages[0]));
-
-    expect(mockHandleBubblePointerDown).not.toHaveBeenCalled();
-    expect(mockToastError).toHaveBeenCalledWith("Finish reviewing your transcript first.");
+    expect(capturedOnBubblePointerDown).toBe(mockHandleBubblePointerDown);
   });
 
-  test("starting a long-press when nothing is pending proceeds as usual", () => {
-    render(<ChatPage />);
-    const fakeEvent = {} as ReactPointerEvent;
-
-    act(() => capturedOnBubblePointerDown?.(fakeEvent, messages[0]));
-
-    expect(mockHandleBubblePointerDown).toHaveBeenCalledWith(fakeEvent, messages[0]);
-    expect(mockToastError).not.toHaveBeenCalled();
-  });
-
-  // The pointer-down guard alone leaves a gap: usePhraseSelection's own
+  // The pointer-down guard alone would leave a gap: usePhraseSelection's own
   // long-press timer fires ~500ms after pointer-down, with no re-check at
   // that later moment. If pendingEnglish turns non-null anywhere in that
-  // window (an ordinary STT round trip), the guard at pointer-down already
-  // passed, so phraseSelectionMsg still gets set — this is that later
-  // moment, simulated directly. The sheet itself must not render while
-  // pendingEnglish is truthy, no matter when phraseSelectionMsg was set.
+  // window (an ordinary STT round trip), phraseSelectionMsg could still get
+  // set — this simulates that later moment directly. The sheet itself must
+  // not render while pendingEnglish is truthy, no matter when
+  // phraseSelectionMsg was set (defense-in-depth alongside
+  // usePhraseSelection's own live check).
   test("the sheet does not render if pendingEnglish turns truthy after the long-press already started", () => {
     mockPendingEnglish = {
       text: "one kopi please",

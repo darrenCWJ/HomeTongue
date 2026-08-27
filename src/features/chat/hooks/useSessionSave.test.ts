@@ -150,46 +150,60 @@ describe("useSessionSave dialog-open reset and tag dedupe (CHAT-12)", () => {
 // same try/catch as the save itself, so a throwing reset was caught as if
 // the save had failed: it toasted "Failed to save session" over a save that
 // actually succeeded, and re-ran the already-done dialog close.
+//
+// Coordinator round-2 MINOR — moving the call outside confirmSave's own
+// try/catch meant a throwing onAfterSave now escaped confirmSave itself as
+// a rejection, and confirmSave's only caller is a bare onClick (no one
+// awaits or catches it) — an unhandled rejection. It is now wrapped in its
+// own try/catch that logs instead: the save already succeeded, so there is
+// nothing to tell the user beyond what the success toast already said.
 describe("useSessionSave onAfterSave failure isolation (folded item A)", () => {
-  /** confirmSave with a throwing onAfterSave, without letting the throw escape act(). */
-  async function confirmSaveCatchingThrow(result: { current: ReturnType<typeof useSessionSave> }) {
-    let caught: unknown;
-    await act(async () => {
-      try {
-        await result.current.confirmSave();
-      } catch (err) {
-        caught = err;
-      }
-    });
-    return caught;
-  }
-
   test("a throwing reset does not trigger the failure toast for a save that succeeded", async () => {
     const { result, onAfterSave } = setup();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     onAfterSave.mockImplementation(() => {
       throw new Error("reset blew up");
     });
     openWithTitle(result);
 
-    const caught = await confirmSaveCatchingThrow(result);
+    await act(async () => await result.current.confirmSave());
 
-    expect(caught).toBeInstanceOf(Error);
     expect(mockToastSuccess).toHaveBeenCalledWith("Session saved!");
     expect(mockToastError).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  test("a throwing reset is logged instead of escaping confirmSave as an unhandled rejection", async () => {
+    const { result, onAfterSave } = setup();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const resetError = new Error("reset blew up");
+    onAfterSave.mockImplementation(() => {
+      throw resetError;
+    });
+    openWithTitle(result);
+
+    // Must not reject — confirmSave's only caller is a bare onClick with no
+    // catch of its own.
+    await expect(act(async () => await result.current.confirmSave())).resolves.not.toThrow();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(String), resetError);
+    consoleErrorSpy.mockRestore();
   });
 
   test("a throwing reset still leaves the dialog closed and isSaving settled from the successful save", async () => {
     const { result, onAfterSave } = setup();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     onAfterSave.mockImplementation(() => {
       throw new Error("reset blew up");
     });
     openWithTitle(result);
 
-    await confirmSaveCatchingThrow(result);
+    await act(async () => await result.current.confirmSave());
 
     // The save's own try/catch/finally already ran and settled these before
     // onAfterSave was ever called — its throw must not re-run or undo them.
     expect(result.current.isSaveDialogOpen).toBe(false);
     expect(result.current.isSaving).toBe(false);
+    consoleErrorSpy.mockRestore();
   });
 });

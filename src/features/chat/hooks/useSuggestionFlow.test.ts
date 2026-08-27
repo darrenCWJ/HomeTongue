@@ -46,6 +46,15 @@ const CHIP: Phrase = {
   context: "polite",
 };
 
+const CHIP_2: Phrase = {
+  id: "suggestion-2",
+  original: "you're welcome",
+  dialect: "唔使客氣",
+  pronunciation: "m4 sai2 haak3 hei3",
+  isBookmarked: false,
+  context: "polite",
+};
+
 function setup() {
   const removeMessage = vi.fn();
   const addBotSuggestions = vi.fn();
@@ -128,26 +137,38 @@ describe("useSuggestionFlow stale-chip clearing (CHAT-13)", () => {
     expect(result.current.latestSuggestions).toEqual([]);
   });
 
-  test("a superseded fetch's late resolution does not resurrect the cleared chips", async () => {
+  // Coordinator round-2 MINOR — the second fetch here used to resolve []
+  // (empty), so the final assertion held whether or not the generation
+  // guard actually worked: latestSuggestions was already [] from the
+  // synchronous clear and nothing in the test could ever have moved it,
+  // since chips.length === 0 short-circuits before the guard is even
+  // relevant. The second fetch now resolves non-empty (CHIP_2) so its own
+  // chips visibly land first, and the stale first fetch resolves non-empty
+  // too (CHIP) — only the generation guard, not the empty-result early
+  // return, can be responsible for the first fetch's late chips never
+  // overwriting the second fetch's already-landed ones.
+  test("a superseded fetch's late resolution does not overwrite the fetch that replaced it", async () => {
     const { result } = setup();
     const firstFetch = deferred<Phrase[]>();
     mockGetSuggestions.mockReturnValueOnce(firstFetch.promise);
     act(() => result.current.fetchSuggestions("first message"));
 
-    mockGetSuggestions.mockResolvedValueOnce([]);
+    mockGetSuggestions.mockResolvedValueOnce([CHIP_2]);
     await act(async () => {
       result.current.fetchSuggestions("second message");
       await flush();
     });
-    expect(result.current.latestSuggestions).toEqual([]);
+    // The second fetch's own chips must have landed — otherwise the next
+    // assertion (still CHIP_2 after the stale resolve) would hold
+    // vacuously regardless of whether the generation guard does anything.
+    expect(result.current.latestSuggestions).toEqual([CHIP_2]);
 
-    // The stale first fetch finally resolves after being superseded — the
-    // existing generation guard must still drop it.
+    // The stale first fetch finally resolves after being superseded.
     await act(async () => {
       firstFetch.resolve([CHIP]);
       await flush();
     });
 
-    expect(result.current.latestSuggestions).toEqual([]);
+    expect(result.current.latestSuggestions).toEqual([CHIP_2]);
   });
 });

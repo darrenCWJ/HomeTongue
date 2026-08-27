@@ -26,8 +26,10 @@ vi.mock("../../../utils/id", () => ({
   newId: () => `phrase-${++idCounter}`,
 }));
 
+const mockToastInfo = vi.fn();
+
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+  toast: { error: vi.fn(), success: vi.fn(), info: (...args: unknown[]) => mockToastInfo(...args) },
 }));
 
 // The long-press plumbing is a pointer/timer concern of its own; this file
@@ -77,10 +79,21 @@ const NEW_TAG: Tag = { id: "pt1", name: "Greetings", type: "phrase", createdAt: 
 function setup() {
   const addPhrase = vi.fn<(phrase: Phrase) => void>();
   const createTag = vi.fn(() => NEW_TAG);
+  // A plain ref, not state: usePhraseSelection reads it live inside the
+  // long-press callback, which can fire up to 500ms after pointer-down —
+  // tests mutate `.current` directly to simulate the value changing during
+  // that window, the same way ChatPage keeps it in sync every render.
+  const isTranscriptReviewOpenRef = { current: false };
   const { result } = renderHook(() =>
-    usePhraseSelection({ addPhrase, activeLanguageCode: "yue-HK", userProfile: null, createTag })
+    usePhraseSelection({
+      addPhrase,
+      activeLanguageCode: "yue-HK",
+      userProfile: null,
+      createTag,
+      isTranscriptReviewOpenRef,
+    })
   );
-  return { result, addPhrase, createTag };
+  return { result, addPhrase, createTag, isTranscriptReviewOpenRef };
 }
 
 /** Open the sheet on the bot bubble with the given (possibly edited) selection. */
@@ -298,5 +311,97 @@ describe("usePhraseSelection tag commit at save time (CHAT-11)", () => {
 
     expect(createTag).not.toHaveBeenCalled();
     expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: ["existing-tag"] }));
+  });
+});
+
+// Coordinator round-2 IMPORTANT #1 — the transcript-review guard used to
+// live in ChatPage, checked at pointer-down: it toasted on every bubble
+// touch while the overlay was open, including scroll drags and taps that
+// were never going to open anything, and left a window where pendingEnglish
+// turning true up to 500ms later (after that check already passed) still
+// let the sheet open behind the overlay. It is now checked here instead,
+// inside the long-press callback — which useBubbleLongPress already gates
+// on a genuinely completed long-press with non-empty preText, i.e. only
+// fires at the moment a selection would actually open — so a mid-scroll or
+// short-tap pointer-down never reaches this check at all, and no toast.
+describe("usePhraseSelection transcript-review guard (coordinator round-2 IMPORTANT #1)", () => {
+  test("a completed long-press while the transcript review is open does not open the sheet", () => {
+    const { result, isTranscriptReviewOpenRef } = setup();
+    isTranscriptReviewOpenRef.current = true;
+
+    act(() => openSheet(BOT_MESSAGE, "早晨"));
+
+    expect(result.current.phraseSelectionMsg).toBeNull();
+    expect(mockToastInfo).toHaveBeenCalledWith("Finish reviewing your transcript first.");
+  });
+
+  test("a completed long-press once the transcript review has cleared opens normally", () => {
+    const { result, isTranscriptReviewOpenRef } = setup();
+    isTranscriptReviewOpenRef.current = false;
+
+    act(() => openSheet(BOT_MESSAGE, "早晨"));
+
+    expect(result.current.phraseSelectionMsg).toBe(BOT_MESSAGE);
+    expect(mockToastInfo).not.toHaveBeenCalled();
+  });
+});
+
+// Coordinator round-2 IMPORTANT #3 — CHAT-11's save-time tag commit turned a
+// silent DROP into a silent MIS-ATTACH: the sheet has no backdrop, so
+// bubbles stay live, and phraseTagSelection/newTagInput/isCreatingPhraseTag
+// used to survive a long-press on a DIFFERENT bubble. A half-typed (or
+// already-selected) tag left over from bubble A's abandoned session would
+// then commit onto — or attach to — bubble B's save. Mirrors CHAT-12's
+// openSaveDialog: a new long-press selection now resets all three, the same
+// way useSessionSave resets its own tag-session fields on every (re)open
+// rather than only on an explicit Cancel.
+describe("usePhraseSelection tag residue reset on selection switch (coordinator round-2 IMPORTANT #3)", () => {
+  test("a long-press on a different bubble clears a half-typed tag left over from the previous selection", async () => {
+    const { result, addPhrase, createTag } = setup();
+    openWith(result); // opens on BOT_MESSAGE (A)
+    act(() => result.current.setIsCreatingPhraseTag(true));
+    act(() => result.current.setNewTagInput("A's tag"));
+
+    // Long-press a DIFFERENT bubble (B) without confirming A's tag or saving.
+    act(() => openSheet(OTHER_BOT_MESSAGE, "食咗飯未"));
+
+    expect(result.current.phraseSelectionMsg).toBe(OTHER_BOT_MESSAGE);
+    expect(result.current.isCreatingPhraseTag).toBe(false);
+    expect(result.current.newTagInput).toBe("");
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(createTag).not.toHaveBeenCalled();
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+  });
+
+  test("a long-press on a different bubble also clears an already-selected tag, not just a half-typed one", async () => {
+    const { result, addPhrase } = setup();
+    openWith(result);
+    act(() => result.current.setPhraseTagSelection(["a-only-tag"]));
+
+    act(() => openSheet(OTHER_BOT_MESSAGE, "食咗飯未"));
+
+    expect(result.current.phraseTagSelection).toEqual([]);
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+  });
+
+  test("re-opening the same bubble also resets tag state — the reset does not require an explicit Cancel", () => {
+    const { result } = setup();
+    openWith(result);
+    act(() => result.current.setNewTagInput("half-typed"));
+    act(() => result.current.setIsCreatingPhraseTag(true));
+
+    act(() => openSheet(BOT_MESSAGE, "早晨"));
+
+    expect(result.current.isCreatingPhraseTag).toBe(false);
+    expect(result.current.newTagInput).toBe("");
   });
 });

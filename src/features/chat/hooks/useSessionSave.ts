@@ -68,12 +68,20 @@ export function useSessionSave({ messages, saveSession, createTag, onAfterSave }
       setIsSaving(false);
     }
     // Outside the try/catch: a throwing reset must not be caught as if this
-    // save had failed (wrong toast) or re-run the close it already did.
+    // save had failed (wrong toast) or re-run the close it already did. Its
+    // own try/catch keeps a throw from escaping confirmSave as a rejection —
+    // the only caller is a bare onClick, so nothing would ever catch it —
+    // and logs instead of toasting: the save already succeeded, so there is
+    // nothing new to tell the user.
     if (didSave) {
-      // A save ends the conversation exactly like New Chat does, so it must
-      // run the same reset — otherwise the append window, chips and
-      // prefetched audio of the saved conversation leak into the next one.
-      onAfterSave?.();
+      try {
+        // A save ends the conversation exactly like New Chat does, so it
+        // must run the same reset — otherwise the append window, chips and
+        // prefetched audio of the saved conversation leak into the next one.
+        onAfterSave?.();
+      } catch (err) {
+        console.error("useSessionSave: onAfterSave threw after a successful save", err);
+      }
     }
   };
 

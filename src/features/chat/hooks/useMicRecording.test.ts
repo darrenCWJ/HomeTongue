@@ -500,6 +500,79 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     expect(result.current.listeningMode).toBe("cantonese");
     expect(result.current.isListening).toBe(true);
   });
+
+  // Coordinator round-2 IMPORTANT — the same-mode late-GRANT case is worse
+  // than the denial one above: audio.ts's useAudioRecorder has a single
+  // shared mediaRecorderRef, and startRecording() unconditionally makes
+  // whichever call's getUserMedia() resolves LAST own it (see audio.ts:64-73
+  // — its own "stop the existing recorder" guard only runs synchronously
+  // *before* its own getUserMedia() await, so it never sees a recorder a
+  // same-mode attempt 2 created *after* attempt 1 started awaiting). So by
+  // the time attempt 1's stale prompt is finally granted here, the shared
+  // recorder already belongs to attempt 2 — unconditionally calling
+  // stopRecording() in the discard path would tear that down: attempt 2's
+  // UI would stay "listening" with nothing actually recording, and its
+  // eventual pointer-up would hit audio.ts's "Recording already stopped"
+  // rejection. audio.ts itself is out of scope, so the in-fence fix is to
+  // recognize that recordingModeRef.current !== null means a newer attempt
+  // now owns whatever startRecording() last produced, and skip the
+  // recorder-tearing-down stopRecording() call entirely in that case —
+  // discarding only touches recording state when nothing else owns it.
+  test("a late permission GRANT for a released same-mode attempt does not tear down the one that replaced it", async () => {
+    const { result } = setup();
+    const firstPermission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(firstPermission.promise);
+
+    let firstPending!: Promise<void>;
+    act(() => {
+      firstPending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+    });
+
+    // Released before the first prompt answers.
+    await act(async () => {
+      result.current.handleMicPointerLeave("cantonese");
+      await flush();
+    });
+
+    // Attempt 2, same mode, arms first (resolves immediately).
+    mockStartRecording.mockResolvedValueOnce(undefined);
+    let secondPending!: Promise<void>;
+    act(() => {
+      secondPending = result.current.handleMicPointerDown(
+        result.current.startListeningCantonese,
+        "cantonese"
+      );
+    });
+    await act(async () => {
+      await secondPending;
+      await flush();
+    });
+    expect(result.current.listeningMode).toBe("cantonese");
+
+    // Isolate the assertion below to what happens from here — an earlier
+    // stopRecording() (the release's own "too short" cleanup) already fired.
+    mockStopRecording.mockClear();
+
+    // Attempt 1's stale prompt is finally granted — after attempt 2 already
+    // owns the (single, shared) recorder.
+    await act(async () => {
+      firstPermission.resolve();
+      await firstPending;
+      await flush();
+    });
+
+    // The discard must not tear down the recorder attempt 2 owns.
+    expect(mockStopRecording).not.toHaveBeenCalled();
+    expect(result.current.listeningMode).toBe("cantonese");
+
+    // Attempt 2's own lifecycle still completes the turn normally.
+    now += 1500;
+    await act(async () => {
+      result.current.handleMicPointerUp("cantonese");
+      await flush();
+    });
+    expect(mockStopRecording).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("useMicRecording append merge (CHAT-06)", () => {
