@@ -268,6 +268,25 @@ describe("usePhraseSelection tag commit at save time (CHAT-11)", () => {
     expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: ["existing-tag", "pt1"] }));
   });
 
+  // createTag dedupes by name+type and returns the *existing* tag when the
+  // typed name already matches one already selected — e.g. the user tapped
+  // the "Greetings" chip, then also typed "Greetings" into "New" and hit
+  // Save. Appending unconditionally would duplicate that id in phrase.tags.
+  test("a new-tag name that matches an already-selected tag does not duplicate its id", async () => {
+    const { result, addPhrase, createTag } = setup();
+    createTag.mockReturnValue({ ...NEW_TAG, id: "existing-tag" });
+    openWith(result);
+    act(() => result.current.setPhraseTagSelection(["existing-tag"]));
+    act(() => result.current.setIsCreatingPhraseTag(true));
+    act(() => result.current.setNewTagInput("Greetings"));
+
+    await act(async () => {
+      await result.current.handleSaveSelectedPhrase();
+    });
+
+    expect(addPhrase).toHaveBeenCalledWith(expect.objectContaining({ tags: ["existing-tag"] }));
+  });
+
   test("not creating a tag leaves the existing selection untouched", async () => {
     const { result, addPhrase, createTag } = setup();
     openWith(result);

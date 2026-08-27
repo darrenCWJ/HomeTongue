@@ -89,6 +89,13 @@ export function useMicRecording({
   const recordingStartRef = useRef<number | null>(null);
   const recordingTriggerRef = useRef<"tap" | "hold" | null>(null);
   const recordingModeRef = useRef<"cantonese" | "english" | null>(null);
+  // Bumped at the start of every startListening call. recordingModeRef alone
+  // answers "which mode owns the refs right now" but not "is this the call
+  // that set them" — a released arm can be re-armed in the SAME mode, and a
+  // stale rejection from the first attempt would then still match on mode.
+  // The token identifies the specific call, so a superseded one (denied or
+  // granted) discards instead of touching state a newer attempt now owns.
+  const startTokenRef = useRef(0);
 
   const handleMicPointerDown = async (startFn: () => Promise<void>, mode: "cantonese" | "english") => {
     if (isListening || recordingModeRef.current) {
@@ -121,13 +128,18 @@ export function useMicRecording({
    * Arm the recorder for one mode. The browser's permission prompt can stay up
    * for as long as the user ignores it, and the recording can be released
    * meanwhile — by a pointer-up, or by the dialect-switch effect below, which
-   * clears recordingModeRef. Re-check ownership after the await and throw the
-   * stream away rather than arming a recording whose stop control has gone.
+   * clears recordingModeRef, then possibly re-armed by a new call in the same
+   * or a different mode. Re-check ownership after the await (mode still
+   * matches AND no newer call has superseded this one) and throw the stream
+   * away, or skip clearing state a newer attempt now owns, rather than acting
+   * on a recording whose stop control has gone or been handed elsewhere.
    */
   const startListening = async (mode: "cantonese" | "english") => {
+    const token = ++startTokenRef.current;
+    const isCurrentAttempt = () => recordingModeRef.current === mode && startTokenRef.current === token;
     try {
       await startRecording();
-      if (recordingModeRef.current !== mode) {
+      if (!isCurrentAttempt()) {
         stopRecording().catch(() => {});
         return;
       }
@@ -136,12 +148,10 @@ export function useMicRecording({
       if (mode === "english") setLatestSuggestions([]);
       setListeningMode(mode);
     } catch {
-      // Ownership may already belong to a different arm by the time a stale
-      // permission prompt answers (released by a pointer-up/leave or the
-      // dialect-switch effect, then re-armed by a new recording) — only
-      // clear the refs if this call still owns them, so a late denial can't
-      // wipe out a different arm's in-progress recording.
-      if (recordingModeRef.current === mode) {
+      // Only clear the refs if this call is still the current attempt — a
+      // stale rejection must not wipe out a different (or same-mode,
+      // released-then-re-armed) attempt that has since taken ownership.
+      if (isCurrentAttempt()) {
         recordingStartRef.current = null;
         recordingModeRef.current = null;
       }

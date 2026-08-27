@@ -446,6 +446,60 @@ describe("useMicRecording dialect switch (CHAT-01)", () => {
     });
     expect(result.current.isTapMode).toBe(true);
   });
+
+  // Reviewer follow-up on folded item C — mode-equality alone cannot tell a
+  // released-then-re-armed SAME-mode attempt apart from the stale one it
+  // replaced (both see recordingModeRef.current === mode at the time the
+  // stale one settles). A monotonic per-attempt token closes this, since it
+  // identifies the specific call rather than just the mode string.
+  test("a late permission denial for a released same-mode attempt does not corrupt the one that replaced it", async () => {
+    const { result } = setup();
+    const deniedPermission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(deniedPermission.promise);
+
+    let firstPending!: Promise<void>;
+    act(() => {
+      firstPending = result.current.handleMicPointerDown(result.current.startListeningCantonese, "cantonese");
+    });
+
+    // Released before the first prompt answers — same release mechanism as
+    // the cross-mode test above.
+    await act(async () => {
+      result.current.handleMicPointerLeave("cantonese");
+      await flush();
+    });
+
+    // Pressed again in the SAME mode — ownership was released, so the
+    // reentry guard sees this as a brand new attempt.
+    const grantedPermission = deferred<void>();
+    mockStartRecording.mockReturnValueOnce(grantedPermission.promise);
+    let secondPending!: Promise<void>;
+    act(() => {
+      secondPending = result.current.handleMicPointerDown(
+        result.current.startListeningCantonese,
+        "cantonese"
+      );
+    });
+
+    // The stale first prompt finally comes back denied. recordingModeRef
+    // still reads "cantonese" here — the second attempt set it too — so a
+    // mode-only ownership check cannot distinguish the two calls.
+    await act(async () => {
+      deniedPermission.reject(new Error("denied"));
+      await firstPending;
+      await flush();
+    });
+
+    // The second attempt's prompt is then granted — it must still arm.
+    await act(async () => {
+      grantedPermission.resolve();
+      await secondPending;
+      await flush();
+    });
+
+    expect(result.current.listeningMode).toBe("cantonese");
+    expect(result.current.isListening).toBe(true);
+  });
 });
 
 describe("useMicRecording append merge (CHAT-06)", () => {

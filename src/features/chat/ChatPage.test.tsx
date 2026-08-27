@@ -31,6 +31,9 @@ let chatEpochRef: { current: number } | undefined;
 let setStage: (stage: "transcribing" | "translating" | null) => void;
 // CHAT-07: null except when a test opens the transcript-review overlay.
 let mockPendingEnglish: { text: string; resultPromise: Promise<PreparedTranslation> } | null;
+// CHAT-07 TOCTOU: null except when a test simulates the long-press timer
+// having already fired (independently of when the guard last checked).
+let mockPhraseSelectionMsg: Message | null;
 let capturedOnBubblePointerDown: ((e: ReactPointerEvent, msg: Message) => void) | undefined;
 
 vi.mock("../../app/context/ProfileProvider", () => ({
@@ -152,7 +155,7 @@ vi.mock("./hooks/useMicRecording", () => ({
 
 vi.mock("./hooks/usePhraseSelection", () => ({
   usePhraseSelection: () => ({
-    phraseSelectionMsg: null,
+    phraseSelectionMsg: mockPhraseSelectionMsg,
     phraseSelectionText: "",
     setPhraseSelectionText: vi.fn(),
     phraseTagSelection: [],
@@ -209,7 +212,9 @@ vi.mock("./components/ActionBar", () => ({ ActionBar: () => <div>action bar</div
 vi.mock("./components/TypingOverlay", () => ({ TypingOverlay: () => null }));
 vi.mock("./components/PersonaSheet", () => ({ PersonaSheet: () => null }));
 vi.mock("./components/DialectSheet", () => ({ DialectSheet: () => null }));
-vi.mock("./components/PhraseSaveSheet", () => ({ PhraseSaveSheet: () => null }));
+vi.mock("./components/PhraseSaveSheet", () => ({
+  PhraseSaveSheet: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>phrase save sheet open</div> : null),
+}));
 vi.mock("./components/PendingEnglishOverlay", () => ({ PendingEnglishOverlay: () => null }));
 
 const RECORD: RecordRef = {
@@ -251,6 +256,7 @@ beforeEach(() => {
   // reply-flow stub re-captures the real ones on the first render.
   lastRecordRef = { current: null };
   mockPendingEnglish = null;
+  mockPhraseSelectionMsg = null;
   capturedOnBubblePointerDown = undefined;
 });
 
@@ -384,5 +390,30 @@ describe("ChatPage transcript-review exclusivity (CHAT-07)", () => {
 
     expect(mockHandleBubblePointerDown).toHaveBeenCalledWith(fakeEvent, messages[0]);
     expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  // The pointer-down guard alone leaves a gap: usePhraseSelection's own
+  // long-press timer fires ~500ms after pointer-down, with no re-check at
+  // that later moment. If pendingEnglish turns non-null anywhere in that
+  // window (an ordinary STT round trip), the guard at pointer-down already
+  // passed, so phraseSelectionMsg still gets set — this is that later
+  // moment, simulated directly. The sheet itself must not render while
+  // pendingEnglish is truthy, no matter when phraseSelectionMsg was set.
+  test("the sheet does not render if pendingEnglish turns truthy after the long-press already started", () => {
+    mockPendingEnglish = {
+      text: "one kopi please",
+      resultPromise: new Promise<PreparedTranslation>(() => {}),
+    };
+    mockPhraseSelectionMsg = messages[0];
+    render(<ChatPage />);
+
+    expect(screen.queryByText("phrase save sheet open")).not.toBeInTheDocument();
+  });
+
+  test("the sheet renders normally once nothing is pending", () => {
+    mockPhraseSelectionMsg = messages[0];
+    render(<ChatPage />);
+
+    expect(screen.getByText("phrase save sheet open")).toBeInTheDocument();
   });
 });

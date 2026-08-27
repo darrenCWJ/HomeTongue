@@ -416,7 +416,13 @@ export function ChatPage() {
 
       {/* Save partial phrase sheet */}
       <PhraseSaveSheet
-        isOpen={!!phraseSelectionMsg}
+        // guardedBubblePointerDown only checks pendingEnglish at the START of
+        // a long-press; usePhraseSelection's own timer opens the sheet up to
+        // 500ms later, with no re-check there. Gating render here as well
+        // closes that gap unconditionally: the sheet can never paint behind
+        // the transcript-review overlay no matter when phraseSelectionMsg
+        // was set — it renders normally once pendingEnglish clears.
+        isOpen={!!phraseSelectionMsg && pendingEnglish === null}
         phraseSelectionText={phraseSelectionText}
         setPhraseSelectionText={setPhraseSelectionText}
         phraseTags={phraseTags}

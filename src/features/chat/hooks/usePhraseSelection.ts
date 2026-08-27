@@ -62,11 +62,13 @@ export function usePhraseSelection({
     setIsSavingPhrase(true);
     // Commit a half-typed new tag at save time — exactly like
     // useSessionSave.confirmSave — so tapping Save instead of Enter/the tag's
-    // own check button never silently drops it.
+    // own check button never silently drops it. createTag dedupes by
+    // name+type and returns the existing tag when the typed name matches one
+    // already selected, so the appended id is deduped too.
     let finalTags = phraseTagSelection;
     if (isCreatingPhraseTag && newTagInput.trim()) {
       const tag = createTag(newTagInput.trim(), "phrase");
-      finalTags = [...phraseTagSelection, tag.id];
+      finalTags = [...new Set([...phraseTagSelection, tag.id])];
       setIsCreatingPhraseTag(false);
       setNewTagInput("");
     }
