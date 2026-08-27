@@ -239,7 +239,10 @@ export function OnboardingPage() {
                           <div
                             className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${selected ? "bg-brand-blue" : "bg-secondary"}`}
                           >
-                            <Volume2 size={16} className={selected ? "text-white" : "text-muted-foreground"} />
+                            <Volume2
+                              size={16}
+                              className={selected ? "text-white" : "text-muted-foreground"}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
