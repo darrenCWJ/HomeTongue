@@ -94,7 +94,11 @@ export function OnboardingPage() {
             autoPlay
             playsInline
             onEnded={handleFinish}
-          />
+          >
+            {/* intro.mp4 is intentionally silent (text-on-screen promo); the
+                track tells caption users there is no audio to miss. */}
+            <track kind="captions" src="/intro.en.vtt" srcLang="en" label="English" default />
+          </video>
         </div>
         <div className="px-6 pb-8 pt-4">
           <button

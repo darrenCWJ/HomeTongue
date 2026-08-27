@@ -1,0 +1,12 @@
+WEBVTT
+
+NOTE
+intro.mp4 is a silent promo video: its AAC audio track contains only
+digital silence (verified 2026-08-28 — every decoded sample is zero), and
+all messaging is burned into the video frames as on-screen text. There is
+no narration or music to transcribe. This track exists so caption users
+know they are not missing any audio. If the video ever gains real
+narration, replace this file with actual captions.
+
+00:00:00.000 --> 00:00:05.000
+[No audio]
